@@ -1,0 +1,14 @@
+# The dev machine is Windows; CI and the VM are Linux. Normalize to LF so shell
+# scripts, the Makefile and Docker entrypoints stay executable on the server.
+* text=auto eol=lf
+
+*.sh      text eol=lf
+*.mjs     text eol=lf
+Makefile  text eol=lf
+*.ps1     text eol=crlf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.lottie binary
+*.keystore binary

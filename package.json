@@ -1,0 +1,19 @@
+{
+  "name": "pawlaris",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Self-hosted, zero-cost pet care for one family. See spec/ before writing code.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "verify:list": "node scripts/verify.mjs --list",
+    "lint": "node scripts/verify.mjs --group lint",
+    "typecheck": "node scripts/verify.mjs --group typecheck",
+    "test": "node scripts/verify.mjs --group test",
+    "parity": "node scripts/verify.mjs --group parity",
+    "contract-check": "node scripts/verify.mjs --only contract-check",
+    "security": "node scripts/verify.mjs --group security"
+  }
+}

@@ -1,0 +1,40 @@
+# deps
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.py[cod]
+
+# build
+dist/
+build/
+.expo/
+android/
+ios/
+*.apk
+*.aab
+
+# env & secrets  (P1: never commit credentials)
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+backups/
+*.dump
+*.dump.age
+
+# tooling caches
+.cache/
+coverage/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.tsbuildinfo
+
+# os / editor
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

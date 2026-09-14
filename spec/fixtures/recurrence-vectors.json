@@ -1,0 +1,142 @@
+{
+  "$comment": "SEED. Task P1-1 expands this to the full coverage list in 07-test-harness.md (>=30 vectors). Both the TypeScript and Python engines read THIS file. Neither may carry its own expectations — this is the shared truth for `make parity` (RC-1).",
+  "version": 1,
+  "vectors": [
+    {
+      "name": "daily, every 2 days, across a month boundary",
+      "recurrence": { "freq": "daily", "interval": 2 },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-01-28",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-01-28",
+      "to": "2026-02-06",
+      "expect": ["2026-01-28", "2026-01-30", "2026-02-01", "2026-02-03", "2026-02-05"]
+    },
+    {
+      "name": "twice daily produces datetime keys (R3.8)",
+      "recurrence": { "freq": "daily", "interval": 1 },
+      "times_of_day": ["08:00", "20:00"],
+      "starts_on": "2026-03-01",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-03-01",
+      "to": "2026-03-02",
+      "expect": [
+        "2026-03-01T08:00", "2026-03-01T20:00",
+        "2026-03-02T08:00", "2026-03-02T20:00"
+      ]
+    },
+    {
+      "name": "weekly on Mon/Wed/Fri",
+      "recurrence": { "freq": "weekly", "interval": 1, "byday": ["MO", "WE", "FR"] },
+      "times_of_day": ["07:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "expect": ["2026-09-14", "2026-09-16", "2026-09-18"]
+    },
+    {
+      "name": "monthly bymonthday 31 SKIPS 30-day months (must not clamp to the 30th)",
+      "recurrence": { "freq": "monthly", "interval": 1, "bymonthday": [31] },
+      "times_of_day": ["10:00"],
+      "starts_on": "2026-01-01",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-03-01",
+      "to": "2026-07-31",
+      "expect": ["2026-03-31", "2026-05-31", "2026-07-31"]
+    },
+    {
+      "name": "leap day is produced in a leap year",
+      "recurrence": { "freq": "monthly", "interval": 1, "bymonthday": [29] },
+      "times_of_day": ["09:00"],
+      "starts_on": "2028-01-01",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2028-02-01",
+      "to": "2028-02-29",
+      "expect": ["2028-02-29"]
+    },
+    {
+      "name": "ends_on is inclusive",
+      "recurrence": { "freq": "daily", "interval": 1 },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": "2026-09-16",
+      "tz": "America/Sao_Paulo",
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "expect": ["2026-09-14", "2026-09-15", "2026-09-16"]
+    },
+    {
+      "name": "range begins mid-interval — phase is anchored to starts_on, not to `from`",
+      "recurrence": { "freq": "daily", "interval": 3 },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-01",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-09-10",
+      "to": "2026-09-20",
+      "expect": ["2026-09-10", "2026-09-13", "2026-09-16", "2026-09-19"]
+    },
+    {
+      "name": "once, inside the range",
+      "recurrence": { "freq": "once", "date": "2026-10-03" },
+      "times_of_day": ["14:30"],
+      "starts_on": "2026-10-03",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-10-01",
+      "to": "2026-10-31",
+      "expect": ["2026-10-03"]
+    },
+    {
+      "name": "once, outside the range, yields nothing",
+      "recurrence": { "freq": "once", "date": "2026-10-03" },
+      "times_of_day": ["14:30"],
+      "starts_on": "2026-10-03",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-11-01",
+      "to": "2026-11-30",
+      "expect": []
+    },
+    {
+      "name": "DST spring-forward — America/New_York, 2026-03-08. A-23: proves the engine is not accidentally-correct in a DST-free country.",
+      "recurrence": { "freq": "daily", "interval": 1 },
+      "times_of_day": ["02:30"],
+      "starts_on": "2026-03-06",
+      "ends_on": null,
+      "tz": "America/New_York",
+      "from": "2026-03-06",
+      "to": "2026-03-10",
+      "expect": ["2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10"],
+      "$note": "02:30 does not exist on 2026-03-08 in New York. The occurrence KEY is a local-date label and must still be produced exactly once; resolving the wall-clock instant is the notification layer's job, not the recurrence engine's. Both implementations must agree on this."
+    },
+    {
+      "name": "DST fall-back — America/New_York, 2026-11-01. The repeated hour must not duplicate the occurrence.",
+      "recurrence": { "freq": "daily", "interval": 1 },
+      "times_of_day": ["01:30"],
+      "starts_on": "2026-10-30",
+      "ends_on": null,
+      "tz": "America/New_York",
+      "from": "2026-10-30",
+      "to": "2026-11-02",
+      "expect": ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]
+    },
+    {
+      "name": "empty range yields nothing",
+      "recurrence": { "freq": "daily", "interval": 1 },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "tz": "America/Sao_Paulo",
+      "from": "2026-09-20",
+      "to": "2026-09-19",
+      "expect": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+# services/api is Python (uv), not a pnpm workspace.
+packages:
+  - 'apps/*'
+  - 'packages/*'
