@@ -1,5 +1,12 @@
 # 01 — Audit of the original PRD
 
+> **This file is history.** It records why the design is what it is. The
+> "Fixed in" pointers below name sections as they were on 2026-09-14; the spec
+> was rewritten on 2026-10-03 (see *Second review* at the end) and several
+> corrections described here were changed again. Where this file and any other
+> spec file disagree, the other file wins. Nothing here is needed to implement
+> a task.
+
 Audit date: 2026-09-14. Source: user-supplied PRD "Pawsync" v1.
 Every finding is `A-nn | Severity | Title`, with the concrete failure it causes
 and the correction. **Fixed in** points at the spec file that now carries the
@@ -503,3 +510,106 @@ refresh-token flow, a verified backup, and an executable harness.
 
 The product described in the PRD is unchanged. What changed is that it can now be
 built, on the hardware that actually exists, for zero cost, and be proven correct.
+
+---
+
+## Second review — 2026-10-03
+
+A full read of the spec pack before any feature code was written. It found the
+pack coherent in intent and wrong in a number of specifics. Each finding is
+`B-nn | Severity | Title`, with where it is now fixed.
+
+### Design defects
+
+| Id | Sev. | Finding | Fixed in |
+|---|---|---|---|
+| B-01 | Critical | Undo then re-complete was impossible: the natural-key index included tombstoned rows | `03` §5 (partial index), CP-4 |
+| B-02 | Critical | The "only accepted" SQL could not run: `ON CONFLICT ON CONSTRAINT` named an expression index | `03` §5 (no conflict target), ADR-017 |
+| B-03 | High | "First write wins by `completed_at`" contradicted `DO NOTHING` (arrival order) | ADR-017 — arrival order, decided by the owner |
+| B-04 | Critical | AS-1 contradicted the schema: asset references had foreign keys; SHA-256 dedupe returned a different id than the one already referenced | `03` §8, ADR-023 |
+| B-05 | Critical | A sequence-based revision can commit out of order, so a phone can miss a change forever; default + trigger consumed two values per insert | `03` §1.1, ADR-018 |
+| B-06 | High | `task_pet` and `asset` were in `/sync` without revision or tombstones; members and family were not in `/sync` at all | `03` §1, `04` §6 |
+| B-07 | High | Editing a template rewrote history; the key format flipped between one and two times of day | `02` R3.6–R3.11, ADR-016 |
+| B-08 | High | The outbox had no rule for permanent errors — one 4xx would block the queue forever | `10` §4, ADR-022 |
+| B-09 | High | Only two tables could dedupe a replay; `PATCH`, `DELETE`, undo and cancel could not | `03` §9, ADR-021 |
+| B-10 | High | Strict refresh-reuse detection signs users out on a lost response or on concurrent refreshes | `04` §3, `10` §8.1, ADR-024 |
+| B-11 | High | A local reminder on the phone that was not opened fires for a dose already given | `02` R3.40, `09` §9.4, ADR-027 |
+| B-12 | Medium | Completing on press-in records accidental touches while scrolling | `02` R3.18, `06` §4.2 |
+| B-13 | High | Where server data lives on the phone was undecided (query cache vs SQLite), and applying deltas was unspecified | `10`, ADR-019, ADR-020 |
+| B-14 | Medium | A server-side "one active walk" rule could reject, and so lose, a walk recorded offline; an orphaned active walk blocked new ones | `03` §7, ADR-029 |
+| B-15 | Medium | A low-accuracy fix survives Douglas–Peucker and draws a spike | `02` R4.10, WK-2 |
+| B-16 | Medium | Dashboard groups had no thresholds; overdue carry-over was undefined | `02` R6.4, R6.5; `07` §4.2 |
+
+### The gate that guarded nothing
+
+| Id | Sev. | Finding | Fixed in |
+|---|---|---|---|
+| B-17 | High | The Python recurrence engine had no caller; "TS↔Python parity" was called the most important gate, yet both phones run the same TypeScript | ADR-015 — engine in TypeScript only, decided by the owner |
+| B-18 | High | The DST vectors tested nothing: inputs and outputs were calendar dates, so the timezone argument was unused | `03` §4.3, `fixtures/time-vectors.json`, TZ-1, RC-3 |
+
+### Contradictions between files
+
+| Id | Finding | Fixed in |
+|---|---|---|
+| B-19 | Invites: "any member" vs "leader only"; `POST /invites` defined twice; `invite_code` had no role | `02` R1.3, `03` §2, `04` §4 |
+| B-20 | Task scope called "leader only" beside a resolution saying it is not | `04` (no scope route at all), `02` R6.10–R6.11 |
+| B-21 | ADR said photos share the database's backup; the backup was `pg_dump` only | `05` §6 |
+| B-22 | "Own task" undefined; the permission matrix lacked rows for timers, assets, walks, undo, sync | `04` §5 |
+| B-23 | Argon2 parameters and the 200–300 ms target could not both hold | `05` §5 — parameters fixed, time is an upper bound |
+| B-24 | Stale counts and pointers (27 findings, ADR-001…011, `§2.4.1`); `Pn` meant both principle and phase | `README.md` |
+
+### Harness and process
+
+| Id | Finding | Fixed in |
+|---|---|---|
+| B-25 | "`pnpm verify` green" could not hold for any task before the last gate's task | `07` §1, ADR-026 |
+| B-26 | The performance gate used commands that do not exist; "zero dropped frames" and "< 16 ms first frame" are not measurable | `06` §1, ADR-028 |
+| B-27 | Task dependencies ran backwards (a benchmark on a box built seven phases later; a role matrix before the routes) and most tasks had no acceptance criteria | `08` (rewritten) |
+| B-28 | The API tests needed Docker; the dev machine has none | ADR-030 |
+
+### Infrastructure assumptions
+
+| Id | Finding | Fixed in |
+|---|---|---|
+| B-29 | The "real" box was assumed to be 1 OCPU / 2 GB; it is not provisioned, and OCI's AMD micro shape has 1 GB | `05` §4, ADR-025 |
+| B-30 | OCI asks for a card; Cloudflare Tunnel needs a domain on Cloudflare; neither was stated | `00` P1, `05` §4.4 |
+| B-31 | No inbound ports, but no stated way to deploy or to move backups off the box | `05` §4.4–§4.5, §6 |
+| B-32 | Asset files were to be served as public static files | `04` §13, ADR-023 |
+| B-33 | UI spec used iOS idioms on an Android-only app (interactive back, backdrop blur, `shadow*`) | `06` |
+
+**Net effect of the second review.** Removed: the Python recurrence engine and
+its parity gate, `task_pet`, per-resource `GET` routes, TanStack Query, the
+static file server in front of the API, SHA-256 dedupe, the server-side walk
+uniqueness rule. Added: a per-family revision counter, one idempotency
+mechanism for every mutation, template forks, a specified client sync engine
+with a dead-letter path, a refresh grace window, on-device vector self-test,
+and gates that can actually be run.
+
+---
+
+## Independent review and the owner's pillars — 2026-10-03
+
+Before the package was approved, three reviewers with no knowledge of the
+orchestrator's reasoning read it in slices (server; client; process and
+infrastructure). They returned 45 findings; the golden vectors were recomputed
+independently and none was wrong. Everything was applied the same day. The
+ones that changed the design:
+
+| Area | What was wrong | Now |
+|---|---|---|
+| Sync | `/sync`'s ten queries had separate snapshots, so a commit between them could push the cursor past an unseen row | bounded by the family revision read first — `04` §6, SY-6 |
+| Sync | restoring a backup moved revisions backwards and phones missed everything after | a sync epoch — `03` §1.3, PL-3 |
+| Server | the commit ran after the response was sent; pokes could fire before it | `transactional`: commit, then callbacks, then respond — `05` §2.1 |
+| Server | last-leader and invite-redeem were check-then-write races | the family lock first; an atomic claim — `03` §1.2, `04` §3 |
+| Server | uploads were parsed before auth and could not be capped | a raw `PUT` body, streamed and counted — `04` §13 |
+| Auth | a 60-second reuse window still signed users out after a lost response | reuse is honoured until a successor is used — R1.8, ADR-024 |
+| Client | a rejected edit could delete a row from the phone for good; a repeating 5xx blocked the queue | atomic rejection with cursor reset; a cap on server errors — `10` §4 |
+| Client | a local delete could be resurrected by a pull | the outbox, not a row flag, protects local intent — `10` §2.3 |
+| Tasks | a fork could start a future task early, hide a dose given on the old template, or leave no successor | `E ≥ starts_on`; orphan completions shown; create before end — R3.8, R6.15, `04` §9 |
+| Walks | "Permitir o tempo todo" was required but is not needed by a foreground service; approximate location recorded nothing, silently; standing still read as "no signal" | `02` §4.1, R4.9, R4.11, `09` §8 |
+| Process | task state lived on unmerged branches; device gates had no owner; gates used `&&`; coverage floors failed every subset run | phase branches, Device lines, one command per line, floors only in the full gates — `AGENTS.md` §4, `07` |
+| Infra | no path worked behind CGNAT without a domain | a third ingress profile, a tailnet — `05` §4.4 |
+
+The same day the owner set the product pillars — stable, instant, light,
+beautiful and alive, first-class light and dark — and the stars-and-galaxies
+identity. They are recorded in `00` §Pillars, `06`, ADR-031 and ADR-032.

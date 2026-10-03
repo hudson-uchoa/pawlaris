@@ -1,141 +1,523 @@
 {
-  "$comment": "SEED. Task P1-1 expands this to the full coverage list in 07-test-harness.md (>=30 vectors). Both the TypeScript and Python engines read THIS file. Neither may carry its own expectations — this is the shared truth for `make parity` (RC-1).",
-  "version": 1,
+  "$comment": "Golden vectors for occurrences() — spec/03-data-model.md §4.2 (RC-1). Authored by the orchestrator. READ-ONLY for the implementer: a failing vector means the engine is wrong. There is no timezone here on purpose: every input and output is a calendar date.",
+  "version": 2,
   "vectors": [
     {
-      "name": "daily, every 2 days, across a month boundary",
-      "recurrence": { "freq": "daily", "interval": 2 },
+      "name": "daily every 2 days across a month boundary",
+      "tags": ["daily", "month-end"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 2
+      },
       "times_of_day": ["08:00"],
       "starts_on": "2026-01-28",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-01-28",
       "to": "2026-02-06",
-      "expect": ["2026-01-28", "2026-01-30", "2026-02-01", "2026-02-03", "2026-02-05"]
+      "expect": ["2026-01-28T08:00", "2026-01-30T08:00", "2026-02-01T08:00", "2026-02-03T08:00", "2026-02-05T08:00"]
     },
     {
-      "name": "twice daily produces datetime keys (R3.8)",
-      "recurrence": { "freq": "daily", "interval": 1 },
+      "name": "twice daily yields two keys per day, in time order",
+      "tags": ["daily", "multi-time"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
       "times_of_day": ["08:00", "20:00"],
       "starts_on": "2026-03-01",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-03-01",
       "to": "2026-03-02",
-      "expect": [
-        "2026-03-01T08:00", "2026-03-01T20:00",
-        "2026-03-02T08:00", "2026-03-02T20:00"
-      ]
+      "expect": ["2026-03-01T08:00", "2026-03-01T20:00", "2026-03-02T08:00", "2026-03-02T20:00"]
     },
     {
-      "name": "weekly on Mon/Wed/Fri",
-      "recurrence": { "freq": "weekly", "interval": 1, "byday": ["MO", "WE", "FR"] },
-      "times_of_day": ["07:00"],
+      "name": "all-day daily yields date-only keys",
+      "tags": ["daily", "all-day"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": [],
       "starts_on": "2026-09-14",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-09-14",
-      "to": "2026-09-20",
-      "expect": ["2026-09-14", "2026-09-16", "2026-09-18"]
-    },
-    {
-      "name": "monthly bymonthday 31 SKIPS 30-day months (must not clamp to the 30th)",
-      "recurrence": { "freq": "monthly", "interval": 1, "bymonthday": [31] },
-      "times_of_day": ["10:00"],
-      "starts_on": "2026-01-01",
-      "ends_on": null,
-      "tz": "America/Sao_Paulo",
-      "from": "2026-03-01",
-      "to": "2026-07-31",
-      "expect": ["2026-03-31", "2026-05-31", "2026-07-31"]
-    },
-    {
-      "name": "leap day is produced in a leap year",
-      "recurrence": { "freq": "monthly", "interval": 1, "bymonthday": [29] },
-      "times_of_day": ["09:00"],
-      "starts_on": "2028-01-01",
-      "ends_on": null,
-      "tz": "America/Sao_Paulo",
-      "from": "2028-02-01",
-      "to": "2028-02-29",
-      "expect": ["2028-02-29"]
-    },
-    {
-      "name": "ends_on is inclusive",
-      "recurrence": { "freq": "daily", "interval": 1 },
-      "times_of_day": ["08:00"],
-      "starts_on": "2026-09-14",
-      "ends_on": "2026-09-16",
-      "tz": "America/Sao_Paulo",
-      "from": "2026-09-14",
-      "to": "2026-09-20",
+      "to": "2026-09-16",
       "expect": ["2026-09-14", "2026-09-15", "2026-09-16"]
     },
     {
-      "name": "range begins mid-interval — phase is anchored to starts_on, not to `from`",
-      "recurrence": { "freq": "daily", "interval": 3 },
+      "name": "a single time still yields a datetime key (format does not depend on count)",
+      "tags": ["daily", "key-format"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["19:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-09-15",
+      "expect": ["2026-09-14T19:00", "2026-09-15T19:00"]
+    },
+    {
+      "name": "three times of day",
+      "tags": ["daily", "multi-time"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["06:30", "12:00", "21:45"],
+      "starts_on": "2026-05-10",
+      "ends_on": null,
+      "from": "2026-05-10",
+      "to": "2026-05-10",
+      "expect": ["2026-05-10T06:30", "2026-05-10T12:00", "2026-05-10T21:45"]
+    },
+    {
+      "name": "midnight and last-minute times",
+      "tags": ["daily", "multi-time", "key-format"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["00:00", "23:59"],
+      "starts_on": "2026-05-10",
+      "ends_on": null,
+      "from": "2026-05-10",
+      "to": "2026-05-11",
+      "expect": ["2026-05-10T00:00", "2026-05-10T23:59", "2026-05-11T00:00", "2026-05-11T23:59"]
+    },
+    {
+      "name": "daily every 7 days",
+      "tags": ["daily"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 7
+      },
+      "times_of_day": ["09:00"],
+      "starts_on": "2026-09-01",
+      "ends_on": null,
+      "from": "2026-09-01",
+      "to": "2026-09-30",
+      "expect": ["2026-09-01T09:00", "2026-09-08T09:00", "2026-09-15T09:00", "2026-09-22T09:00", "2026-09-29T09:00"]
+    },
+    {
+      "name": "daily across the leap day",
+      "tags": ["daily", "leap-day"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": [],
+      "starts_on": "2028-02-27",
+      "ends_on": null,
+      "from": "2028-02-27",
+      "to": "2028-03-02",
+      "expect": ["2028-02-27", "2028-02-28", "2028-02-29", "2028-03-01", "2028-03-02"]
+    },
+    {
+      "name": "daily across a year boundary, two times",
+      "tags": ["daily", "year-boundary", "multi-time"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["07:00", "19:00"],
+      "starts_on": "2026-12-30",
+      "ends_on": null,
+      "from": "2026-12-30",
+      "to": "2027-01-02",
+      "expect": ["2026-12-30T07:00", "2026-12-30T19:00", "2026-12-31T07:00", "2026-12-31T19:00", "2027-01-01T07:00", "2027-01-01T19:00", "2027-01-02T07:00", "2027-01-02T19:00"]
+    },
+    {
+      "name": "range begins mid-interval: phase is anchored to starts_on, not to from",
+      "tags": ["daily", "mid-interval"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 3
+      },
       "times_of_day": ["08:00"],
       "starts_on": "2026-09-01",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-09-10",
       "to": "2026-09-20",
-      "expect": ["2026-09-10", "2026-09-13", "2026-09-16", "2026-09-19"]
+      "expect": ["2026-09-10T08:00", "2026-09-13T08:00", "2026-09-16T08:00", "2026-09-19T08:00"]
+    },
+    {
+      "name": "from before starts_on is clipped",
+      "tags": ["daily", "starts-on"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "from": "2026-09-10",
+      "to": "2026-09-16",
+      "expect": ["2026-09-14", "2026-09-15", "2026-09-16"]
+    },
+    {
+      "name": "ends_on is inclusive",
+      "tags": ["daily", "ends-on"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": "2026-09-16",
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "expect": ["2026-09-14T08:00", "2026-09-15T08:00", "2026-09-16T08:00"]
+    },
+    {
+      "name": "ends_on before starts_on yields nothing",
+      "tags": ["daily", "ends-on", "empty"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": "2026-09-13",
+      "from": "2026-09-01",
+      "to": "2026-09-30",
+      "expect": []
+    },
+    {
+      "name": "range clipped on both sides by starts_on and ends_on",
+      "tags": ["daily", "starts-on", "ends-on"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 2
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-10",
+      "ends_on": "2026-09-18",
+      "from": "2026-09-01",
+      "to": "2026-09-30",
+      "expect": ["2026-09-10", "2026-09-12", "2026-09-14", "2026-09-16", "2026-09-18"]
+    },
+    {
+      "name": "single-day range that is an occurrence",
+      "tags": ["daily"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 2
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-01",
+      "ends_on": null,
+      "from": "2026-09-05",
+      "to": "2026-09-05",
+      "expect": ["2026-09-05T08:00"]
+    },
+    {
+      "name": "single-day range that is not an occurrence",
+      "tags": ["daily", "empty"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 2
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-01",
+      "ends_on": null,
+      "from": "2026-09-06",
+      "to": "2026-09-06",
+      "expect": []
+    },
+    {
+      "name": "empty range (from after to) yields nothing",
+      "tags": ["daily", "empty"],
+      "recurrence": {
+        "freq": "daily",
+        "interval": 1
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "from": "2026-09-20",
+      "to": "2026-09-19",
+      "expect": []
+    },
+    {
+      "name": "weekly on Mon/Wed/Fri",
+      "tags": ["weekly"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byday": ["MO", "WE", "FR"]
+      },
+      "times_of_day": ["07:00"],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-09-20",
+      "expect": ["2026-09-14T07:00", "2026-09-16T07:00", "2026-09-18T07:00"]
+    },
+    {
+      "name": "weekly starting mid-week: days before starts_on are excluded",
+      "tags": ["weekly", "starts-on"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byday": ["MO", "FR"]
+      },
+      "times_of_day": ["07:00"],
+      "starts_on": "2026-09-17",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-09-28",
+      "expect": ["2026-09-18T07:00", "2026-09-21T07:00", "2026-09-25T07:00", "2026-09-28T07:00"]
+    },
+    {
+      "name": "every 2 weeks on Tuesday",
+      "tags": ["weekly", "weekly-interval"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 2,
+        "byday": ["TU"]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-15",
+      "ends_on": null,
+      "from": "2026-09-15",
+      "to": "2026-10-31",
+      "expect": ["2026-09-15", "2026-09-29", "2026-10-13", "2026-10-27"]
+    },
+    {
+      "name": "every 2 weeks, starts on a Thursday: week 0 is the week containing starts_on",
+      "tags": ["weekly", "weekly-interval"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 2,
+        "byday": ["MO", "FR"]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-17",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-10-04",
+      "expect": ["2026-09-18", "2026-09-28", "2026-10-02"]
+    },
+    {
+      "name": "weeks start on Monday: Sunday belongs to the week that began the Monday before",
+      "tags": ["weekly", "weekly-interval"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 2,
+        "byday": ["SU"]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-14",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-10-20",
+      "expect": ["2026-09-20", "2026-10-04", "2026-10-18"]
+    },
+    {
+      "name": "weekly on all seven days equals daily",
+      "tags": ["weekly"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 1,
+        "byday": ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-16",
+      "ends_on": null,
+      "from": "2026-09-14",
+      "to": "2026-09-22",
+      "expect": ["2026-09-16", "2026-09-17", "2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22"]
+    },
+    {
+      "name": "every 3 weeks across a year boundary",
+      "tags": ["weekly", "weekly-interval", "year-boundary"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 3,
+        "byday": ["WE"]
+      },
+      "times_of_day": ["10:00"],
+      "starts_on": "2026-12-02",
+      "ends_on": null,
+      "from": "2026-12-01",
+      "to": "2027-02-01",
+      "expect": ["2026-12-02T10:00", "2026-12-23T10:00", "2027-01-13T10:00"]
+    },
+    {
+      "name": "monthly on the 31st skips 30-day months (never clamps to the 30th)",
+      "tags": ["monthly", "bymonthday-skip", "month-end"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "bymonthday": [31]
+      },
+      "times_of_day": ["10:00"],
+      "starts_on": "2026-01-01",
+      "ends_on": null,
+      "from": "2026-03-01",
+      "to": "2026-07-31",
+      "expect": ["2026-03-31T10:00", "2026-05-31T10:00", "2026-07-31T10:00"]
+    },
+    {
+      "name": "monthly on the 30th skips February",
+      "tags": ["monthly", "bymonthday-skip", "month-end"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "bymonthday": [30]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-01-01",
+      "ends_on": null,
+      "from": "2026-01-01",
+      "to": "2026-04-30",
+      "expect": ["2026-01-30", "2026-03-30", "2026-04-30"]
+    },
+    {
+      "name": "monthly on 29/30/31 in a non-leap February yields nothing that month",
+      "tags": ["monthly", "bymonthday-skip", "month-end"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "bymonthday": [29, 30, 31]
+      },
+      "times_of_day": [],
+      "starts_on": "2027-01-01",
+      "ends_on": null,
+      "from": "2027-01-28",
+      "to": "2027-03-01",
+      "expect": ["2027-01-29", "2027-01-30", "2027-01-31"]
+    },
+    {
+      "name": "the leap day is produced in a leap year",
+      "tags": ["monthly", "leap-day"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "bymonthday": [29]
+      },
+      "times_of_day": ["09:00"],
+      "starts_on": "2028-01-01",
+      "ends_on": null,
+      "from": "2028-02-01",
+      "to": "2028-02-29",
+      "expect": ["2028-02-29T09:00"]
+    },
+    {
+      "name": "monthly on the 1st and 15th, all-day",
+      "tags": ["monthly", "all-day"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 1,
+        "bymonthday": [1, 15]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-01",
+      "ends_on": null,
+      "from": "2026-09-01",
+      "to": "2026-10-31",
+      "expect": ["2026-09-01", "2026-09-15", "2026-10-01", "2026-10-15"]
+    },
+    {
+      "name": "every 3 months: a day earlier than starts_on in the first month is excluded",
+      "tags": ["monthly", "starts-on"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 3,
+        "bymonthday": [10]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-01-20",
+      "ends_on": null,
+      "from": "2026-01-01",
+      "to": "2026-12-31",
+      "expect": ["2026-04-10", "2026-07-10", "2026-10-10"]
+    },
+    {
+      "name": "every 2 months across a year boundary",
+      "tags": ["monthly", "year-boundary"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 2,
+        "bymonthday": [5]
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-11-05",
+      "ends_on": null,
+      "from": "2026-11-01",
+      "to": "2027-03-31",
+      "expect": ["2026-11-05T08:00", "2027-01-05T08:00", "2027-03-05T08:00"]
     },
     {
       "name": "once, inside the range",
-      "recurrence": { "freq": "once", "date": "2026-10-03" },
+      "tags": ["once"],
+      "recurrence": {
+        "freq": "once",
+        "date": "2026-10-03"
+      },
       "times_of_day": ["14:30"],
       "starts_on": "2026-10-03",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-10-01",
       "to": "2026-10-31",
-      "expect": ["2026-10-03"]
+      "expect": ["2026-10-03T14:30"]
     },
     {
       "name": "once, outside the range, yields nothing",
-      "recurrence": { "freq": "once", "date": "2026-10-03" },
+      "tags": ["once", "empty"],
+      "recurrence": {
+        "freq": "once",
+        "date": "2026-10-03"
+      },
       "times_of_day": ["14:30"],
       "starts_on": "2026-10-03",
       "ends_on": null,
-      "tz": "America/Sao_Paulo",
       "from": "2026-11-01",
       "to": "2026-11-30",
       "expect": []
     },
     {
-      "name": "DST spring-forward — America/New_York, 2026-03-08. A-23: proves the engine is not accidentally-correct in a DST-free country.",
-      "recurrence": { "freq": "daily", "interval": 1 },
-      "times_of_day": ["02:30"],
-      "starts_on": "2026-03-06",
+      "name": "once, range is exactly that day",
+      "tags": ["once"],
+      "recurrence": {
+        "freq": "once",
+        "date": "2026-10-03"
+      },
+      "times_of_day": ["14:30"],
+      "starts_on": "2026-10-03",
       "ends_on": null,
-      "tz": "America/New_York",
-      "from": "2026-03-06",
-      "to": "2026-03-10",
-      "expect": ["2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10"],
-      "$note": "02:30 does not exist on 2026-03-08 in New York. The occurrence KEY is a local-date label and must still be produced exactly once; resolving the wall-clock instant is the notification layer's job, not the recurrence engine's. Both implementations must agree on this."
+      "from": "2026-10-03",
+      "to": "2026-10-03",
+      "expect": ["2026-10-03T14:30"]
     },
     {
-      "name": "DST fall-back — America/New_York, 2026-11-01. The repeated hour must not duplicate the occurrence.",
-      "recurrence": { "freq": "daily", "interval": 1 },
-      "times_of_day": ["01:30"],
-      "starts_on": "2026-10-30",
+      "name": "once, all-day",
+      "tags": ["once", "all-day"],
+      "recurrence": {
+        "freq": "once",
+        "date": "2026-12-25"
+      },
+      "times_of_day": [],
+      "starts_on": "2026-12-25",
       "ends_on": null,
-      "tz": "America/New_York",
-      "from": "2026-10-30",
-      "to": "2026-11-02",
-      "expect": ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]
+      "from": "2026-12-01",
+      "to": "2026-12-31",
+      "expect": ["2026-12-25"]
     },
     {
-      "name": "empty range yields nothing",
-      "recurrence": { "freq": "daily", "interval": 1 },
-      "times_of_day": ["08:00"],
-      "starts_on": "2026-09-14",
-      "ends_on": null,
-      "tz": "America/Sao_Paulo",
-      "from": "2026-09-20",
-      "to": "2026-09-19",
+      "name": "once, ended before it happened, yields nothing",
+      "tags": ["once", "ends-on", "empty"],
+      "recurrence": {
+        "freq": "once",
+        "date": "2026-10-03"
+      },
+      "times_of_day": [],
+      "starts_on": "2026-10-03",
+      "ends_on": "2026-10-02",
+      "from": "2026-10-01",
+      "to": "2026-10-31",
       "expect": []
     }
   ]
