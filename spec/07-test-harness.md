@@ -479,10 +479,11 @@ pre-commit stage (static only — no tests):
   - eslint --fix
   - gitleaks
   - guard-todo:  a TODO or FIXME added by this commit without "(#<number>)"  — code files only, never spec/ or *.md
-  - guard-spec:  changes under spec/ other than 08-tasks.md checkbox lines, QUESTIONS.md and contracts/
-                 — skipped when PAWLARIS_ROLE=orchestrator
+  - guard-spec:  changes under spec/ other than QUESTIONS.md, contracts/ and a task checkbox
+                 going from [ ] to [~] in 08-tasks.md — skipped when PAWLARIS_ROLE=orchestrator
 commit-msg stage:
-  - guard-commit-msg: Conventional Commits per AGENTS.md §5
+  - guard-commit-msg: Conventional Commits per AGENTS.md §5, read as git stores the message
+                      (comment lines and everything after the scissors line ignored)
 ```
 
 ## 13. Device and box checks
