@@ -91,11 +91,15 @@ services/api/
 
 ### 2.1 Rules
 
-- **Time:** application code never calls `datetime.now()` / `utcnow()`. It asks
-  the injected `Clock`. Tests override the dependency with `FrozenClock`. The
-  only use of the database's `now()` is in the revision trigger and the
-  `created_at` defaults, which no test asserts on. Gate: Ruff rule `DTZ` plus a
-  test that greps `app/` for `datetime.now` and `utcnow` outside `clock.py`.
+- **Time:** application code never calls `datetime.now()` / `utcnow()` or
+  `time.time()`. It asks the injected `Clock`: `now()` for the UTC instant,
+  `monotonic()` for measuring durations. Tests override the dependency with
+  `FrozenClock`. The only use of the database's `now()` is in the revision
+  trigger and the `created_at` defaults, which no test asserts on. Gate: Ruff
+  rule `DTZ` plus a test that searches `app/`, outside `clock.py`, for any
+  `datetime.now`, `utcnow` or `time.time` — however the module was imported
+  (`import datetime as d; d.datetime.now(d.UTC)` is reported too). The test
+  proves it on a sample before it trusts a clean result.
 - **Layers:** routers parse and authorize; services hold rules and touch the
   session; models are data. Routers do not write SQL.
 - **Family scoping:** every query filters by the caller's `family_id`. A helper
@@ -358,6 +362,10 @@ housekeeping on a timer is fine.
 - One timing middleware measures each request with a monotonic clock, writes
   `ms` to the log line and the same value to the `Server-Timing` response
   header *(04 §1, R5.9)*.
+- **No error is silent.** An unhandled exception — the cause of a `500` — and
+  a failed after-commit callback are each logged as one `ERROR` line with the
+  same fields plus `exc`, the formatted traceback, under the request's
+  `request_id`. The traceback goes to the log only, never to the response.
 - Docker `json-file` driver with `max-size=10m, max-file=3`.
 - On the phone: a rotating log file (256 KB) and the Diagnostics screen.
 - No SaaS. Nothing here costs money or ships data off the box.

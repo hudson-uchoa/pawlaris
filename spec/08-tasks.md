@@ -93,7 +93,9 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   - `services/api/pyproject.toml` — the dependencies of `05` §1 API; Ruff with
     rule sets `E,F,I,B,UP,DTZ,ASYNC,S`; mypy strict; pytest-asyncio auto mode.
     **No coverage options in `addopts`** — the floor lives only in the
-    `test:api` gate command.
+    `test:api` gate command. `[tool.coverage.run]` sets
+    `concurrency = ["greenlet", "thread"]`; without it, lines after an awaited
+    session call are reported as never run.
   - `app/` skeleton exactly as in `05` §2: `main.py` (`create_app()` with
     `docs_url=None, redoc_url=None, openapi_url=None`, `GZipMiddleware` at
     1 000 bytes, the timing middleware that writes `Server-Timing` and the log's
@@ -107,7 +109,8 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   - Alembic configured for async, with an empty baseline migration
   - `app/export_openapi.py` — prints `create_app().openapi()` as JSON
   - `scripts/contract-check.mjs` — runs the exporter, sorts keys, compares with
-    `spec/contracts/openapi.json`; `--freeze` writes the file instead
+    `spec/contracts/openapi.json`; `--freeze` writes the file instead; when the
+    exporter fails, its stderr is printed
   - `packages/shared` `types` script — `openapi-typescript` → `src/api-types.ts`
   - `services/api/Dockerfile` (multi-stage, `uv`, non-root user,
     `uvicorn app.main:app --workers 1`) and `.env.example`
@@ -118,8 +121,12 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   `tests/api/test_health.py` (200, `db: true`, `status: ok`);
   `tests/api/test_errors.py` (unknown route → 404 problem+json `not_found`; a
   bad body on the probe → 422 with `errors`; the probe's `ApiError` → its
-  status and `code`); `tests/api/test_timing.py`; `tests/api/test_commit_order.py`;
-  `tests/security/test_no_naive_time.py`.
+  status and `code`; the probe's failing commit → 500 problem+json
+  `internal_error` and one `ERROR` log line whose `exc` names the exception,
+  `05` §7); `tests/api/test_timing.py`; `tests/api/test_commit_order.py` (a
+  failing callback is logged with `exc`);
+  `tests/security/test_no_naive_time.py` (first proves the guard reports
+  `d.datetime.now(d.UTC)` and `time.time()` in a sample, `05` §2.1).
   **Gate:** `pnpm verify --only lint:api,format:api,typecheck:api,test:api,contract-check`
   **Not here:** any table, any auth.
 

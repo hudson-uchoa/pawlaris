@@ -56,6 +56,8 @@ a Portuguese message of its own.
 | 422 | `idempotency_key_reused` | the key was already used by another family or for another kind of row |
 | 422 | `validation_error` | body failed validation; `errors: [{loc, msg}]` included |
 | 429 | `rate_limited` | login throttled; `Retry-After` header set |
+| 500 | `internal_error` | an unhandled server error, including a commit that fails; `detail` is a fixed sentence and says nothing about the failure |
+| any other | the status name in lower snake case, e.g. 405 `method_not_allowed` | an error raised by the framework itself |
 
 How the phone treats each status is in `10-client-sync.md` §4.
 
