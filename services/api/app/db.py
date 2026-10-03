@@ -1,5 +1,6 @@
 import json
 import logging
+import traceback
 from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import cast
 
@@ -51,6 +52,7 @@ async def transactional[T](session: AsyncSession, fn: Callable[[], Awaitable[T]]
                         **context,
                         "level": "ERROR",
                         "msg": "After-commit callback failed",
+                        "exc": traceback.format_exc(),
                     }
                 )
             )

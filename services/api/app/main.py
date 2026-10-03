@@ -1,6 +1,7 @@
 import json
 import logging
 import sys
+import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import cast
@@ -45,6 +46,7 @@ class TimingMiddleware:
         response_started = False
         status = 500
         elapsed_ms = 0.0
+        error_traceback: str | None = None
 
         async def timed_send(message: Message) -> None:
             nonlocal response_started, status, elapsed_ms
@@ -60,6 +62,7 @@ class TimingMiddleware:
         try:
             await self.app(scope, receive, timed_send)
         except Exception:
+            error_traceback = traceback.format_exc()
             if response_started:
                 raise
             response = problem_response(500, "internal_error", "Internal server error.")
@@ -74,6 +77,17 @@ class TimingMiddleware:
                 }
             )
             logging.getLogger("pawlaris.request").info(json.dumps(context))
+            if error_traceback is not None:
+                logging.getLogger("pawlaris.request").error(
+                    json.dumps(
+                        {
+                            **context,
+                            "level": "ERROR",
+                            "msg": "Unhandled request exception",
+                            "exc": error_traceback,
+                        }
+                    )
+                )
 
 
 @asynccontextmanager
