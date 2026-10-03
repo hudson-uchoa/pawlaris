@@ -71,7 +71,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   **Tests:** none (it is a diagnostic).
   **Gate:** `node scripts/doctor.mjs` — runs, prints one line per check, exits 0.
 
-- [ ] **P0-3 — `packages/shared` scaffold**
+- [~] **P0-3 — `packages/shared` scaffold**
   **Depends:** P0-1 · **Read:** `05` §1 Shared · `03` §4.2 (RC-2) · `07` §1.2, §10
   **Build:** package `@pawlaris/shared` — `package.json` with scripts `lint`,
   `test` (`vitest run --coverage`) and `types` (a placeholder that P0-4
