@@ -56,7 +56,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
 - [x] **P0-1 — Monorepo scaffold and the harness runner** — accepted 2026-09-14
   pnpm workspace, `scripts/verify.mjs`, `Makefile` delegating to it *(ADR-014)*.
 
-- [~] **P0-2 — Toolchain doctor**
+- [x] **P0-2 — Toolchain doctor** — accepted 2026-10-03
   **Depends:** P0-1 · **Read:** `05` §9
   **Build:** `scripts/doctor.mjs` (Node built-ins only). One line per check,
   `OK` / `MISSING` / `WRONG VERSION`, with the version found and the task that
