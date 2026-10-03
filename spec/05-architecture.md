@@ -397,7 +397,7 @@ Windows 11 Home, no Docker required for development *(ADR-030)*:
 **No spaces in build paths.** The Android NDK and CMake tools used by the New
 Architecture break on paths containing a space. The Android SDK lives at
 `C:\Android\Sdk` (`ANDROID_HOME`), and the repository must be on a path without
-spaces before the first Android build (P0-6) — for example `C:\dev\Pawlaris`.
+spaces before the first Android build (P0-6) — it is at `C:\Hudson\Pawlaris`.
 
 **The dev shell is Windows PowerShell 5.1**, which has no `&&`. Commands in this
 spec are written one per line; run them one at a time and stop at the first
