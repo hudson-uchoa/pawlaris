@@ -1,0 +1,71 @@
+minimum_pre_commit_version: '4.0.0'
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
+fail_fast: true
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff lint and fixes
+        entry: uv run --directory services/api ruff check --fix .
+        language: system
+        files: ^services/api/.*\.py$
+        pass_filenames: false
+      - id: ruff-format
+        name: Ruff format
+        entry: uv run --directory services/api ruff format .
+        language: system
+        files: ^services/api/.*\.py$
+        pass_filenames: false
+      - id: mypy
+        name: Strict API types
+        entry: uv run --directory services/api mypy app --strict
+        language: system
+        files: ^services/api/.*\.(py|toml)$
+        pass_filenames: false
+      - id: tsc-shared
+        name: Strict shared types
+        entry: pnpm -C packages/shared exec tsc --noEmit
+        language: system
+        files: ^packages/shared/
+        pass_filenames: false
+      - id: tsc-mobile
+        name: Strict mobile types
+        entry: pnpm -C apps/mobile exec tsc --noEmit
+        language: system
+        files: ^(apps/mobile|packages/shared)/
+        pass_filenames: false
+      - id: eslint-shared
+        name: Shared lint and fixes
+        entry: pnpm -C packages/shared run lint --fix
+        language: system
+        files: ^packages/shared/
+        pass_filenames: false
+      - id: eslint-mobile
+        name: Mobile lint and fixes
+        entry: pnpm -C apps/mobile run lint --fix
+        language: system
+        files: ^apps/mobile/
+        pass_filenames: false
+      - id: guard-todo
+        name: Added TODO and FIXME issue references
+        entry: node scripts/guard-todo.mjs
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: guard-spec
+        name: Implementer spec permissions
+        entry: node scripts/guard-spec.mjs
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: guard-commit-msg
+        name: Conventional commit message
+        entry: node scripts/guard-commit-msg.mjs
+        language: system
+        stages: [commit-msg]
+        always_run: true
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
