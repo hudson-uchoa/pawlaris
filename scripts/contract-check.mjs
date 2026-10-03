@@ -12,6 +12,8 @@ const exported = spawnSync('uv', [
 
 if (exported.status !== 0) {
   console.error('OpenAPI exporter failed.');
+  if (exported.stderr) process.stderr.write(exported.stderr);
+  if (exported.error) console.error(exported.error);
   process.exit(1);
 }
 
