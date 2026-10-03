@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "doctor": "node scripts/doctor.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:list": "node scripts/verify.mjs --list",
     "lint": "node scripts/verify.mjs --group lint",
