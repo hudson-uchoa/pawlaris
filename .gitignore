@@ -23,6 +23,8 @@ ios/
 backups/
 *.dump
 *.dump.age
+*.age
+google-services.json
 
 # tooling caches
 .cache/

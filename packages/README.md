@@ -1,4 +1,5 @@
 # packages/shared
 
-Types generated from spec/contracts + the TypeScript half of the
-recurrence engine. Created by tasks **P1-2** / **P1-5**.
+Pure TypeScript domain (recurrence, timezone, day view, reminders, walk math)
+and the API types generated from spec/contracts/openapi.json.
+Created by tasks **P0-3** and **P1-1 … P1-7** (spec/08-tasks.md).
