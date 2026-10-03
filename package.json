@@ -12,8 +12,11 @@
     "lint": "node scripts/verify.mjs --group lint",
     "typecheck": "node scripts/verify.mjs --group typecheck",
     "test": "node scripts/verify.mjs --group test",
-    "parity": "node scripts/verify.mjs --group parity",
+    "vectors": "node scripts/verify.mjs --only vectors",
     "contract-check": "node scripts/verify.mjs --only contract-check",
-    "security": "node scripts/verify.mjs --group security"
-  }
+    "contract-freeze": "node scripts/contract-check.mjs --freeze",
+    "types": "pnpm -C packages/shared run types",
+    "security": "node scripts/verify.mjs --only security"
+  },
+  "packageManager": "pnpm@12.4.1"
 }

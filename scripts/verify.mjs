@@ -9,8 +9,10 @@
  *   FAIL     the gate ran and failed  -> fix the code
  *   PENDING  the gate's tooling does not exist yet -> implement its task
  *
- * PENDING is NOT success. `verify` exits non-zero until every gate is PASS,
- * which is what makes the backlog in spec/08-tasks.md self-enforcing.
+ * PENDING is NOT success. Strict `verify` exits non-zero until every gate is
+ * PASS; that is the release bar. A task is done when its own gate passes and
+ * `verify --allow-pending` reports zero FAIL (spec/07-test-harness.md §1,
+ * ADR-026): PENDING is then tolerated, FAIL never is.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -22,64 +24,66 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** @type {{id:string,group:string,cmd:string,requires:string,task:string,spec:string}[]} */
 const GATES = [
-  // ---- static analysis -------------------------------------------------
-  { id: 'lint:mobile',      group: 'lint',      task: 'P0-2', spec: '07 §Layers',
-    requires: 'apps/mobile/package.json',
-    cmd: 'pnpm -C apps/mobile run lint' },
-
-  { id: 'typecheck:mobile', group: 'typecheck', task: 'P0-2', spec: '00 P2 / CLAUDE.md',
-    requires: 'apps/mobile/tsconfig.json',
-    cmd: 'pnpm -C apps/mobile exec tsc --noEmit' },
-
-  { id: 'typecheck:shared', group: 'typecheck', task: 'P1-2', spec: '05 §Shared',
-    requires: 'packages/shared/tsconfig.json',
-    cmd: 'pnpm -C packages/shared exec tsc --noEmit' },
-
-  { id: 'lint:api',         group: 'lint',      task: 'P0-4', spec: '07 §Layers',
-    requires: 'services/api/pyproject.toml',
-    cmd: 'uv run --directory services/api ruff check .' },
-
-  { id: 'format:api',       group: 'lint',      task: 'P0-4', spec: '07 §Layers',
-    requires: 'services/api/pyproject.toml',
-    cmd: 'uv run --directory services/api ruff format --check .' },
-
-  { id: 'typecheck:api',    group: 'typecheck', task: 'P0-4', spec: '00 P2 / CLAUDE.md',
-    requires: 'services/api/pyproject.toml',
-    cmd: 'uv run --directory services/api mypy app --strict' },
-
-  // ---- tests -----------------------------------------------------------
-  { id: 'test:shared',      group: 'test',      task: 'P1-2', spec: '07 Gate 1',
-    requires: 'packages/shared/package.json',
-    cmd: 'pnpm -C packages/shared run test' },
-
-  { id: 'test:mobile',      group: 'test',      task: 'P0-2', spec: '07 Gate 5',
-    requires: 'apps/mobile/package.json',
-    cmd: 'pnpm -C apps/mobile run test' },
-
-  { id: 'test:api',         group: 'test',      task: 'P0-4', spec: '07 Gate 3',
-    requires: 'services/api/pyproject.toml',
-    cmd: 'uv run --directory services/api pytest -q' },
-
-  // ---- the gates that make this project specifically correct -----------
-  { id: 'vectors',          group: 'parity',    task: 'P1-1', spec: '07 Gate 1 / RC-1',
+  // ---- fixtures (authored by the orchestrator) --------------------------
+  { id: 'vectors',          group: 'fixtures',  task: 'spec', spec: '07 §3',
     requires: 'scripts/validate-vectors.mjs',
     cmd: 'node scripts/validate-vectors.mjs' },
 
-  { id: 'parity',           group: 'parity',    task: 'P1-4', spec: '07 Gate 1 / RC-1',
-    requires: 'scripts/assert-parity.mjs',
-    cmd: 'node scripts/assert-parity.mjs' },
+  { id: 'spec-refs',        group: 'fixtures',  task: 'spec', spec: 'CLAUDE.md §Changing the spec',
+    requires: 'scripts/check-spec.mjs',
+    cmd: 'node scripts/check-spec.mjs' },
 
-  { id: 'contract-check',   group: 'contract',  task: 'P1-5', spec: '07 Gate 2',
-    requires: 'services/api/app/export_openapi.py',
+  // ---- packages/shared --------------------------------------------------
+  { id: 'lint:shared',      group: 'lint',      task: 'P0-3', spec: '07 §2 / RC-2',
+    requires: 'packages/shared/package.json',
+    cmd: 'pnpm -C packages/shared run lint' },
+
+  { id: 'typecheck:shared', group: 'typecheck', task: 'P0-3', spec: '05 §1 Shared',
+    requires: 'packages/shared/tsconfig.json',
+    cmd: 'pnpm -C packages/shared exec tsc --noEmit' },
+
+  { id: 'test:shared',      group: 'test',      task: 'P0-3', spec: '07 §4',
+    requires: 'packages/shared/package.json',
+    cmd: 'pnpm -C packages/shared run test' },
+
+  // ---- services/api -----------------------------------------------------
+  { id: 'lint:api',         group: 'lint',      task: 'P0-4', spec: '07 §2',
+    requires: 'services/api/pyproject.toml',
+    cmd: 'uv run --directory services/api ruff check .' },
+
+  { id: 'format:api',       group: 'lint',      task: 'P0-4', spec: '07 §2',
+    requires: 'services/api/pyproject.toml',
+    cmd: 'uv run --directory services/api ruff format --check .' },
+
+  { id: 'typecheck:api',    group: 'typecheck', task: 'P0-4', spec: 'AGENTS.md §3',
+    requires: 'services/api/pyproject.toml',
+    cmd: 'uv run --directory services/api mypy app --strict' },
+
+  { id: 'test:api',         group: 'test',      task: 'P0-4', spec: '07 §5',
+    requires: 'services/api/pyproject.toml',
+    cmd: 'uv run --directory services/api pytest -q --cov=app --cov-fail-under=85' },
+
+  { id: 'contract-check',   group: 'contract',  task: 'P0-4', spec: '04 §16',
+    requires: 'scripts/contract-check.mjs',
     cmd: 'node scripts/contract-check.mjs' },
 
-  { id: 'security',         group: 'security',  task: 'P2-5', spec: '07 Gate 4',
-    requires: 'services/api/tests/security',
-    cmd: 'uv run --directory services/api pytest tests/security -q' },
+  // ---- apps/mobile ------------------------------------------------------
+  { id: 'lint:mobile',      group: 'lint',      task: 'P0-5', spec: '07 §2 / MO-2',
+    requires: 'apps/mobile/package.json',
+    cmd: 'pnpm -C apps/mobile run lint' },
 
-  { id: 'roles',            group: 'security',  task: 'P2-7', spec: '07 Gate 4 / RB-1',
+  { id: 'typecheck:mobile', group: 'typecheck', task: 'P0-5', spec: 'AGENTS.md §3',
+    requires: 'apps/mobile/tsconfig.json',
+    cmd: 'pnpm -C apps/mobile exec tsc --noEmit' },
+
+  { id: 'test:mobile',      group: 'test',      task: 'P0-5', spec: '07 §6, §7',
+    requires: 'apps/mobile/package.json',
+    cmd: 'pnpm -C apps/mobile run test' },
+
+  // ---- security: census, role matrix, leak scan --------------------------
+  { id: 'security',         group: 'security',  task: 'P2-5', spec: '04 §5 / RB-1, RB-2, ID-1',
     requires: 'services/api/tests/security/test_role_matrix.py',
-    cmd: 'uv run --directory services/api pytest tests/security/test_role_matrix.py -q' },
+    cmd: 'uv run --directory services/api pytest tests/security -q' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -89,9 +93,12 @@ const C = process.stdout.isTTY && !process.env.NO_COLOR
   : { r: '', g: '', y: '', d: '', b: '', x: '' };
 
 const args = process.argv.slice(2);
-const only = valueOf('--only');
+// `--only` takes one gate id or a comma-separated list (PowerShell 5.1 has no `&&`).
+const onlyArg = valueOf('--only');
+const only = onlyArg ? onlyArg.split(',').map((id) => id.trim()).filter(Boolean) : null;
 const group = valueOf('--group');
 const listOnly = args.includes('--list');
+const allowPending = args.includes('--allow-pending');
 
 function valueOf(flag) {
   const i = args.indexOf(flag);
@@ -99,8 +106,14 @@ function valueOf(flag) {
 }
 
 const selected = GATES.filter(
-  (g) => (!only || g.id === only) && (!group || g.group === group),
+  (g) => (!only || only.includes(g.id)) && (!group || g.group === group),
 );
+
+const unknown = (only ?? []).filter((id) => !GATES.some((g) => g.id === id));
+if (unknown.length) {
+  console.error(`Unknown gate id(s): ${unknown.join(', ')}. Known ids:\n  ${GATES.map((g) => g.id).join('\n  ')}`);
+  process.exit(2);
+}
 
 if (selected.length === 0) {
   console.error(`No gate matched. Known ids:\n  ${GATES.map((g) => g.id).join('\n  ')}`);
@@ -154,14 +167,21 @@ if (pending.length) {
     if (!byTask.has(p.task)) byTask.set(p.task, []);
     byTask.get(p.task).push(p.id);
   }
-  console.log(`\n${C.y}Pending gates are not success.${C.x} ${C.d}Implement, in backlog order:${C.x}`);
+  console.log(allowPending
+    ? `\n${C.y}Pending gates${C.x} ${C.d}(tolerated by --allow-pending; a release needs them all). Created by:${C.x}`
+    : `\n${C.y}Pending gates are not success.${C.x} ${C.d}Implement, in backlog order:${C.x}`);
   for (const [task, ids] of [...byTask].sort()) {
     console.log(`  ${C.b}${task}${C.x}  ${C.d}→${C.x} ${ids.join(', ')}   ${C.d}(spec/08-tasks.md)${C.x}`);
   }
 }
 
 if (failed.length === 0 && pending.length === 0) {
-  console.log(`\n${C.g}${C.b}All gates green.${C.x} This is the only condition under which a task is done.\n`);
+  console.log(`\n${C.g}${C.b}All gates green.${C.x}\n`);
+  process.exit(0);
+}
+
+if (failed.length === 0 && allowPending) {
+  console.log(`\n${C.g}${C.b}No failures.${C.x} ${C.d}Task bar met (--allow-pending); not a release.${C.x}\n`);
   process.exit(0);
 }
 
