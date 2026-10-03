@@ -108,3 +108,30 @@ Implementation references: [Expo SDK 57](https://docs.expo.dev/versions/v57.0.0/
 [Expo monorepos](https://docs.expo.dev/guides/monorepos/),
 [Expo unit testing](https://docs.expo.dev/develop/unit-testing/), and
 [Android build properties](https://docs.expo.dev/versions/v57.0.0/sdk/build-properties/).
+
+## P0-8 — Commit hooks and guards (2026-10-03)
+
+| Tool | Version | Purpose | Licence |
+|---|---|---|---|
+| pre-commit | 4.6.2 | Install and run both Git hook stages through `uvx` | MIT |
+| Gitleaks | 8.30.1 | Scan staged changes for secrets with redacted output | MIT |
+
+The Gitleaks hook is pinned to `v8.30.1` in `.pre-commit-config.yaml`.
+Pre-commit manages its Go build in a machine-local cache, so a separate
+system Gitleaks installation is unnecessary. The other hooks reuse the
+locked workspace versions of Ruff, mypy, TypeScript and ESLint recorded
+above. The three guards use Node built-ins only.
+
+Both tools are local open-source software without accounts or billing.
+The fallback is a local installation of the recorded versions and the
+same commands; no hosted service is required. Install once per clone:
+
+```text
+uvx pre-commit install --hook-type pre-commit --hook-type commit-msg
+```
+
+The pre-commit stage runs static checks only. The commit-msg stage reads
+Git's message file and enforces the format in `AGENTS.md` section 5.
+
+Implementation references: [pre-commit hook configuration](https://pre-commit.com/#new-hooks)
+and [Gitleaks hooks at the pinned release](https://github.com/gitleaks/gitleaks/blob/v8.30.1/.pre-commit-hooks.yaml).
