@@ -1,3 +1,3 @@
-const shared: Readonly<Record<string, never>> | undefined = undefined;
+const shared: Readonly<Record<string, never>> = {};
 
 export default shared;
