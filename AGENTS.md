@@ -276,6 +276,10 @@ Separated from the subject by one blank line.
 | `Refs: CP-1, CP-4, R3.20` | the invariants or requirements it implements or tests |
 | `Review: R2` | a commit that fixes a review finding |
 | `BREAKING CHANGE: <what and how to migrate>` | with `!` after the scope, when a contract or stored format changes incompatibly |
+| `Co-Authored-By: <name> <email>` | optional — an agent's attribution; the last line of the same block |
+
+The footers are one block: no blank line between them. The commit guard looks
+for `Task:` in the last paragraph of the message.
 
 No `WIP`, no `fixup`, no `misc`, no `update files`, no emoji, no ticket-style
 prefixes, no trailing "…and more". If you cannot describe a commit in one clear
