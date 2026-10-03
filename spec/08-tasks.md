@@ -87,7 +87,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   **Gate:** `pnpm verify --only lint:shared,typecheck:shared,test:shared`
   **Not here:** any domain code.
 
-- [~] **P0-4 — API scaffold**
+- [x] **P0-4 — API scaffold** — accepted 2026-10-03
   **Depends:** P0-3, H1, H2 · **Read:** `05` §2, §2.1, §2.2, §7 · `04` §1, §1.1, §14, §16 · `07` §1.2, §5.1
   **Build:**
   - `services/api/pyproject.toml` — the dependencies of `05` §1 API; Ruff with
