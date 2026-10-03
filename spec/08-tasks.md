@@ -38,7 +38,7 @@ not met.
 | H1 | Python 3.12 and `uv` | P0-4 | done 2026-10-03 |
 | H2 | PostgreSQL 16 running natively; `services/api/.env` with `DATABASE_URL`, `TEST_DATABASE_URL`, `JWT_SECRET` (git-ignored) | P0-4 | done 2026-10-03 |
 | H3 | JDK 17 and `adb`; Android Studio set up with the SDK at `C:\Android\Sdk` (`ANDROID_HOME`); the repository on a path with no spaces (`C:\Hudson\Pawlaris`) | P0-6 | done 2026-10-03 |
-| H4 | Two Android phones with USB debugging on, at least one on Android 14 or later; model and Android version in `docs/devices.md` | P0-6 | |
+| H4 | Two Android phones with USB debugging on, at least one on Android 14 or later; model and Android version in `docs/devices.md` | P0-6 | done 2026-10-03 |
 | H5 | A GitHub repository with Actions enabled, added as `origin`, `main` pushed; decide whether the GHCR image is public | P0-7 | |
 | H6 | A Firebase project (free); `google-services.json` in `apps/mobile/`; an Expo account; the FCM V1 key uploaded to the Expo project | P5-8 | |
 | H7 | Maestro CLI installed | P7-4 | |
