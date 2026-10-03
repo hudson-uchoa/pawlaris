@@ -340,6 +340,10 @@ The shell on the dev machine is Windows PowerShell 5.1. It has no `&&`: run one
 command per line. Scripts in `scripts/` are Node, not bash, for that reason.
 `infra/*.sh` run on the Linux box only.
 
+If the execution policy of your shell blocks `pnpm.ps1`, call `pnpm.cmd` with
+the same arguments. It is the same program: write the command as `pnpm …` in
+commit messages and reports, with no note about the launcher.
+
 ## 7. When the spec is wrong, contradictory or silent
 
 It will be, somewhere. You do not guess silently and you do not fix the spec.
