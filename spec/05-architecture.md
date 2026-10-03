@@ -8,7 +8,9 @@
 |---|---|---|
 | Framework | Expo, custom dev client, New Architecture, Hermes | Pin the SDK at init; record versions in `docs/versions.md` |
 | Language | TypeScript, `strict: true` | No `any` |
-| Navigation | `expo-router` (typed routes), native stack | |
+| Navigation | `expo-router` (typed routes), native stack | With the peers it requires: `expo-constants`, `expo-linking`, `react-native-screens`, `react-native-safe-area-context` |
+| System theme | `expo-system-ui` | Lets Android follow the system light/dark setting (`userInterfaceStyle: automatic`) *(pillar 5)* |
+| Build config | `expo-build-properties` | Cleartext traffic only for an `http://` API URL *(§8)* |
 | Replica + UI state | Zustand | The replica store is the app's data layer *(ADR-020)* |
 | Local DB | `expo-sqlite` (synchronous API) | Replica, outbox, GPS points, asset files |
 | Network status | `@react-native-community/netinfo` | |

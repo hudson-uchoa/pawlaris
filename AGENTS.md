@@ -75,6 +75,10 @@ Breaking one is a defect regardless of whether tests pass.
 10. **No GoPuppy assets, code, icons or copy.** Visuals are drawn in code or
     authored for this project; the only third-party assets are the embedded
     font and the icon set named in `spec/06`, with their licences recorded.
+    Assets that a library named in `spec/05` §1 ships for its own internals
+    (the navigation runtime's icons, for example) are not the app's visuals:
+    they may stay in the build, the app never selects them, and their
+    licences go in `apps/mobile/assets/LICENSES.md`.
 11. **No secrets in the repo.** No tokens, passwords or keys in code, tests,
     logs or fixtures. `services/api/.env` exists on the dev machine and is
     git-ignored: read it, never print it, never commit it.

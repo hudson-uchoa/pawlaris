@@ -204,6 +204,9 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
 - [ ] **P1-1 — Calendar dates and timezone functions**
   **Depends:** P0-3 · **Read:** `03` §4.2 (RC-2), §4.3 · `07` §3, §4.1
   **Build:**
+  - `package.json` — first, pin `typescript` in `packages/shared` to the exact
+    version `apps/mobile` uses, so one compiler checks the shared source from
+    both sides; update `docs/versions.md`.
   - `eslint.config.mjs` — before any date code, extend the purity rule of P0-3
     to the rest of RC-2: `Date()` called as a function, `new Date(…)` with two
     or more arguments, and `toLocaleString`, `toLocaleDateString`,
