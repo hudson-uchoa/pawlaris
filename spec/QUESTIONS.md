@@ -64,5 +64,5 @@ the app shows: nothing copied from GoPuppy, and only the font and icon set of
 `06` chosen by the app. Assets a library of `05` §1 ships for its own
 internals may stay in the build, with their licences in
 `apps/mobile/assets/LICENSES.md`; the app never selects them. The cost here is
-small — the font is 193 KB against a 60 MB APK budget. `AGENTS.md` rule 10 now
+small — the font is 944 KB against a 60 MB APK budget. `AGENTS.md` rule 10 now
 says so; no code change is needed.
