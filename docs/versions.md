@@ -23,3 +23,39 @@ required. TypeScript 5.9.3 is within typescript-eslint's supported peer range
 
 Configuration references: [typescript-eslint flat config](https://typescript-eslint.io/getting-started/)
 and [Vitest coverage options](https://vitest.dev/config/coverage).
+
+## P0-4 — API scaffold (2026-10-03)
+
+Python 3.12.10 and uv 0.12.13 ran the API gates against native PostgreSQL
+16.15. The resolved API dependencies are locked in `services/api/uv.lock`;
+the TypeScript generator is pinned in the workspace manifest and lockfile.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| FastAPI | 0.142.2 | Async HTTP framework | MIT |
+| Pydantic | 2.13.5 | Wire validation | MIT |
+| pydantic-settings | 2.15.0 | Environment configuration | MIT |
+| Uvicorn | 0.54.0 | One-worker ASGI server | BSD-3-Clause |
+| SQLAlchemy | 2.1.3 | Async sessions and transactions | MIT |
+| asyncpg | 0.31.0 | PostgreSQL driver | Apache-2.0 |
+| Alembic | 1.20.0 | Async migrations | MIT |
+| PyJWT | 2.15.1 | Token tooling for the API stack | MIT |
+| argon2-cffi | 25.1.0 | Password tooling for the API stack | MIT |
+| Pillow | 12.3.0 | Image tooling for the API stack | MIT-CMU |
+| tzdata | 2026.5 | IANA timezone database on Windows | Apache-2.0; bundled IANA data is public domain |
+| httpx | 0.28.1 | HTTP integration tests and outbound HTTP | BSD-3-Clause |
+| Ruff | 0.16.10 | Python lint and formatting | MIT |
+| mypy | 2.4.0 | Strict Python type checks | MIT |
+| pytest | 9.1.1 | API test runner | MIT |
+| pytest-asyncio | 1.4.0 | Async fixtures and tests | Apache-2.0 |
+| pytest-cov | 7.1.0 | Coverage at the full API gate | MIT |
+| openapi-typescript | 7.13.0 | Generated shared wire types | MIT |
+
+All are local, open-source packages with no accounts or paid services. The
+fallback is installation from the checked-in lockfiles; no hosted service is
+required. The Dockerfile uses Python 3.12 slim and copies uv 0.12.13 from its
+official image. Image build verification belongs to P0-7.
+
+Implementation references: [SQLAlchemy async sessions](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html),
+[Alembic async migrations](https://alembic.sqlalchemy.org/en/latest/cookbook.html#using-asyncio-with-alembic),
+and [pytest-asyncio loop configuration](https://pytest-asyncio.readthedocs.io/en/stable/reference/configuration.html).
