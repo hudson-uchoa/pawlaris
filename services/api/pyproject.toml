@@ -41,3 +41,4 @@ asyncio_default_test_loop_scope = "session"
 
 [tool.coverage.run]
 data_file = ".cache/coverage"
+concurrency = ["greenlet", "thread"]
