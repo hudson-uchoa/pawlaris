@@ -38,3 +38,25 @@ assignment in scripts/doctor.mjs)
 when any check is not `OK`: a missing tool, a wrong version, or a path
 containing a space. Without the flag the doctor always exits 0. The P0-2
 **Build** line in `08` now says so; no code change is needed.
+
+## Q-2 — P0-5 — Does the asset rule include navigation runtime assets?
+**Asked:** 2026-10-03
+**Where:** AGENTS.md rule 10; spec/06-ux-motion-spec.md §2.3, §2.4;
+spec/08-tasks.md P0-5 Build; apps/mobile/app/_layout.tsx
+**Problem:** the required current default template resolves Expo SDK 57.
+An Android export of the single route, using the required Expo Router
+native stack, includes Expo Router's internal navigation icons and
+`MaterialSymbols_400Regular.ttf` from its transitive
+`@expo-google-fonts/material-symbols` 0.4.48 dependency. These appear
+without any app imports of third-party imagery or icon fonts. Rule 10
+allows only the embedded font and icon set named in spec/06, while P0-5
+explicitly requires the current template and Expo Router native stack.
+**I would assume:** the restriction governs app-authored visuals. Internal
+assets of the required navigation runtime may remain, with their licences
+recorded. The app itself still uses only the font and icons of spec/06.
+The template's sample UI and images have been removed.
+**Blocking:** no (proceeded on the assumption, isolated in the native-stack
+selection in apps/mobile/app/_layout.tsx; licences recorded in
+apps/mobile/assets/LICENSES.md)
+
+**Answer:** pending
