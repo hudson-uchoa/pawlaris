@@ -195,8 +195,12 @@ No device, no server, no I/O. Every function here is pure; `now` and `tz` are
 always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
 
 - [ ] **P1-1 — Calendar dates and timezone functions**
-  **Depends:** P0-3 · **Read:** `03` §4.3 · `07` §3, §4.1
+  **Depends:** P0-3 · **Read:** `03` §4.2 (RC-2), §4.3 · `07` §3, §4.1
   **Build:**
+  - `eslint.config.mjs` — before any date code, extend the purity rule of P0-3
+    to the rest of RC-2: `Date()` called as a function, `new Date(…)` with two
+    or more arguments, and `toLocaleString`, `toLocaleDateString`,
+    `toLocaleTimeString`, `toDateString`, `toTimeString`.
   - `src/dates.ts` — `type DateKey = string`; `isDateKey`, `parseDateKey` →
     `{y, m, d}`, `formatDateKey`, `addDays(key, n)`, `daysBetween(a, b)`,
     `weekdayOf(key)` (0 = Monday … 6 = Sunday), `mondayOf(key)`,
@@ -216,8 +220,10 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
     5. otherwise the wall time does not exist → return `c1`
   **Tests:** `dates.test.ts` (leap years 2028 and 2100; `addDays` across month
   and year ends; `weekdayOf('2026-09-14') === 0`; `monthsBetween`);
-  `time.test.ts` (every vector in `time-vectors.json`).
-  **Gate:** `pnpm -C packages/shared exec vitest run src/dates.test.ts src/time.test.ts`
+  `time.test.ts` (every vector in `time-vectors.json`); `index.test.ts` gains a
+  lint fixture for each newly forbidden form, and one proving
+  `new Date(Date.UTC(2026, 0, 1))` is still allowed.
+  **Gate:** `pnpm -C packages/shared exec vitest run src/index.test.ts src/dates.test.ts src/time.test.ts`
   **Not here:** recurrence.
 
 - [ ] **P1-2 — Recurrence engine**

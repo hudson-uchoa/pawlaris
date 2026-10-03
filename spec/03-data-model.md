@@ -399,7 +399,13 @@ change key format during its life.
 > **RC-2** The engine is pure. Gate: a lint rule (`no-restricted-syntax`) in
 > `packages/shared` forbids `Date.now`, argument-less `new Date()`, and the
 > local-time getters (`getDate`, `getHours`, …); the same call run under three
-> different mocked system times returns identical output.
+> different mocked system times returns identical output. The rule also forbids
+> the other ways of reaching the host's clock or timezone: `Date()` called as a
+> function, `new Date(…)` with two or more arguments (they are read as
+> host-local time), and the host-local formatters (`toLocaleString`,
+> `toLocaleDateString`, `toLocaleTimeString`, `toDateString`, `toTimeString`).
+> A zone's wall time comes only from `Intl.DateTimeFormat` with an explicit
+> `timeZone` (§4.3).
 >
 > **RC-3** The vectors pass on the device (Hermes) through Diagnostics →
 > Autoteste *(R3.17)*.
