@@ -34,6 +34,9 @@ coverage/
 .mypy_cache/
 *.tsbuildinfo
 
+# agent tooling (machine-local, rewritten on every launch)
+.codex/
+
 # os / editor
 Thumbs.db
 .DS_Store
