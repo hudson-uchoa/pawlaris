@@ -94,8 +94,9 @@ const C = process.stdout.isTTY && !process.env.NO_COLOR
 
 const args = process.argv.slice(2);
 // `--only` takes one gate id or a comma-separated list (PowerShell 5.1 has no `&&`).
-const onlyArg = valueOf('--only');
-const only = onlyArg ? onlyArg.split(',').map((id) => id.trim()).filter(Boolean) : null;
+// PowerShell reads an unquoted `a,b` as an array: through `pnpm.ps1` it arrives
+// as one argument "a b", and straight to `node` as two. Accept all three shapes.
+const only = listOf('--only');
 const group = valueOf('--group');
 const listOnly = args.includes('--list');
 const allowPending = args.includes('--allow-pending');
@@ -103,6 +104,15 @@ const allowPending = args.includes('--allow-pending');
 function valueOf(flag) {
   const i = args.indexOf(flag);
   return i !== -1 ? args[i + 1] : null;
+}
+
+function listOf(flag) {
+  const i = args.indexOf(flag);
+  if (i === -1) return null;
+  const rest = args.slice(i + 1);
+  const end = rest.findIndex((a) => a.startsWith('--'));
+  const values = end === -1 ? rest : rest.slice(0, end);
+  return values.flatMap((v) => v.split(/[,\s]+/)).filter(Boolean);
 }
 
 const selected = GATES.filter(
