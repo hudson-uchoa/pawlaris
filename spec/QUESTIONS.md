@@ -34,4 +34,7 @@ Normal mode still exits 0 regardless of findings.
 **Blocking:** no (proceeded on the assumption, isolated in the final exit-status
 assignment in scripts/doctor.mjs)
 
-**Answer:** <orchestrator — date>
+**Answer:** orchestrator — 2026-10-03. Yes, as assumed. `--strict` exits 1
+when any check is not `OK`: a missing tool, a wrong version, or a path
+containing a space. Without the flag the doctor always exits 0. The P0-2
+**Build** line in `08` now says so; no code change is needed.
