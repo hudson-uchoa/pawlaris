@@ -130,7 +130,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   **Gate:** `pnpm verify --only lint:api,format:api,typecheck:api,test:api,contract-check`
   **Not here:** any table, any auth.
 
-- [~] **P0-5 — Expo app scaffold**
+- [x] **P0-5 — Expo app scaffold** — accepted 2026-10-03
   **Depends:** P0-3 · **Read:** `05` §1 Mobile, §3, §8 · `06` §3 (MO-2) · `10` §9 · `07` §1.2
   **Build:** `apps/mobile` created with the current `create-expo-app` default
   template, then: TypeScript strict; `expo-router` with typed routes; New
