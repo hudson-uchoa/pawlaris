@@ -174,7 +174,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   with a seeded type error (then reverted); one manual dispatch of the `image`
   job that pushes an image. Evidence: the three run URLs.
 
-- [~] **P0-8 — Pre-commit hooks and commit guard**
+- [x] **P0-8 — Pre-commit hooks and commit guard** — accepted 2026-10-03
   **Depends:** P0-3, P0-4, P0-5 · **Read:** `07` §12 · `AGENTS.md` §5
   **Build:** `.pre-commit-config.yaml` with the hooks of `07` §12.
   `scripts/guard-spec.mjs`: on a `phase/*` branch, fail if staged changes touch
