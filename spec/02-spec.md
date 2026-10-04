@@ -168,7 +168,8 @@ Vocabulary used everywhere:
   "Vale a partir de amanhã". Past occurrences and their completions are never
   rewritten *(ADR-016)*.
 - **R3.9** **Encerrar** a template sets `ends_on = E − 1 day` with the same `E`.
-  An ended template produces no further occurrences and moves to the
+  An ended template produces no further occurrences, carries nothing over
+  *(R6.5)*, and moves to the
   "Encerradas" list.
 - **R3.10** **Excluir** soft-deletes a template. The UI offers it only for a
   template with no completions in the replica; otherwise it offers Encerrar.
@@ -402,11 +403,16 @@ Vocabulary used everywhere:
   A past day has no Agora or Mais tarde: everything incomplete is Atrasadas. A
   future day has everything in Mais tarde. `slot` is the occurrence's local time
   resolved to an instant in the family timezone.
-- **R6.5** Carry-over: an incomplete occurrence of a **non-daily** template
-  (weekly, monthly, once) from the previous 30 days stays in today's Atrasadas,
-  labelled with its original date, until it is completed or until the same
-  template has an occurrence dated today. Daily occurrences never carry
-  over; a missed breakfast is not owed tomorrow.
+- **R6.5** Carry-over: an incomplete occurrence from the previous 30 days
+  stays in today's Atrasadas, labelled with its original date, until it is
+  completed or until the same template has an occurrence dated today. The
+  rule is the same for every frequency *(ADR-033)*. A task of every day
+  therefore never carries over — today's breakfast replaces the one that was
+  missed — while a dose due every 3 days stays owed until it is given or the
+  next one falls due. A template that has ended (`ends_on` before today) —
+  by Encerrar, by reaching its end date, or because an edit forked it (R3.8)
+  — carries nothing: whoever ended a task is not asked for it again, and
+  after an edit the new version takes over.
 - **R6.6** Inside a group, order is by slot time, then `sort_order`, then title.
   All-day occurrences have no slot and come first.
 - **R6.7** A `per_pet` occurrence is fully complete when every linked,
