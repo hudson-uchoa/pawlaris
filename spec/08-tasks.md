@@ -164,7 +164,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   both phones; the app opens. Evidence: the build's final lines, `adb devices`
   with the serials redacted *(07 §13)*, a screenshot from each phone.
 
-- [~] **P0-7 — CI**
+- [x] **P0-7 — CI** — accepted 2026-10-03
   **Depends:** P0-3, P0-4, P0-5, H5 · **Read:** `07` §11
   **Build:** `.github/workflows/ci.yml` with the five jobs of `07` §11. The `api`
   job uses a `postgres:16` service and sets `TEST_DATABASE_URL`. The `image` job
