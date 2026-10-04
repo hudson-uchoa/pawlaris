@@ -39,7 +39,7 @@ not met.
 | H2 | PostgreSQL 16 running natively; `services/api/.env` with `DATABASE_URL`, `TEST_DATABASE_URL`, `JWT_SECRET` (git-ignored) | P0-4 | done 2026-10-03 |
 | H3 | JDK 17 and `adb`; Android Studio set up with the SDK at `C:\Android\Sdk` (`ANDROID_HOME`); the repository on a path with no spaces (`C:\Hudson\Pawlaris`) | P0-6 | done 2026-10-03 |
 | H4 | Two Android phones with USB debugging on, at least one on Android 14 or later; model and Android version in `docs/devices.md` | P0-6 | done 2026-10-03 |
-| H5 | A GitHub repository with Actions enabled, added as `origin`, `main` pushed; decide whether the GHCR image is public | P0-7 | |
+| H5 | A GitHub repository with Actions enabled, added as `origin`, `main` pushed; decide whether the GHCR image is public | P0-7 | done 2026-10-03 — `hudson-uchoa/pawlaris`, public; the image is public too |
 | H6 | A Firebase project (free); `google-services.json` in `apps/mobile/`; an Expo account; the FCM V1 key uploaded to the Expo project | P5-8 | |
 | H7 | Maestro CLI installed | P7-4 | |
 | H8 | The box (any Linux machine with ≥ 1 GB RAM, as near the family as possible) reachable over SSH; one ingress profile of `05` §4.4 chosen and its credentials ready (Cloudflare tunnel token · DuckDNS token and ports 80/443 forwarded · Tailscale on the box and both phones); a GHCR read token if the image is private; an `age` key pair with the private key in the password manager | P8-1 | |
