@@ -454,7 +454,7 @@ tests cover them for its routes.
   password change revokes all chains and the old password stops working).
   **Gate:** `uv run --directory services/api pytest tests/auth -q`
 
-- [~] **P2-4 — Idempotency layer and the family lock**
+- [x] **P2-4 — Idempotency layer and the family lock** — accepted 2026-10-04
   **Depends:** P2-3 · **Read:** `03` §1.2, §9 · `04` §1, §1.2, §2 · `05` §2.1
   **Build:** `app/locks.py` — `lock_family(session, family_id)`.
   `app/idempotency.py` — a dependency `idempotent(entity)` that reads and
