@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit to check and publish
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Git history with Gitleaks
+        run: |
+          docker run --rm --volume "$GITHUB_WORKSPACE:/repo:ro" \
+            --env GIT_CONFIG_COUNT=1 \
+            --env GIT_CONFIG_KEY_0=safe.directory \
+            --env GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1 git /repo --redact --no-banner
+
+  shared:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check shared code and fixtures
+        run: pnpm verify --only lint:shared,typecheck:shared,test:shared,vectors,spec-refs
+
+  api:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres@localhost:5432/postgres
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres@localhost:5432/postgres
+      UV_FROZEN: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          version: 0.12.13
+          python-version: '3.12'
+          enable-cache: true
+          cache-dependency-glob: services/api/uv.lock
+      - run: pnpm install --frozen-lockfile
+      - run: uv sync --directory services/api --frozen
+      - name: Generate an ephemeral test signing key
+        run: |
+          test_jwt_secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$test_jwt_secret"
+          echo "JWT_SECRET=$test_jwt_secret" >> "$GITHUB_ENV"
+      - name: Check API code, coverage and contract
+        run: pnpm verify --only lint:api,format:api,typecheck:api,test:api,contract-check
+
+  mobile:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@f520eceda224fe1a4aed5a2a27a194379a409996 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24.15.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check mobile code and coverage
+        run: pnpm verify --only lint:mobile,typecheck:mobile,test:mobile
+
+  image:
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    needs: [secrets, shared, api, mobile]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+      - name: Resolve image tags from the checked-out commit
+        id: tags
+        env:
+          IMAGE_OWNER: ${{ github.repository_owner }}
+          BUILD_REF: ${{ inputs.ref || github.ref }}
+        run: |
+          image="ghcr.io/${IMAGE_OWNER,,}/pawlaris-api"
+          sha="$(git rev-parse HEAD)"
+          {
+            echo 'tags<<EOF'
+            echo "$image:$sha"
+            if [ "$BUILD_REF" = main ] || [ "$BUILD_REF" = refs/heads/main ]; then
+              echo "$image:stable"
+            fi
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish both architectures
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: services/api
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
