@@ -24,7 +24,7 @@ async def login(
     settings: Settings,
     limiter: LoginRateLimiter,
 ) -> Session:
-    limiter.check(body.email)
+    attempt = limiter.check(body.email)
 
     async def write() -> Session:
         # Discover the family without locking another row; all checks follow its lock.
@@ -49,11 +49,15 @@ async def login(
                 body.password.get_secret_value(), user.password_hash
             )
         if user is None or not valid or user.disabled_at is not None:
-            limiter.failure(body.email)
             raise ApiError(401, "invalid_credentials", "Invalid email or password.")
         return await _issue_session(session, user, clock, settings, uuid4(), None)
 
-    result = await transactional(session, write)
+    try:
+        result = await transactional(session, write)
+    except BaseException as exc:
+        if not isinstance(exc, ApiError) or exc.code != "invalid_credentials":
+            limiter.release(attempt)
+        raise
     limiter.success(body.email)
     return result
 
