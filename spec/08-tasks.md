@@ -227,7 +227,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   Evidence: the screenshots.
   **Not here:** drawing the mark in code (`glyphs.ts` is P4-2).
 
-- [ ] **P0-10 — Local release build**
+- [~] **P0-10 — Local release build**
   **Depends:** P0-9 · **Read:** `05` §8, §9 · `docs/build.md` · Q-4 in `QUESTIONS.md`
   **Build:** make the release variant build on the dev machine. After a clean
   prebuild, `.\gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a`
