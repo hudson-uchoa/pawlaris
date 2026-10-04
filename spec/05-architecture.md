@@ -378,6 +378,9 @@ housekeeping on a timer is fine.
   a failed after-commit callback are each logged as one `ERROR` line with the
   same fields plus `exc`, the formatted traceback, under the request's
   `request_id`. The traceback goes to the log only, never to the response.
+  For `/auth/*` and `/me/password`, `exc` carries the exception's type and
+  its stack frames — file, line, function — and never its message or local
+  values, which can hold a credential or a statement's parameters *(§5)*.
 - Docker `json-file` driver with `max-size=10m, max-file=3`.
 - On the phone: a rotating log file (256 KB) and the Diagnostics screen.
 - No SaaS. Nothing here costs money or ships data off the box.

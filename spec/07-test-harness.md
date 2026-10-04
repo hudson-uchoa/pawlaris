@@ -358,7 +358,7 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 | — | `tests/db/test_migrations.py` | `upgrade head → downgrade base → upgrade head` |
 | ID-1 | `tests/security/test_no_secret_leak.py` | `03` §2 |
 | — | `tests/auth/test_passwords.py` | hash starts with `$argon2id$v=19$m=19456,t=2,p=1$`; verify round-trips; wrong password fails |
-| R1.5 | `tests/auth/test_rate_limit.py` | 5 failures → 6th is 429 with `Retry-After`; clock + 15 min → allowed; success resets |
+| R1.5 | `tests/auth/test_rate_limit.py` | 5 failures → 6th is 429 with `Retry-After`; clock + 15 min → allowed; success resets, whatever the letter case of the email; 20 simultaneous wrong passwords for one email → exactly 5 are 401 and 15 are 429; with the email limit and the global cap both reached, `Retry-After` is the longer wait |
 | R1.6, R1.8 | `tests/auth/test_refresh.py` | the four rows of `04` §3's refresh table: a rotated token is honoured twice in a row while its successors are unused, however far the clock is advanced; once a successor has been rotated, presenting the original → 401 **and the chain is revoked in the database** (assert after the request) |
 | R1.1 | `tests/auth/test_closed_registration.py` | `POST /auth/register` → 404 |
 | R1.3 | `tests/auth/test_invites.py` | member → 403; code single-use; expired → 410; redeem creates the role on the invite; two concurrent redeems of one code → exactly one 200 |
