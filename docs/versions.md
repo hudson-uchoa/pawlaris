@@ -167,8 +167,8 @@ No application dependency or lockfile changes are required.
 |---|---|---|---|
 | `actions/checkout` | v7 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | MIT |
 | `actions/setup-node` | v7 | `820762786026740c76f36085b0efc47a31fe5020` | MIT |
-| `pnpm/action-setup` | v6 | `f520eceda224fe1a4aed5a2a27a194379a409996` | MIT |
-| `astral-sh/setup-uv` | v7 | `94527f2e458b27549849d47d273a16bec83a01e9` | MIT |
+| `pnpm/action-setup` | v6 | `0977fd99725f1db4007ccb2928dbb4e90d06cc86` | MIT |
+| `astral-sh/setup-uv` | v7 | `37802adc94f370d6bfd71619e3f0bf239e1f3b78` | MIT |
 | `docker/setup-qemu-action` | v4 | `99012661954931238ded8c8b007157a8430204e1` | Apache-2.0 |
 | `docker/setup-buildx-action` | v4 | `f87e5991a6d7451dcb8d9637bfbc97413f497069` | Apache-2.0 |
 | `docker/login-action` | v4 | `dbcb813823bdd20940b903addbd779551569679f` | Apache-2.0 |
