@@ -225,6 +225,23 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   Pawlaris route. Evidence: three screenshots per phone.
   **Not here:** drawing the mark in code (`glyphs.ts` is P4-2).
 
+- [ ] **P0-10 — Local release build**
+  **Depends:** P0-9 · **Read:** `05` §8, §9 · `docs/build.md` · Q-4 in `QUESTIONS.md`
+  **Build:** make the release variant build on the dev machine. After a clean
+  prebuild, `.\gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a`
+  must succeed. In P0-9 it failed in Reanimated's `RelWithDebInfo` CMake step
+  with "`build.ninja` still dirty after 100 tries" — the Windows path limit of
+  Q-4 again, on the longer release paths. Fix it in configuration only
+  (shorter native build paths): no new dependency, no changed native version,
+  and the repository stays where it is. If no such fix exists, stop and ask.
+  Correct the release section of `docs/build.md` to what actually works.
+  **Tests:** none (it is a build).
+  **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
+  **Device:** [ ] The release APK builds. On one phone it installs and opens
+  the Pawlaris route with no Metro running; the dev client is installed again
+  afterwards. Evidence: the build's final lines, the APK's size, a screenshot.
+  **Not here:** release signing (P8-5).
+
 ---
 
 ## P1 — Pure domain (`packages/shared`)
