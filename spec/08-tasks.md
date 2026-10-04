@@ -251,7 +251,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
 No device, no server, no I/O. Every function here is pure; `now` and `tz` are
 always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
 
-- [~] **P1-1 — Calendar dates and timezone functions**
+- [x] **P1-1 — Calendar dates and timezone functions** — accepted 2026-10-04
   **Depends:** P0-3 · **Read:** `03` §4.2 (RC-2), §4.3 · `07` §3, §4.1
   **Build:**
   - `package.json` — first, pin `typescript` in `packages/shared` to the exact
