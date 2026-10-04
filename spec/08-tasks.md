@@ -388,7 +388,7 @@ Every task that adds or changes a route follows the contract-first order of
 implementation. The rules of `04` §1.2 apply to every route and each task's
 tests cover them for its routes.
 
-- [ ] **P2-1 — Schema, models, row schemas**
+- [~] **P2-1 — Schema, models, row schemas**
   **Depends:** P0-4 · **Read:** `03` §1–§9, §11 · `04` §2
   **Build:** SQLAlchemy models for every table of `03` §1–§9 in `app/models/`
   (including `family_revision`, `server_meta`, `applied_mutation`); one Alembic
