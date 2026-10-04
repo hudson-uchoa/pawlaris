@@ -135,3 +135,25 @@ Git's message file and enforces the format in `AGENTS.md` section 5.
 
 Implementation references: [pre-commit hook configuration](https://pre-commit.com/#new-hooks)
 and [Gitleaks hooks at the pinned release](https://github.com/gitleaks/gitleaks/blob/v8.30.1/.pre-commit-hooks.yaml).
+
+## P0-6 — Local Android development client (2026-10-03)
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-dev-client` | 57.0.19 | Custom development launcher and native debugging | MIT |
+
+The exact version matches Expo SDK 57's bundled native-module range
+(`~57.0.19`) and is pinned in the mobile manifest and workspace lockfile.
+Its runtime dependencies are `expo-dev-launcher` 57.0.20,
+`expo-dev-menu` 57.0.18, `expo-dev-menu-interface` 57.0.0,
+`expo-manifests` 57.0.2 and `expo-updates-interface` 57.0.2; the lockfile
+also records their `expo-json-utils` 57.0.2 dependency. These Expo packages
+use MIT licences. Internal launcher assets are recorded in
+`apps/mobile/assets/LICENSES.md`.
+
+The client and local Android build tools need no account or billing.
+The fallback is the pinned lockfile installation and local builds;
+EAS cloud builds are optional. Build commands and owner signing-key
+preparation are in [build.md](build.md).
+
+Implementation reference: [Expo local development builds](https://docs.expo.dev/develop/development-builds/introduction/?buildenv=build-locally).
