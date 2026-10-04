@@ -203,3 +203,12 @@ The exact version matches the installed Expo SDK 57's bundled range
 on the night sky in both themes. Its pinned package contains the MIT
 licence text. It needs no account, remote service or billing; the fallback
 is the same native splash built locally from the frozen lockfile.
+
+## P1-1 — Shared and mobile compiler alignment (2026-10-04)
+
+`@pawlaris/shared` now pins TypeScript 6.0.3, the exact version already used
+by `apps/mobile`. The workspace lockfile records this alignment so both
+packages check shared source with the same compiler. This replaces the
+shared scaffold's TypeScript 5.9.3 entry above. No runtime dependency is
+added; the licence and local-tool fallback remain Apache-2.0 and the
+pinned lockfile installation.
