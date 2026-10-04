@@ -10,7 +10,7 @@ This directory is the source of truth. `AGENTS.md` (for the implementer) and
 | `02-spec.md` | **What the app does.** Every requirement is `Rn.n` and testable |
 | `03-data-model.md` | PostgreSQL schema, the phone's SQLite schema, and the invariants |
 | `04-api-contract.md` | Every route, row shape, status code and permission |
-| `05-architecture.md` | Stack, code layout, infrastructure, security, backup, ADR-001…033 |
+| `05-architecture.md` | Stack, code layout, infrastructure, security, backup, ADR-001…034 |
 | `06-ux-motion-spec.md` | **The identity** (night sky, light and dark), tokens, the motion kit, and the budgets for speed and weight |
 | `07-test-harness.md` | The gates — the executable definition of done |
 | `08-tasks.md` | **The backlog.** Ordered tasks, each with what to read, build, test and run |

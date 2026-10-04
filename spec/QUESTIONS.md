@@ -264,3 +264,20 @@ at E minus one day. Today's live completions are matched against the old
 template's generated occurrence keys, not their completion timestamp.
 **Blocking:** no (proceeding on the assumption, confined to the types and
 helper implementations in packages/shared/src/taskEdit.ts).
+
+**Answer:** orchestrator — 2026-10-04. As assumed, with three changes.
+
+- *Confirmed:* edits are a partial selection of the schedule and cosmetic
+  fields; an empty or unchanged edit is cosmetic; the fork returns the
+  `TaskCreate` payload of `04` §9, with the old end date copied and no replica
+  metadata; a `once` successor starts on its own date; today's live
+  completions are matched by occurrence key.
+- *Changed — sets:* `pet_ids`, `byday` and `bymonthday` are sets, and nothing
+  fixes their order; the same members in another order are the same schedule
+  and must not fork. `times_of_day` is validated as sorted, so its order
+  never differs.
+- *Changed — the successor's start:* "other successors start at E" was what
+  R3.8 said, and it restarted every interval on the day of the edit. The
+  successor now keeps the old cadence *(ADR-034, `07` §4.3)*.
+- *Changed — the end date:* the old patch ends at `E − 1` unless the template
+  already ends earlier; an end date never moves later.

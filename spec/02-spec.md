@@ -167,6 +167,13 @@ Vocabulary used everywhere:
   early. The form says which: "Vale a partir de hoje" or
   "Vale a partir de amanhã". Past occurrences and their completions are never
   rewritten *(ADR-016)*.
+  **The fork keeps the cadence** *(ADR-034)*: an interval is counted from
+  `starts_on`, so when the edit leaves `freq` and `interval` as they were, the
+  new template's `starts_on` is not `E` itself but the first day on or after
+  `E` that lies on the old template's cycle (`07` §4.3). Changing the time of
+  a dose given every 3 days does not restart the 3 days. When the edit
+  changes `freq` or `interval`, the new cycle counts from `E`. A `once`
+  template starts on its own date.
 - **R3.9** **Encerrar** a template sets `ends_on = E − 1 day` with the same `E`.
   An ended template produces no further occurrences, carries nothing over
   *(R6.5)*, and moves to the
