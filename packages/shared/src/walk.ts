@@ -69,19 +69,19 @@ export function currentSpeedMps(points: readonly WalkPoint[]): number {
   // Q-11: anchor the window to the latest input, not a stale good fix.
   const cutoff = latest.t - 10_000;
   let newestGood: WalkPoint | null = null;
-  let previous: WalkPoint | null = null;
-  let distanceM = 0;
+  let oldestGood: WalkPoint | null = null;
   for (let index = points.length - 1; index >= 0; index -= 1) {
     const point = points[index];
     if (point === undefined) continue;
     if (point.t < cutoff || point.paused) break;
     if (point.acc > 30) continue;
-    if (previous !== null) distanceM += haversineM(point, previous);
     newestGood ??= point;
-    previous = point;
+    oldestGood = point;
   }
-  if (newestGood === null || previous === null || newestGood.t <= previous.t) return 0;
-  return distanceM * 1000 / (newestGood.t - previous.t);
+  if (newestGood === null || oldestGood === null || newestGood.t <= oldestGood.t) return 0;
+  const distanceM = haversineM(oldestGood, newestGood);
+  if (distanceM < 5 - 5 * Number.EPSILON) return 0;
+  return distanceM * 1000 / (newestGood.t - oldestGood.t);
 }
 
 type ProjectedPoint = { x: number; y: number };

@@ -141,12 +141,21 @@ describe('walk math', () => {
     expect(paceSecPerKm(100, 0)).toBeNull();
   });
 
-  it('WK-S1 measures path speed over the inclusive last ten seconds of good fixes', () => {
+  it('WK-S4 returns zero for standing jitter alternating two metres either side', () => {
+    const fixes = [point(-2, 0, 0), point(2, 0, 3000), point(-2, 0, 6000), point(2, 0, 9000)];
+    expect(currentSpeedMps(fixes)).toBe(0);
+  });
+
+  it('WK-S1 measures displacement over the inclusive last ten seconds of good fixes', () => {
     const fixes = [point(-1000, 0, 0), point(0, 0, 1000), point(10, 0, 6000),
       point(5000, 0, 8000, { acc: 31 }), point(10, 10, 11000)];
-    expect(currentSpeedMps(fixes)).toBeCloseTo(2, 6);
+    expect(currentSpeedMps(fixes)).toBeCloseTo(Math.sqrt(200) / 10, 6);
     expect(currentSpeedMps([point(0, 0, 0), point(20, 0, 10001)])).toBe(0);
     expect(currentSpeedMps([point(0, 0, 0), point(20, 0, 10000, { acc: 30 })])).toBeCloseTo(2, 6);
+    expect(currentSpeedMps([point(0), point(6, 0, 3000), point(12, 0, 6000), point(18, 0, 9000)]))
+      .toBeCloseTo(2, 6);
+    expect(currentSpeedMps([point(0), point(4.999, 0, 3000)])).toBe(0);
+    expect(currentSpeedMps([point(0), point(5, 0, 3000)])).toBeCloseTo(5 / 3, 6);
   });
 
   it('WK-S2 returns zero for insufficient, stale, paused or same-time samples', () => {
