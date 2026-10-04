@@ -468,7 +468,9 @@ tests cover them for its routes.
   `IDEMPOTENT_ROUTES` (initially the probe): same key twice → same row id,
   revision unchanged by the second call; two concurrent requests with one key →
   one write; missing key → 400; malformed key → 400; a handler that raises
-  leaves no `applied_mutation`.
+  leaves no `applied_mutation`; while a ⟳ handler runs, the family's
+  `family_revision` row cannot be locked by another connection, and another
+  family's can.
   **Gate:** `uv run --directory services/api pytest tests/api/test_idempotency.py -q`
 
 - [ ] **P2-5 — Security frame: census, matrix, leak scan**
