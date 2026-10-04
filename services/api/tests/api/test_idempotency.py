@@ -282,8 +282,9 @@ async def test_family_lock_serializes_same_family_without_blocking_another(
         await lock_family(holder, first.id)
         await contender.execute(text("SET LOCAL lock_timeout = '200ms'"))
         await lock_family(contender, second.id)
-        with pytest.raises(DBAPIError, match="lock timeout"):
+        with pytest.raises(DBAPIError) as caught:
             await lock_family(contender, first.id)
+        assert getattr(caught.value.orig, "sqlstate", None) == "55P03"
         await contender.rollback()
         await holder.commit()
         await asyncio.wait_for(lock_family(contender, first.id), timeout=5)

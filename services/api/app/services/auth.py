@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.clock import Clock
 from app.db import transactional
 from app.errors import ApiError
-from app.models import AppUser, FamilyRevision, RefreshToken
+from app.locks import lock_family
+from app.models import AppUser, RefreshToken
 from app.schemas.auth import Login, Me, MePatch, PasswordChange, Refresh, Session
 from app.security.passwords import hash_password, verify_password
 from app.security.ratelimit import LoginRateLimiter
@@ -33,7 +34,7 @@ async def login(
         )
         user = None
         if family_id is not None:
-            await _lock_family(session, family_id)
+            await lock_family(session, family_id)
             user = await session.scalar(
                 select(AppUser).where(
                     AppUser.family_id == family_id,
@@ -70,7 +71,7 @@ async def refresh(
         if located is None:
             raise _invalid_refresh()
         family_id, digest = located
-        await _lock_family(session, family_id)
+        await lock_family(session, family_id)
         pair = (
             await session.execute(
                 select(RefreshToken, AppUser)
@@ -130,7 +131,7 @@ async def logout(session: AsyncSession, body: Refresh, clock: Clock) -> None:
         if located is None:
             return
         family_id, digest = located
-        await _lock_family(session, family_id)
+        await lock_family(session, family_id)
         pair = (
             await session.execute(
                 select(
@@ -193,17 +194,8 @@ async def change_password(
     await transactional(session, write)
 
 
-async def _lock_family(session: AsyncSession, family_id: UUID) -> None:
-    # P2-4 extracts the common lock; auth already follows the specified lock order.
-    await session.execute(
-        select(FamilyRevision.value)
-        .where(FamilyRevision.family_id == family_id)
-        .with_for_update()
-    )
-
-
 async def _locked_user(session: AsyncSession, user: AppUser) -> AppUser:
-    await _lock_family(session, user.family_id)
+    await lock_family(session, user.family_id)
     enabled = await session.scalar(
         select(AppUser)
         .where(
