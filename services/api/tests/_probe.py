@@ -12,7 +12,7 @@ from app.clock import FrozenClock
 from app.db import CommitCallback, get_session, transactional
 from app.deps import after_commit, get_clock
 from app.errors import ApiError
-from app.idempotency import IdempotentMutation, idempotent
+from app.idempotency import IdempotentMutation, SyncModel, idempotent
 from app.schemas.rows import Pet as PetRow
 
 router = APIRouter()
@@ -39,7 +39,10 @@ async def idempotent_pet(
     value: ProbePetBody,
     mutation: Annotated[IdempotentMutation, Depends(idempotent("pets"))],
 ) -> PetRow:
-    raise NotImplementedError("not implemented")
+    async def operation() -> SyncModel:
+        raise NotImplementedError("not implemented")
+
+    return cast(PetRow, await mutation(operation))
 
 
 @dataclass

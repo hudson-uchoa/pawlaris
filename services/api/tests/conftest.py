@@ -2,6 +2,7 @@ import secrets
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -20,6 +21,11 @@ from tests._probe import ProbeState, router
 
 API_ROOT = Path(__file__).resolve().parents[1]
 pytest_plugins = ["tests.factories"]
+
+
+@pytest.fixture
+def idem() -> Callable[[], dict[str, str]]:
+    return lambda: {"Idempotency-Key": str(uuid4())}
 
 
 @pytest.fixture(scope="session")
