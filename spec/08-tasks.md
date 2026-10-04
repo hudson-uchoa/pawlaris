@@ -304,9 +304,16 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Build:** `src/recurrence.ts` — types `Recurrence`, `OccurrenceInput`;
   `validateRecurrence(value, startsOn)` → `{ok: true, value} | {ok: false, errors}`;
   `validateTimesOfDay`; `occurrences(input)`; `splitKey(key)` →
-  `{date, time: string | null}`.
+  `{date, time: string | null}`. Both validators take `unknown`. `errors` is
+  `{field, code}[]`, never a sentence: `field` is `freq`, `interval`, `byday`,
+  `bymonthday`, `date`, `starts_on`, `times_of_day` or an unknown key's own
+  name; `code` is `required`, `invalid`, `out_of_range`, `duplicate`,
+  `unsorted`, `too_many`, `mismatch` or `unknown_key`. A valid value keeps its
+  supplied order. `splitKey` throws `RangeError` on anything but a real date
+  with an optional `THH:mm`. `occurrences` takes validated input *(Q-7)*.
   **Tests:** `recurrence.test.ts` per `07` §4.1 (RC-1, RC-2, validation
-  rejections, `RangeError`).
+  rejections with the `field` and `code` each one must report, `RangeError`;
+  `splitKey` rejects a separator other than `T`).
   **Gate:** `pnpm -C packages/shared exec vitest run src/recurrence.test.ts`
   **Not here:** anything that knows about completions.
 

@@ -208,3 +208,17 @@ be sorted). `splitKey` accepts only a real date key with an optional strict
 typed, already validated rule and times; it does not validate them again.
 **Blocking:** no (proceeding on the assumption, confined to
 packages/shared/src/recurrence.ts)
+
+**Answer:** orchestrator — 2026-10-04. All as assumed except the errors. They
+are not sentences: both validators return
+`{ok: true, value} | {ok: false, errors: {field, code}[]}`, the shape P1-7
+gives the form validators, so the app maps a code to Portuguese and points at
+the field. `field` is one of `freq`, `interval`, `byday`, `bymonthday`,
+`date`, `starts_on`, `times_of_day`, or the name of an unknown key. `code` is
+one of `required`, `invalid`, `out_of_range`, `duplicate`, `unsorted`,
+`too_many`, `mismatch` (a `once` date that differs from `starts_on`) and
+`unknown_key`. The rest stands: the validators take `unknown`; an invalid
+`startsOn` is a validation failure; a valid value keeps its supplied order;
+`splitKey` throws `RangeError` on a malformed key; `occurrences` takes
+validated input. It is finding R1 of the P1-2 review, and the P1-2 **Build**
+line carries it.
