@@ -215,9 +215,9 @@ Orphans *(R6.15)* follow the scope of the template they belong to.
 | FK-8 | `buildEnd(old, E)` | `{ends_on: E − 1}`; when the old template already ends before that, its own `ends_on` — an end date never moves later |
 | FK-9 | the old template starts next Monday; edited today | `forkEffectiveDate` → next Monday (`E ≥ old.starts_on`) |
 | FK-10 | daily every 3 days from 2026-10-01; only `times_of_day` edited; `E` = 2026-10-05, an off day | new `starts_on` = 2026-10-07, the next day of the old cycle; with `E` = 2026-10-07 → 2026-10-07 |
-| FK-11 | weekly every 2 weeks on Monday from 2026-09-28; only `times_of_day` edited; `E` = 2026-10-07, an off week | new `starts_on` = 2026-10-12, the Monday of the next on week; with `E` = 2026-10-14, a day of an on week → 2026-10-14 |
-| FK-12 | monthly every 3 months on the 5th from 2026-08-05; only `times_of_day` edited; `E` = 2026-10-07, an off month | new `starts_on` = 2026-11-01, the first day of the next on month; with `E` = 2026-11-20 → 2026-11-20 |
-| FK-13 | the same daily template; the edit changes `interval` to 2, or `freq` to weekly; `E` = 2026-10-05 | new `starts_on` = `E`: a new cadence counts from the day it takes effect |
+| FK-11 | weekly every 2 weeks on Monday from 2026-09-28; only `times_of_day` edited; `E` = 2026-10-07, an off week | new `starts_on` = 2026-10-12, the Monday of the next on week; with `E` = 2026-10-14, a day of an on week → 2026-10-14. The same rule from Wednesday 2026-09-30 gives the same two answers: weeks count from the Monday of `starts_on`. Every 3 weeks from 2026-09-28, `E` = 2026-10-07 → 2026-10-19 |
+| FK-12 | monthly every 3 months on the 5th from 2026-08-05; only `times_of_day` edited; `E` = 2026-10-07, an off month | new `starts_on` = 2026-11-01, the first day of the next on month; with `E` = 2026-11-20 → 2026-11-20; with `E` = 2026-12-10 → 2027-02-01, across the year end |
+| FK-13 | the same daily template; the edit changes `interval` to 2, or `freq` to weekly every 3 weeks on Monday; `E` = 2026-10-06, a day on which keeping the old cycle would give another date | new `starts_on` = `E`: a new cadence counts from the day it takes effect |
 
 `buildFork` returns the `TaskCreate` payload of `04` §9 for the new template —
 no `revision`, `updated_at`, `deleted_at` or `created_by`; the mutation layer
