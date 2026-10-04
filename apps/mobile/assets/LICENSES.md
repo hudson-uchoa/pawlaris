@@ -33,3 +33,17 @@ select them.
 
 Font licence references: [JetBrains Mono OFL](https://github.com/JetBrains/JetBrainsMono/blob/master/OFL.txt)
 and [Inter OFL](https://github.com/rsms/inter/blob/master/LICENSE.txt).
+
+## Pawlaris icon and splash (P0-9)
+
+These five images were authored for this project. The orchestrator
+exported them from the owner-approved SVG masters in `spec/brand/`.
+P0-9 uses the supplied PNG files unchanged; no third-party artwork is used.
+
+| Authored asset | Purpose |
+|---|---|
+| `icon.png` | App icon |
+| `adaptive-foreground.png` | Android adaptive foreground |
+| `adaptive-background.png` | Android adaptive night sky |
+| `adaptive-monochrome.png` | Android themed paw-star mark |
+| `splash-icon.png` | Splash paw-star mark |
