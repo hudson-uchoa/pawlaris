@@ -269,7 +269,12 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
     `{y, m, d}`, `formatDateKey`, `addDays(key, n)`, `daysBetween(a, b)`,
     `weekdayOf(key)` (0 = Monday … 6 = Sunday), `mondayOf(key)`,
     `daysInMonth(y, m)`, `monthsBetween(a, b)`, `compareDateKey`. Implemented
-    with `Date.UTC` arithmetic only.
+    with `Date.UTC` arithmetic only. A date key is a real Gregorian date from
+    `0001-01-01` to `9999-12-31`; months are 1–12. `isDateKey` answers false
+    and never throws; every other function throws `RangeError` for an invalid
+    date, a non-integer offset or a result outside that range, and never lets
+    `Date.UTC` normalize one. Differences run from the first argument to the
+    second: `daysBetween(a, b)` is `b − a` *(Q-6)*.
   - `src/time.ts` — `localDate`, `localTime`, `slotInstant`, `startOfLocalDay`
     with the DST rules of `03` §4.3. The offset for an instant comes from
     `Intl.DateTimeFormat(..., { timeZone }).formatToParts`; formatters are cached
@@ -282,9 +287,13 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
     4. `o2 = offset(c1)`; `c2 = g − o2`; if `offset(c2) === o2` → return `c2`
        (a time after a transition on the transition day)
     5. otherwise the wall time does not exist → return `c1`
+
+    `time` is a strict `HH:mm` checked by the function, and `g` is built from
+    its numbers, never by handing a string to `Date.parse` *(03 §4.3)*.
   **Tests:** `dates.test.ts` (leap years 2028 and 2100; `addDays` across month
   and year ends; `weekdayOf('2026-09-14') === 0`; `monthsBetween`);
-  `time.test.ts` (every vector in `time-vectors.json`); `index.test.ts` gains a
+  `time.test.ts` (every vector in `time-vectors.json`; `slotInstant` throws
+  `RangeError` for `24:00`, `8:00`, `08:60` and `08:00:30`); `index.test.ts` gains a
   lint fixture for each newly forbidden form, and one proving
   `new Date(Date.UTC(2026, 0, 1))` is still allowed.
   **Gate:** `pnpm -C packages/shared exec vitest run src/index.test.ts src/dates.test.ts src/time.test.ts`
