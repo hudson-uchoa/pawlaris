@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import inspect
 import secrets
 from datetime import timedelta
 from uuid import uuid4
@@ -23,6 +24,14 @@ def token_settings(settings: Settings) -> Settings:
 @pytest.fixture
 def user() -> AppUser:
     return AppUser(id=uuid4(), family_id=uuid4(), role="leader")
+
+
+@pytest.mark.parametrize("helper", [issue_access, decode_access])
+def test_r2_token_helpers_require_injected_settings(helper: object) -> None:
+    assert callable(helper)
+    parameter = inspect.signature(helper).parameters["settings"]
+    assert parameter.default is inspect.Parameter.empty
+    assert parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD
 
 
 def test_r1_6_access_contains_only_the_signed_identity_and_clock_claims(

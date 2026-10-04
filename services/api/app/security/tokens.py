@@ -23,10 +23,7 @@ class AccessClaims(BaseModel):
     iat: StrictInt
 
 
-def issue_access(
-    user: AppUser, clock: Clock, *, settings: Settings | None = None
-) -> str:
-    configured = settings if settings is not None else Settings()
+def issue_access(user: AppUser, clock: Clock, settings: Settings) -> str:
     now = clock.now()
     claims = AccessClaims.model_validate(
         {
@@ -39,19 +36,16 @@ def issue_access(
     )
     return jwt.encode(
         claims.model_dump(mode="json"),
-        configured.jwt_secret.get_secret_value(),
+        settings.jwt_secret.get_secret_value(),
         algorithm="HS256",
     )
 
 
-def decode_access(
-    token: str, clock: Clock, *, settings: Settings | None = None
-) -> AccessClaims:
-    configured = settings if settings is not None else Settings()
+def decode_access(token: str, clock: Clock, settings: Settings) -> AccessClaims:
     try:
         payload = jwt.decode(
             token,
-            configured.jwt_secret.get_secret_value(),
+            settings.jwt_secret.get_secret_value(),
             algorithms=["HS256"],
             options={
                 "require": ["sub", "fam", "role", "exp", "iat"],
