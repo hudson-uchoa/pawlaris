@@ -191,3 +191,15 @@ Implementation references: [checkout](https://github.com/actions/checkout),
 [uv setup](https://github.com/astral-sh/setup-uv),
 [Gitleaks CLI](https://github.com/gitleaks/gitleaks), and
 [Docker Buildx publishing](https://github.com/docker/build-push-action).
+
+## P0-9 — App icon and splash (2026-10-03)
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-splash-screen` | 57.0.9 | Native splash config plugin | MIT |
+
+The exact version matches the installed Expo SDK 57's bundled range
+(`~57.0.9`). The plugin uses the supplied project-authored paw-star image
+on the night sky in both themes. Its pinned package contains the MIT
+licence text. It needs no account, remote service or billing; the fallback
+is the same native splash built locally from the frozen lockfile.
