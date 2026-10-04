@@ -30,10 +30,11 @@ who did it. Built for two people and five pets, to cost nothing a month.
 [Reviews](docs/reviews)
 
 > [!IMPORTANT]
-> Pawlaris is being built in the open and is not usable yet. The foundation
-> phase is under way: the three packages build, lint and test, and nothing a
-> family could use exists so far. The [backlog](spec/08-tasks.md) shows
-> exactly where it stands.
+> Pawlaris is being built in the open and is not usable yet. The foundation is
+> done: the three packages build, lint and test, CI is green, and an empty app
+> carrying the mark installs on both phones. The domain logic is being
+> written now, and nothing a family could use exists so far. The
+> [backlog](spec/08-tasks.md) shows exactly where it stands.
 
 ## What Pawlaris Is
 
@@ -211,8 +212,8 @@ uvx pre-commit install --hook-type pre-commit --hook-type commit-msg
 The backlog is ordered and each phase builds on the one before it. The live
 state of every task is its checkbox in [`spec/08-tasks.md`](spec/08-tasks.md).
 
-- [ ] **P0 — Foundation** — scaffolds, harness, hooks, CI *(in progress)*
-- [ ] **P1 — Pure domain** — dates, recurrence, day view, reminders, walk math
+- [x] **P0 — Foundation** — scaffolds, harness, hooks, CI, Android builds
+- [ ] **P1 — Pure domain** — dates, recurrence, day view, reminders, walk math *(in progress)*
 - [ ] **P2 — Server** — schema, auth, sync, every route
 - [ ] **P3 — Client core** — replica, outbox, pull, socket
 - [ ] **P4 — Identity, shell, auth, pets**
