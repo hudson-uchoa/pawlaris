@@ -303,8 +303,15 @@ may be fractional. No function mutates its input.
 ### 4.6 Small helpers
 
 `petAge` → `{years, months, days}` across a leap day; `needsWeightConfirmation`
-(exactly 20% → no; 20.01% → yes; no previous entry → no); `upcomingCare`;
-`validators` (each limit of `03` accepted at its edge and rejected one past it).
+(exactly 20% → no; 20.01% → yes; no previous entry → no); `validators` (each
+limit of `03` accepted at its edge and rejected one past it).
+
+`upcomingCare({healthEvents, pets, today})` *(R2.11)* — one item per event
+with `next_due_on`, each with `daysUntil` = days from `today` to the due
+date: due in 7 days → included, 7; in 8 → not; due today → 0; due 2 days
+ago → −2, and it stays until the event is edited or deleted; a deleted event
+→ not; an event whose pet is archived, soft-deleted or absent from the
+replica → not *(ADR-035)*. Sorted by due date, then by event id.
 
 ---
 
