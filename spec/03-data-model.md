@@ -431,9 +431,10 @@ startOfLocalDay(date, tz)           -> epoch ms        (= slotInstant(date,'00:0
   (earlier) instant.
 
 > **TZ-1** All four functions reproduce `spec/fixtures/time-vectors.json`, which
-> covers `America/Sao_Paulo` (no DST) and `America/New_York` across both
-> transitions. Brazil has no DST today; the New York vectors prove the code is
-> not accidentally correct.
+> covers `America/Sao_Paulo` (no DST), and `America/New_York`, `Europe/London`
+> and `Australia/Sydney` across both transitions. Brazil has no DST today; the
+> other zones prove the code is not accidentally correct, and the two east of
+> UTC are the only ones where probing the offset a day earlier matters.
 
 ---
 
