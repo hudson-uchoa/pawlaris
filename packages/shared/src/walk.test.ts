@@ -236,6 +236,15 @@ describe('walk math', () => {
     expect(routeForUpload([point(0, 0, 1000)])).toEqual([[0, 0, 1000, 5]]);
   });
 
+  it('WK-U2 simplifies uploads at five metres, keeping seven and dropping three', () => {
+    const start = point(0, 0, 1000);
+    const end = point(20, 0, 3000);
+    const above = [start, point(10, 7, 2000), end];
+    expect(routeForUpload(above)).toEqual(above.map((fix) => [fix.lat, fix.lon, fix.t, fix.acc]));
+    expect(routeForUpload([start, point(10, 3, 2000), end]))
+      .toEqual([start, end].map((fix) => [fix.lat, fix.lon, fix.t, fix.acc]));
+  });
+
   it('WK-P1 previews at most thirty-two pairs while keeping both endpoints', () => {
     const route: RoutePoint[] = Array.from({ length: 100 }, (_, index) => [index / 1000, -index / 1000, index * 3000, 5]);
     const before = structuredClone(route);
