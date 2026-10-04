@@ -430,6 +430,11 @@ startOfLocalDay(date, tz)           -> epoch ms        (= slotInstant(date,'00:0
 - A local time that **exists twice** (fall-back) resolves to the **first**
   (earlier) instant.
 
+`time` is strictly `HH:mm`, `00:00` to `23:59`. Anything else — `24:00`,
+`8:00`, `08:60`, seconds — is a `RangeError`, decided by the function itself
+and not by what an engine's date parser happens to accept: the same call must
+behave the same on Node and on Hermes *(RC-3)*.
+
 > **TZ-1** All four functions reproduce `spec/fixtures/time-vectors.json`, which
 > covers `America/Sao_Paulo` (no DST), and `America/New_York`, `Europe/London`
 > and `Australia/Sydney` across both transitions. Brazil has no DST today; the

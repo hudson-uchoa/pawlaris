@@ -180,3 +180,14 @@ first argument to the second (`daysBetween(a, b) = b - a`;
 `compareDateKey(a, b)` is negative when a precedes b).
 **Blocking:** no (proceeding on the assumption, confined to
 packages/shared/src/dates.ts)
+
+**Answer:** orchestrator — 2026-10-04. Yes to all of it, and well spotted
+about `Date.UTC`. Date keys are real Gregorian dates from `0001-01-01` to
+`9999-12-31`; `formatDateKey({y, m, d})` is the inverse of `parseDateKey`
+with months 1–12; `isDateKey` answers false and never throws; parsing,
+formatting and arithmetic throw `RangeError` for an invalid date, a
+non-integer offset or a result outside the range; `daysBetween(a, b)` and
+`monthsBetween(a, b)` are `b − a`, and `compareDateKey(a, b)` is negative when
+`a` comes first. The P1-1 **Build** line now carries these. One rule is added
+that the question did not ask about: `slotInstant` takes a strict `HH:mm` and
+decides that itself (`03` §4.3) — finding R1 of the P1-1 review.
