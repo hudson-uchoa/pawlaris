@@ -316,6 +316,21 @@
       "expect": ["2026-09-20", "2026-10-04", "2026-10-18"]
     },
     {
+      "name": "every 2 weeks: a range that begins in an off week is anchored to starts_on, not to from",
+      "tags": ["weekly", "weekly-interval", "mid-interval"],
+      "recurrence": {
+        "freq": "weekly",
+        "interval": 2,
+        "byday": ["MO", "TH"]
+      },
+      "times_of_day": [],
+      "starts_on": "2026-09-16",
+      "ends_on": null,
+      "from": "2026-09-21",
+      "to": "2026-10-11",
+      "expect": ["2026-09-28", "2026-10-01"]
+    },
+    {
       "name": "weekly on all seven days equals daily",
       "tags": ["weekly"],
       "recurrence": {
@@ -449,6 +464,21 @@
       "from": "2026-11-01",
       "to": "2027-03-31",
       "expect": ["2026-11-05T08:00", "2027-01-05T08:00", "2027-03-05T08:00"]
+    },
+    {
+      "name": "every 2 months: a range that begins in an off month is anchored to starts_on, not to from",
+      "tags": ["monthly", "mid-interval"],
+      "recurrence": {
+        "freq": "monthly",
+        "interval": 2,
+        "bymonthday": [15]
+      },
+      "times_of_day": ["08:00"],
+      "starts_on": "2026-01-15",
+      "ends_on": null,
+      "from": "2026-02-01",
+      "to": "2026-06-30",
+      "expect": ["2026-03-15T08:00", "2026-05-15T08:00"]
     },
     {
       "name": "once, inside the range",
