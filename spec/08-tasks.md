@@ -317,7 +317,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/recurrence.test.ts`
   **Not here:** anything that knows about completions.
 
-- [ ] **P1-3 — Entities and the day view**
+- [~] **P1-3 — Entities and the day view**
   **Depends:** P1-2 · **Read:** `04` §2 · `02` §6 · `07` §4.2
   **Build:** `src/entities.ts` — the ten row types of `04` §2 **written by hand**
   (the generated API types do not contain them until P2; P2-6 adds a compile-time
