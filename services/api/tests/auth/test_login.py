@@ -4,10 +4,12 @@ from datetime import timedelta
 
 import pytest
 from fastapi import FastAPI
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select, update
+from starlette.types import Receive, Scope, Send
 
 from app.clock import FrozenClock
+from app.main import TimingMiddleware
 from app.models import AppUser, RefreshToken
 from app.security.tokens import decode_access
 from app.settings import Settings
@@ -108,3 +110,30 @@ async def test_id1_auth_bodies_reject_unknown_fields_without_echoing_secrets(
     response = await client.post("/api/v1/auth/login", json=body)
     assert response.status_code == 422
     assert all(value not in response.text for value in body.values())
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/v1/auth/login",
+        "/api/v1/auth/refresh",
+        "/api/v1/me/password",
+    ],
+)
+async def test_id1_auth_failure_logs_omit_exception_payloads(
+    path: str,
+    frozen_clock: FrozenClock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def fail(scope: Scope, receive: Receive, send: Send) -> None:
+        # A harmless marker proves exception messages cannot echo sensitive data.
+        raise RuntimeError("Sensitive operation failed.")
+
+    middleware = TimingMiddleware(fail, frozen_clock)
+    async with AsyncClient(
+        transport=ASGITransport(app=middleware),
+        base_url="http://test",
+    ) as client:
+        response = await client.post(path, json={})
+    assert response.status_code == 500
+    assert "Sensitive operation failed." not in caplog.text

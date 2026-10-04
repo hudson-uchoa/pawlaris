@@ -1,3 +1,4 @@
+import secrets
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -48,7 +49,11 @@ def frozen_clock() -> FrozenClock:
 
 @pytest.fixture
 def settings(database_url: str, tmp_path: Path) -> Settings:
-    return Settings(database_url=SecretStr(database_url), blob_dir=tmp_path)
+    return Settings(
+        database_url=SecretStr(database_url),
+        blob_dir=tmp_path,
+        jwt_secret=SecretStr(secrets.token_hex(32)),
+    )
 
 
 @pytest.fixture
