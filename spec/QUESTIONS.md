@@ -104,3 +104,21 @@ lockfile and build on both phones. It is finding R1 of the P0-6 review. The
 mismatch does come from P0-5, whose review checked a JavaScript export and so
 never ran the native version check; `05` §1 now states the rule that would
 have prevented it.
+
+## Q-4 — P0-6 — May the native build shorten pnpm's package paths?
+**Asked:** 2026-10-03
+**Where:** pnpm-workspace.yaml; spec/05-architecture.md §9; review P0-6 R1
+**Problem:** after the SDK peer pins and a clean Android prebuild, both native
+version assertions pass. The build then fails in Screens and Worklets with
+`ninja: error: manifest 'build.ninja' still dirty after 100 tries`. Ninja's
+`-d explain -n` reports prefab CMake files missing although PowerShell finds
+them. A Screens prefab path is 254 characters before Windows resolves its
+relative segments; CMake also warns about oversized object paths. The
+repository and SDK already occupy the specified paths without spaces.
+**I would assume:** set `virtualStoreDirMaxLength: 20` in the workspace so
+pnpm gives installed package directories shorter names, reinstall the same
+frozen lockfile, regenerate Android and repeat the native builds. This changes
+package layout only, with no new dependency or native version change.
+**Blocking:** no (proceeding on the assumption, confined to
+`virtualStoreDirMaxLength` in pnpm-workspace.yaml). R1 still needs successful
+builds and observed launch evidence on both phones.
