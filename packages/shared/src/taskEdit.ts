@@ -1,6 +1,9 @@
-import { addDays, compareDateKey, type DateKey } from './dates';
+import {
+  addDays, compareDateKey, daysBetween, formatDateKey, mondayOf, monthsBetween,
+  parseDateKey, type DateKey,
+} from './dates';
 import type { Completion, TaskTemplate } from './entities';
-import { occurrences } from './recurrence';
+import { occurrences, type Recurrence } from './recurrence';
 
 export const SCHEDULE_FIELDS = [
   'recurrence', 'times_of_day', 'starts_on', 'pet_ids', 'completion_mode',
@@ -47,6 +50,32 @@ export function forkEffectiveDate({ template, completions, today }: ForkEffectiv
   return compareDateKey(E, template.starts_on) < 0 ? template.starts_on : E;
 }
 
+// ADR-034: retain the old cycle unless the frequency or interval changes.
+function successorStart(old: TaskTemplate, rule: Recurrence, E: DateKey): DateKey {
+  if (rule.freq === 'once') return rule.date;
+  const previous = old.recurrence;
+  if (previous.freq === 'once' || rule.freq !== previous.freq
+    || rule.interval !== previous.interval) return E;
+  switch (rule.freq) {
+    case 'daily': {
+      const r = daysBetween(old.starts_on, E) % rule.interval;
+      return r === 0 ? E : addDays(E, rule.interval - r);
+    }
+    case 'weekly': {
+      const monday = mondayOf(E);
+      const r = (daysBetween(mondayOf(old.starts_on), monday) / 7) % rule.interval;
+      return r === 0 ? E : addDays(monday, 7 * (rule.interval - r));
+    }
+    case 'monthly': {
+      const r = monthsBetween(old.starts_on, E) % rule.interval;
+      if (r === 0) return E;
+      const { y, m } = parseDateKey(E);
+      const month = m - 1 + rule.interval - r;
+      return formatDateKey({ y: y + Math.floor(month / 12), m: month % 12 + 1, d: 1 });
+    }
+  }
+}
+
 export function buildFork(
   old: TaskTemplate, edited: TaskEdits, E: DateKey, newId: string,
 ): ForkResult {
@@ -64,8 +93,7 @@ export function buildFork(
     sort_order: merged.sort_order,
     recurrence: merged.recurrence,
     times_of_day: merged.times_of_day,
-    // Q-9: FK-7's once date takes precedence over E for the successor only.
-    starts_on: merged.recurrence.freq === 'once' ? merged.recurrence.date : E,
+    starts_on: successorStart(old, merged.recurrence, E),
     pet_ids: merged.pet_ids,
     completion_mode: merged.completion_mode,
     ends_on: old.ends_on,

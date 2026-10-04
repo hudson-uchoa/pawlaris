@@ -189,4 +189,52 @@ describe('task edits and forks', () => {
     expect(buildFork(old, { times_of_day: ['09:00'] }, E, 'successor').newTemplate.starts_on).toBe(E);
     expect(buildEnd(old, E)).toEqual({ ends_on: '2026-10-11' });
   });
+
+  it('FK-10 keeps the daily cycle on an off day and an on day', () => {
+    const old = template({
+      recurrence: { freq: 'daily', interval: 3 }, starts_on: '2026-10-01',
+    });
+    for (const E of ['2026-10-05', '2026-10-07']) {
+      const fork = buildFork(old, { times_of_day: ['09:00'] }, E, 'successor');
+      expect(fork.newTemplate.starts_on).toBe('2026-10-07');
+    }
+  });
+
+  it('FK-11 keeps the weekly cycle on an off week and within an on week', () => {
+    const old = template({
+      recurrence: { freq: 'weekly', interval: 2, byday: ['MO'] }, starts_on: '2026-09-28',
+    });
+    for (const [E, startsOn] of [
+      ['2026-10-07', '2026-10-12'], ['2026-10-14', '2026-10-14'],
+    ] as const) {
+      const fork = buildFork(old, { times_of_day: ['09:00'] }, E, 'successor');
+      expect(fork.newTemplate.starts_on).toBe(startsOn);
+    }
+  });
+
+  it('FK-12 keeps the monthly cycle on an off month and within an on month', () => {
+    const old = template({
+      recurrence: { freq: 'monthly', interval: 3, bymonthday: [5] }, starts_on: '2026-08-05',
+    });
+    for (const [E, startsOn] of [
+      ['2026-10-07', '2026-11-01'], ['2026-11-20', '2026-11-20'],
+    ] as const) {
+      const fork = buildFork(old, { times_of_day: ['09:00'] }, E, 'successor');
+      expect(fork.newTemplate.starts_on).toBe(startsOn);
+    }
+  });
+
+  it('FK-13 starts a changed interval or frequency at the effective date', () => {
+    const old = template({
+      recurrence: { freq: 'daily', interval: 3 }, starts_on: '2026-10-01',
+    });
+    const edits: TaskEdits[] = [
+      { recurrence: { freq: 'daily', interval: 2 } },
+      { recurrence: { freq: 'weekly', interval: 3, byday: ['MO'] } },
+    ];
+    for (const edit of edits) {
+      const fork = buildFork(old, edit, '2026-10-05', 'successor');
+      expect(fork.newTemplate.starts_on).toBe('2026-10-05');
+    }
+  });
 });
