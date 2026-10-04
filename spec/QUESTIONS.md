@@ -122,3 +122,11 @@ package layout only, with no new dependency or native version change.
 **Blocking:** no (proceeding on the assumption, confined to
 `virtualStoreDirMaxLength` in pnpm-workspace.yaml). R1 still needs successful
 builds and observed launch evidence on both phones.
+
+**Follow-up evidence:** shortening package directory names alone lets Screens
+build, but Reanimated's longer Worklets prefab path still triggers the same
+Ninja failure. Proceeding on the same package-layout assumption with
+`virtualStoreDir: .p` alongside `virtualStoreDirMaxLength: 20`, both confined
+to pnpm-workspace.yaml; `.p/` is added to the dependency ignores. Moving the
+virtual store to this short repository-relative directory keeps the setup
+portable and avoids an absolute machine-specific path.
