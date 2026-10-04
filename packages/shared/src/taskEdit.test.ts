@@ -51,6 +51,20 @@ describe('task edits and forks', () => {
       pet_ids: ['pet-a', 'pet-b'], starts_on: old.starts_on,
       completion_mode: old.completion_mode, title: 'Dinner',
     })).toBe('cosmetic');
+    const weekly = template({ recurrence: { freq: 'weekly', interval: 1, byday: ['MO', 'WE'] } });
+    const monthly = template({ recurrence: { freq: 'monthly', interval: 1, bymonthday: [1, 15] } });
+    const oldBefore = structuredClone([old, weekly, monthly]);
+    const reordered: [TaskEdits, TaskEdits, TaskEdits] = [
+      { pet_ids: ['pet-b', 'pet-a'], title: 'Dinner' },
+      { recurrence: { freq: 'weekly', interval: 1, byday: ['WE', 'MO'] } },
+      { recurrence: { freq: 'monthly', interval: 1, bymonthday: [15, 1] } },
+    ];
+    const editsBefore = structuredClone(reordered);
+    expect.soft(classifyTaskEdit(old, reordered[0])).toBe('cosmetic');
+    expect.soft(classifyTaskEdit(weekly, reordered[1])).toBe('cosmetic');
+    expect.soft(classifyTaskEdit(monthly, reordered[2])).toBe('cosmetic');
+    expect([old, weekly, monthly]).toEqual(oldBefore);
+    expect(reordered).toEqual(editsBefore);
   });
 
   it('FK-2 classifies each changed schedule field and mixed edits as a fork', () => {
@@ -63,6 +77,7 @@ describe('task edits and forks', () => {
       { recurrence: { freq: 'weekly', interval: 1, byday: ['WE'] } },
       { times_of_day: ['09:00', '20:00'] }, { times_of_day: [] },
       { starts_on: '2026-10-12' }, { pet_ids: ['pet-b'] },
+      { pet_ids: ['pet-a', 'pet-c'] },
       { completion_mode: 'per_pet' },
     ];
     for (const edit of edits) {
@@ -75,6 +90,13 @@ describe('task edits and forks', () => {
     })).toBe('cosmetic');
     expect(classifyTaskEdit(weekly, {
       recurrence: { freq: 'weekly', interval: 1, byday: ['FR'] },
+    })).toBe('schedule');
+    expect(classifyTaskEdit(weekly, {
+      recurrence: { freq: 'weekly', interval: 1, byday: ['MO', 'FR'] },
+    })).toBe('schedule');
+    const monthly = template({ recurrence: { freq: 'monthly', interval: 1, bymonthday: [1, 15] } });
+    expect(classifyTaskEdit(monthly, {
+      recurrence: { freq: 'monthly', interval: 1, bymonthday: [1, 20] },
     })).toBe('schedule');
   });
 

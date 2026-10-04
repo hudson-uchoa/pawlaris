@@ -26,16 +26,25 @@ export type ForkEffectiveDateInput = {
   today: DateKey;
 };
 
-// Q-9: compare validated field values structurally, preserving array order.
-function scheduleValueKey(value: TaskTemplate[typeof SCHEDULE_FIELDS[number]]): string {
-  return typeof value === 'object' && !Array.isArray(value)
-    ? JSON.stringify(value, Object.keys(value).sort()) : JSON.stringify(value);
+// Q-9: pets and selected days are sets; validated times stay ordered.
+function scheduleValueKey(
+  field: typeof SCHEDULE_FIELDS[number],
+  value: TaskTemplate[typeof SCHEDULE_FIELDS[number]],
+): string {
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const rule = value.freq === 'weekly' ? { ...value, byday: [...value.byday].sort() }
+      : value.freq === 'monthly'
+        ? { ...value, bymonthday: [...value.bymonthday].sort((a, b) => a - b) } : value;
+    return JSON.stringify(rule, Object.keys(rule).sort());
+  }
+  return JSON.stringify(field === 'pet_ids' && Array.isArray(value) ? [...value].sort() : value);
 }
 
 export function classifyTaskEdit(old: TaskTemplate, edited: TaskEdits): 'cosmetic' | 'schedule' {
   return SCHEDULE_FIELDS.some((field) => {
     const value = edited[field];
-    return value !== undefined && scheduleValueKey(value) !== scheduleValueKey(old[field]);
+    return value !== undefined
+      && scheduleValueKey(field, value) !== scheduleValueKey(field, old[field]);
   }) ? 'schedule' : 'cosmetic';
 }
 
