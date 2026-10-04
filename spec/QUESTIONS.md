@@ -191,3 +191,20 @@ non-integer offset or a result outside the range; `daysBetween(a, b)` and
 `a` comes first. The P1-1 **Build** line now carries these. One rule is added
 that the question did not ask about: `slotInstant` takes a strict `HH:mm` and
 decides that itself (`03` §4.3) — finding R1 of the P1-1 review.
+
+## Q-7 — P1-2 — What are the validation and key-splitting failure shapes?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P1-2 Build; spec/03-data-model.md §4.1, §4.2
+**Problem:** the task specifies the recurrence validation union but not the
+type of `errors`, the result of `validateTimesOfDay`, or how `splitKey`
+handles malformed keys. Validators receive untrusted form or JSON values;
+the date helpers already reject invalid calendar dates with `RangeError`.
+**I would assume:** both validators take `unknown` and return
+`{ok: true, value} | {ok: false, errors: string[]}`, with English errors.
+Invalid `startsOn` returns a validation failure, including for recurring
+rules. Successful validation preserves the supplied order (only times must
+be sorted). `splitKey` accepts only a real date key with an optional strict
+`THH:mm` suffix, otherwise throwing `RangeError`. `occurrences` takes the
+typed, already validated rule and times; it does not validate them again.
+**Blocking:** no (proceeding on the assumption, confined to
+packages/shared/src/recurrence.ts)
