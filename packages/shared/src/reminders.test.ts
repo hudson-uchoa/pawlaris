@@ -193,9 +193,15 @@ describe('reminder planner', () => {
         now: Date.parse(instant), templates: [], healthEvents: [health({ next_due_on: today })],
       }))).toEqual([]);
     }
-    expect(onlyItem({ templates: [], healthEvents: [health()], pets: [] })).not.toHaveProperty('petName');
+    expect(planReminders(input({ templates: [], healthEvents: [health()], pets: [] }))).toEqual([]);
+    for (const patch of [{ archived_at: stamp }, { deleted_at: stamp }]) {
+      expect(planReminders(input({
+        templates: [], healthEvents: [health()], pets: [pet('pet-a', patch)],
+      }))).toEqual([]);
+    }
+    // Unarchiving restores the reminder without changing the event.
     expect(onlyItem({
-      templates: [], healthEvents: [health()], pets: [pet('pet-a', { archived_at: stamp })],
+      templates: [], healthEvents: [health()], pets: [pet('pet-a', { archived_at: null })],
     }).petName).toBe('pet-a');
   });
 

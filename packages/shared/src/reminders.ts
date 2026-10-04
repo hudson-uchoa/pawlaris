@@ -85,11 +85,12 @@ export function planReminders(input: ReminderInput): ReminderItem[] {
     const due = event.next_due_on;
     if (event.deleted_at !== null || due === null || due < today || due > healthHorizon) continue;
     const pet = pets.get(event.pet_id);
+    if (pet === undefined || pet.archived_at !== null || pet.deleted_at !== null) continue;
     append(planned, {
       id: `due:${event.id}`, fireAt: slotInstant(due, '09:00', input.tz),
       channel: 'reminders-routine', kind: 'health_due',
       healthEventId: event.id, healthTitle: event.title,
-      ...(pet === undefined ? {} : { petName: pet.name }),
+      petName: pet.name,
     });
   }
   for (const timer of input.timers) {
