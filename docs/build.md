@@ -5,17 +5,14 @@ EAS cloud build, Docker or paid service is needed. Commands below use
 PowerShell 5.1: run one command at a time and stop on a non-zero exit.
 Start at `C:\Hudson\Pawlaris` unless another directory is shown.
 
-**Current blocker (2026-10-03):** the first P0-6 native build fails because
-the P0-5 lockfile resolves Reanimated 4.7.1 alongside the Worklets 0.10.1
-override. The native compatibility check rejects that pair. Q-3 in
-`spec/QUESTIONS.md` asks the orchestrator to authorize aligning the existing
-peer configuration. The commands below are the build procedure; successful
-installation and launch on either phone remain unverified until that is fixed.
-
 ## Prerequisites
 
 - Node 22 or later and pnpm; install the workspace with
-  `pnpm install --frozen-lockfile`.
+  `pnpm install --frozen-lockfile`. The workspace pins native peers to the
+  installed SDK's `bundledNativeModules.json`, including Reanimated 4.5.1,
+  Worklets 0.10.1 and Gesture Handler 2.32.0. Its ignored `.p/` virtual store
+  and short package directory names keep native build paths within Windows
+  tool limits (the non-blocking assumption recorded in Q-4).
 - JDK 17, with `JAVA_HOME` pointing at that JDK and its `bin` on `PATH`.
 - Android Studio and its SDK Manager. `ANDROID_HOME` is `C:\Android\Sdk`;
   put `%ANDROID_HOME%\platform-tools` on `PATH`. Install the SDK platform,
@@ -106,8 +103,16 @@ npx expo start --dev-client --lan
 ```
 
 Metro may choose the VPN adapter. USB avoids that and the need to open its
-port in the firewall. Start Metro with `--localhost` instead of `--lan`, then
-in another terminal run these commands once per phone, using its serial:
+port in the firewall. Start Metro in a terminal with the same API URL:
+
+```powershell
+$env:NODE_OPTIONS = '--dns-result-order=ipv4first'
+npx expo start --dev-client --localhost
+```
+
+IPv4-first resolution prevents this Windows/Node setup from binding Metro
+only to `::1`, which the ADB reverse connection cannot reach. Then, in another
+terminal, run these commands once per phone, using its serial:
 
 ```powershell
 adb -s <serial> reverse tcp:8081 tcp:8081
@@ -184,7 +189,7 @@ Uninstalling deletes that phone's local data.
 | SDK/NDK/CMake missing or licence rejected | Install the exact version named in the build output using SDK Manager and accept its licence. Keep `ANDROID_HOME` at `C:\Android\Sdk`. |
 | CMake/NDK cannot read a path | Check the repository, SDK and native build cache paths for spaces. If Gradle's cache is implicated, set `GRADLE_USER_HOME` to a writable path without spaces before restarting the build. |
 | Gradle download or dependency resolution fails | Check internet/proxy access to Google's Maven repository, Maven Central and the Gradle distribution host; retry the same build. |
-| `:react-native-reanimated:assertWorkletsVersionTask` fails | The existing peer versions disagree. Follow Q-3 in `spec/QUESTIONS.md`; do not bypass the native compatibility check. |
+| Ninja reports `build.ninja` still dirty after 100 tries | Check native prefab paths. Install from the root with the workspace's short `.p/` virtual store settings, regenerate Android, then rebuild; do not bypass native checks. |
 | App cannot reach Metro | Keep Metro running; use the USB reverse commands above, or the correct LAN adapter, port 8081 firewall rule and matching Wi-Fi. |
 | API unreachable from the phone | Check the PC IP, Private firewall rule, Uvicorn's `0.0.0.0` binding and phone Wi-Fi. Check `/health` in the phone browser. |
 | `CLEARTEXT ... not permitted` | Set the HTTP dev API URL, regenerate with `prebuild --clean`, rebuild, then restart Metro with that URL. |
@@ -195,4 +200,5 @@ Device results and screenshots belong in [evidence/P0-6.md](evidence/P0-6.md).
 
 References: [Expo local development builds](https://docs.expo.dev/develop/development-builds/introduction/?buildenv=build-locally),
 [Expo CLI build variants](https://docs.expo.dev/more/expo-cli/#compiling-android),
-and [Android app signing](https://developer.android.com/studio/publish/app-signing).
+[Android app signing](https://developer.android.com/studio/publish/app-signing),
+and [pnpm virtual store settings](https://github.com/pnpm/pnpm.io/blob/main/versioned_docs/version-10.x/settings.md#virtualstoredirmaxlength).
