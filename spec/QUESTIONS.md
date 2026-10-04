@@ -310,3 +310,27 @@ packages/shared/src/reminders.ts).
   a health event of an archived pet schedules nothing *(ADR-035)*. A health
   due is planned only when its pet is in the replica and not archived, so
   `petName` is always present on it.
+
+## Q-11 — P1-6 — What are the walk helper units and boundary shapes?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P1-6 Build; spec/07-test-harness.md §4.5;
+spec/03-data-model.md §7; spec/04-api-contract.md §12
+**Problem:** the task names the helpers but leaves timestamp units, the
+accumulator's point count and position shape, insufficient speed samples,
+and preview sampling unspecified. The stored route uses four-number tuples.
+**I would assume:** point `t`, `startedAt` and `now` are epoch milliseconds;
+moving seconds are nonnegative and may be fractional. The accumulator counts
+every added fix, including poor and paused fixes, while `countedPosition` is
+the last counted full point or null. A pause clears the distance anchor;
+the first good resumed fix establishes it without adding distance. Snapshots
+are copies. Haversine and projection use a 6,371,000 m spherical radius.
+Current speed is path distance divided by sample elapsed time, using good,
+unpaused fixes in the inclusive last ten seconds relative to the latest
+input fix, without bridging the latest pause; it is zero with fewer than
+two fixes or nonpositive elapsed time. Pace is null without positive moving
+time. Simplification keeps full points; upload returns `[lat, lon, t, acc]`
+tuples, and preview takes those filtered, simplified tuples and evenly
+samples at most 32 pairs, retaining both endpoints. Inputs are valid,
+chronologically ordered fixes; no input is mutated.
+**Blocking:** no (proceeding on the assumption, confined to
+packages/shared/src/walk.ts)
