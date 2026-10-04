@@ -113,6 +113,8 @@ export const light = {            // "dawn"
   starfield:     '#5B43D6',       // ambient stars, drawn at low opacity
   nebulaA:       '#C9B8FF',
   nebulaB:       '#FFC9E8',
+  padTop:        '#7A63EE',       // the mark's pad, gradient top (§4.11)
+  padBottom:     '#4A33C2',       // the mark's pad, gradient bottom
 } as const;
 
 export const dark = {             // "deep space"
@@ -136,6 +138,8 @@ export const dark = {             // "deep space"
   starfield:     '#FFFFFF',
   nebulaA:       '#4B3BB8',
   nebulaB:       '#8A2F7A',
+  padTop:        '#C3B8FF',
+  padBottom:     '#7767E6',
 } as const;
 
 // Identity palette — eight celestial bodies. Index is the identity; the theme picks the shade.
@@ -401,10 +405,66 @@ Empty states are small scenes **drawn in code** with Skia from primitives
 | No walks yet | a small ringed planet with a dashed orbit | Nenhum passeio registrado. |
 | No health events | a single star above a horizon line | Nada registrado ainda. |
 
-The app icon and splash use the **paw-star mark** (`ui/cosmos/glyphs.ts`): a
-paw whose four toe pads are stars. Splash background `#090B1A` in both themes.
 All of it is authored for this project. **No GoPuppy assets**, no stock
 illustration packs.
+
+### 4.11 The mark
+
+The **paw-star mark** is a paw whose four toe pads are stars. The owner chose
+its drawing on 2026-10-03: four 4-point sparkles over a solid pad, the third
+one larger and lit — Polaris, the star the app is named after.
+
+**Geometry**, in a 512 × 512 box. `ui/cosmos/glyphs.ts` holds exactly this:
+
+```
+pad      M256 262C300 262 340 300 366 340C392 380 372 430 326 430
+         C300 430 282 414 256 414C230 414 212 430 186 430
+         C140 430 120 380 146 340C172 300 212 262 256 262Z
+
+toes     centre (x, y)   radius R   rotation
+         (108, 264)      50         −14°
+         (184, 156)      58          −5°
+         (330, 150)      75.4        +5°     ← Polaris (58 × 1.3)
+         (404, 264)      50         +14°
+
+sparkle  with q = 0.3 R, rotated about its centre:
+         M x,y−R  Q x+q,y−q  x+R,y  Q x+q,y+q  x,y+R
+                  Q x−q,y+q  x−R,y  Q x−q,y−q  x,y−R  Z
+
+glow     a circle of radius 118 on Polaris: `star` at alpha 0.5 (dark) or
+         0.2 (light) in the centre, fading to 0 at the edge
+```
+
+**Colour.** The pad is a vertical gradient from `padTop` to `padBottom`. The
+four stars are `star`. In one colour, pad and stars take the same colour and
+the glow is dropped.
+
+**Rules.**
+
+- Clear space around the mark equals the height of one small star.
+- Minimum size 24 dp; below that, the one-colour mark.
+- Gold belongs to the stars: the pad is never gold and the stars never change
+  colour, because `star` means "done" everywhere else.
+- No shadow, outline, tilt or photograph behind it.
+
+**Files.** The masters are SVG in `spec/brand/` and are the orchestrator's;
+`glyphs.ts` and every export must match them.
+
+| File | What it is |
+|---|---|
+| `spec/brand/paw-star.svg` | the mark, dark theme |
+| `spec/brand/paw-star-dawn.svg` | the mark, light theme |
+| `spec/brand/paw-star-mono.svg` | the mark in `currentColor` |
+| `spec/brand/icon.svg` | the app icon: the mark at 0.66 on the night sky |
+| `apps/mobile/assets/icon.png` | the icon, 1024 px |
+| `apps/mobile/assets/adaptive-foreground.png` | Android adaptive icon, foreground — the mark at 0.44, inside the safe zone |
+| `apps/mobile/assets/adaptive-background.png` | Android adaptive icon, background — the sky |
+| `apps/mobile/assets/adaptive-monochrome.png` | Android themed icon — the mark in white |
+| `apps/mobile/assets/splash-icon.png` | the mark alone, for the splash |
+
+The icon's sky is a radial gradient from `#1B2157` to `#090B1A` with nine
+small stars; it exists only in these files. The splash shows the mark on
+`#090B1A` in both themes: the app always opens at night.
 
 ---
 

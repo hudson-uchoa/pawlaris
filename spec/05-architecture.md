@@ -21,6 +21,7 @@
 | Vector shapes | `react-native-svg` | Icons, the weight chart, route thumbnails |
 | Icons | `lucide-react-native` | Tree-shaken outline icons |
 | Fonts | `expo-font` (config plugin) | Space Grotesk embedded at build time; Roboto is the system font |
+| Splash | `expo-splash-screen` (config plugin) | The mark on `#090B1A`, hidden on the first frame *(06 §4.11, 09 §1)* |
 | Images | `expo-image` | Always from local `file://` URIs |
 | Camera / picker | `expo-camera`, `expo-image-picker`, `expo-image-manipulator` | |
 | Files / crypto | `expo-file-system`, `expo-crypto` | UUIDs and SHA-256 |

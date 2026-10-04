@@ -203,6 +203,27 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   box and any other spec change fail; the orchestrator override passes.
   **Gate:** `node --test scripts/guard-commit-msg.test.mjs scripts/guard-spec.test.mjs` · `uvx pre-commit install --hook-type pre-commit --hook-type commit-msg` · `uvx pre-commit run --all-files`
 
+- [ ] **P0-9 — App icon and splash**
+  **Depends:** P0-6 · **Read:** `06` §4.11 · `05` §1 Mobile, §8
+  **Build:** `expo-splash-screen` installed at the SDK's version. In
+  `app.config.ts`: `icon` is `./assets/icon.png`; `android.adaptiveIcon` takes
+  its foreground, background and monochrome images from
+  `./assets/adaptive-*.png`; the `expo-splash-screen` plugin shows
+  `./assets/splash-icon.png` on `#090B1A`, with the same image and colour for
+  dark mode. The five PNG files are already in `apps/mobile/assets/`, exported
+  by the orchestrator from `spec/brand/`: use them as they are — do not
+  redraw, recolour, resize or re-export them. Record them in
+  `assets/LICENSES.md` as authored for this project.
+  **Tests:** `__tests__/appConfig.test.ts` — the config names each of the five
+  images and each file exists; the splash background is `#090B1A` in both
+  themes.
+  **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
+  **Device:** [ ] After a clean prebuild and build, on both phones: the
+  launcher shows the paw-star icon; with themed icons on, it shows the
+  one-colour mark; a cold start shows the mark on the night sky before the
+  Pawlaris route. Evidence: three screenshots per phone.
+  **Not here:** drawing the mark in code (`glyphs.ts` is P4-2).
+
 ---
 
 ## P1 — Pure domain (`packages/shared`)
@@ -689,11 +710,11 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Gate:** `pnpm -C apps/mobile exec jest src/ui src/i18n`
 
 - [ ] **P4-2 — The cosmos kit**
-  **Depends:** P4-1 · **Read:** `06` §1.3, §4.1–§4.5, §4.10, §5
+  **Depends:** P4-1 · **Read:** `06` §1.3, §4.1–§4.5, §4.10, §4.11, §5
   **Build:** install `@shopify/react-native-skia`. In `ui/cosmos/`:
   `stars.ts` (`generateStars`, pure, seeded mulberry32); `glyphs.ts` (the
-  5-point star, the 4-point sparkle, the crescent, the paw-star mark, as path
-  data); `Starfield` (one canvas: gradient, optional nebula, three star layers;
+  5-point star, the 4-point sparkle, the crescent, and the paw-star mark with
+  the exact geometry of `06` §4.11, as path data); `Starfield` (one canvas: gradient, optional nebula, three star layers;
   twinkle and parallax from shared values; stops when unfocused, backgrounded
   or under Reduce Motion); `StarCheck` and `Sparks`; `ConstellationLine`;
   `Orbit` (avatar ring with satellite); `ShootingStars`;
@@ -1028,9 +1049,10 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   theme at 130% font scale.
 
 - [ ] **P7-3 — Copy, empty states, icon and splash**
-  **Depends:** P7-2 · **Read:** `09` §10 · `06` §4.10
+  **Depends:** P7-2 · **Read:** `09` §10 · `06` §4.10, §4.11
   **Build:** a full pass of `strings.ts` against `09`; every empty state of `09`
-  with its scene; the app icon and the splash from the paw-star mark.
+  with its scene; the app icon and the splash, built in P0-9, checked against
+  `06` §4.11 on a release build.
   `scripts/guard-strings.mjs` fails on a JSX text literal containing letters
   outside `i18n/`.
   **Gate:** `node scripts/guard-strings.mjs` · `pnpm verify --only test:mobile`
