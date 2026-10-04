@@ -28,3 +28,22 @@ carries power only, and apps from outside the store cannot be installed — so
 it stays off whenever this phone is used for a build.
 
 `adb devices` should list each phone as `device`.
+
+## Without a cable
+
+Both phones are paired for wireless debugging, so they can be anywhere on the
+same Wi-Fi network as the PC.
+
+1. Developer options → **Wireless debugging** on, allowing the network.
+2. The first time only: open that screen, tap **Pair device with pairing
+   code**, and keep the dialog open. On the PC, `adb mdns services` lists the
+   phone's `_adb-tls-pairing` address; run `adb pair <address> <code>`.
+3. `adb` then finds the phone by itself and lists it as
+   `adb-<serial>-<id>._adb-tls-connect._tcp`. Nothing to reconnect when the
+   port changes.
+
+The pairing lasts until it is revoked on the phone. The switch turns itself
+off when the phone restarts or changes network: turn it on again and the
+phone reappears, with no new pairing. Expo's `--device` takes the model name
+either way. Installing a build over Wi-Fi is slower than over a cable, and
+the screen must be unlocked.
