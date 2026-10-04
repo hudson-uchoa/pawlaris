@@ -62,12 +62,20 @@ class TimingMiddleware:
 
         try:
             await self.app(scope, receive, timed_send)
-        except Exception:
+        except Exception as exc:
             if scope["path"].startswith("/api/v1/auth/") or scope["path"] == (
                 "/api/v1/me/password"
             ):
                 # Library exceptions may carry credentials or SQL bind parameters.
-                error_traceback = "Authentication exception details suppressed."
+                frames = traceback.walk_tb(exc.__traceback__)
+                error_traceback = "\n".join(
+                    [type(exc).__name__]
+                    + [
+                        f'  File "{frame.f_code.co_filename}", line {line}, '
+                        f"in {frame.f_code.co_name}"
+                        for frame, line in frames
+                    ]
+                )
             else:
                 error_traceback = traceback.format_exc()
             if response_started:
