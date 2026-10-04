@@ -15,7 +15,7 @@ const dailyInput: OccurrenceInput = {
 describe('RC-1 golden recurrence vectors', () => {
   it.each(vectors.vectors)('RC-1 $name', (vector) => {
     const rule = validateRecurrence(vector.recurrence, vector.starts_on);
-    if (!rule.ok) throw new Error(rule.errors.join('; '));
+    if (!rule.ok) throw new Error(JSON.stringify(rule.errors));
     expect(occurrences({
       recurrence: rule.value, timesOfDay: vector.times_of_day,
       startsOn: vector.starts_on, endsOn: vector.ends_on,
@@ -37,48 +37,113 @@ describe('R3.13 recurrence validation', () => {
     expect(validateRecurrence(rule, startsOn)).toEqual({ ok: true, value: rule });
   });
 
-  const rejected: { name: string; value: unknown }[] = [
-    ...[null, undefined, false, 1, 'daily', [], {}].map((value) => ({ name: `invalid shape ${String(value)}`, value })),
-    { name: 'unknown frequency', value: { freq: 'yearly', interval: 1 } },
+  const rejected: { name: string; value: unknown; field: string; code: string }[] = [
+    ...[null, false, 1, 'daily', []].map((value) => ({
+      name: `invalid shape ${String(value)}`, value, field: 'freq', code: 'invalid',
+    })),
+    { name: 'missing rule', value: undefined, field: 'freq', code: 'required' },
+    { name: 'missing frequency', value: {}, field: 'freq', code: 'required' },
+    { name: 'null frequency', value: { freq: null }, field: 'freq', code: 'invalid' },
+    { name: 'unknown frequency', value: { freq: 'yearly', interval: 1 }, field: 'freq', code: 'invalid' },
     ...['daily', 'weekly', 'monthly'].flatMap((freq) => {
       const fields = freq === 'weekly' ? { byday: ['MO'] }
         : freq === 'monthly' ? { bymonthday: [1] } : {};
-      return [undefined, null, 0, 366, -1, 1.5, '1', NaN, Infinity].map((interval) => ({
+      return [
+        { interval: undefined, code: 'required' }, { interval: null, code: 'invalid' },
+        { interval: 0, code: 'out_of_range' }, { interval: 366, code: 'out_of_range' },
+        { interval: -1, code: 'out_of_range' }, { interval: 1.5, code: 'invalid' },
+        { interval: '1', code: 'invalid' }, { interval: NaN, code: 'invalid' },
+        { interval: Infinity, code: 'invalid' },
+      ].map(({ interval, code }) => ({
         name: `${freq} invalid interval ${String(interval)}`, value: { freq, interval, ...fields },
+        field: 'interval', code,
       }));
     }),
-    ...[undefined, null, [], ['MO', 'MO'], ['XX'], ['mo'], [1], 'MO'].map((byday) => ({
-      name: `invalid byday ${String(byday)}`, value: { freq: 'weekly', interval: 1, byday },
+    ...[
+      { byday: undefined, code: 'required' }, { byday: null, code: 'invalid' },
+      { byday: [], code: 'required' }, { byday: ['MO', 'MO'], code: 'duplicate' },
+      { byday: ['XX'], code: 'invalid' }, { byday: ['mo'], code: 'invalid' },
+      { byday: [1], code: 'invalid' }, { byday: 'MO', code: 'invalid' },
+    ].map(({ byday, code }) => ({
+      name: `invalid byday ${String(byday)}`, value: { freq: 'weekly', interval: 1, byday }, field: 'byday', code,
     })),
-    ...[undefined, null, [], [0], [32], [1.5], ['1'], [1, 1], '1'].map((bymonthday) => ({
+    ...[
+      { bymonthday: undefined, code: 'required' }, { bymonthday: null, code: 'invalid' },
+      { bymonthday: [], code: 'required' }, { bymonthday: [0], code: 'out_of_range' },
+      { bymonthday: [32], code: 'out_of_range' }, { bymonthday: [1.5], code: 'invalid' },
+      { bymonthday: ['1'], code: 'invalid' }, { bymonthday: [1, 1], code: 'duplicate' },
+      { bymonthday: '1', code: 'invalid' },
+    ].map(({ bymonthday, code }) => ({
       name: `invalid bymonthday ${String(bymonthday)}`, value: { freq: 'monthly', interval: 1, bymonthday },
+      field: 'bymonthday', code,
     })),
-    { name: 'unknown key', value: { freq: 'daily', interval: 1, extra: true } },
-    { name: 'weekly date is unknown', value: { freq: 'weekly', interval: 1, byday: ['MO'], date: startsOn } },
-    { name: 'monthly byday is unknown', value: { freq: 'monthly', interval: 1, bymonthday: [1], byday: ['MO'] } },
-    { name: 'once without date', value: { freq: 'once' } },
-    { name: 'once date is not a string', value: { freq: 'once', date: 20260914 } },
-    { name: 'once date does not equal startsOn', value: { freq: 'once', date: '2026-09-15' } },
-    { name: 'once date is nonexistent', value: { freq: 'once', date: '2026-02-30' } },
-    { name: 'once interval is forbidden', value: { freq: 'once', date: startsOn, interval: 1 } },
+    { name: 'unknown key', value: { freq: 'daily', interval: 1, extra: true }, field: 'extra', code: 'unknown_key' },
+    { name: 'weekly date is unknown', value: { freq: 'weekly', interval: 1, byday: ['MO'], date: startsOn }, field: 'date', code: 'unknown_key' },
+    { name: 'monthly byday is unknown', value: { freq: 'monthly', interval: 1, bymonthday: [1], byday: ['MO'] }, field: 'byday', code: 'unknown_key' },
+    { name: 'once without date', value: { freq: 'once' }, field: 'date', code: 'required' },
+    { name: 'once date is not a string', value: { freq: 'once', date: 20260914 }, field: 'date', code: 'invalid' },
+    { name: 'once date does not equal startsOn', value: { freq: 'once', date: '2026-09-15' }, field: 'date', code: 'mismatch' },
+    { name: 'once date is nonexistent', value: { freq: 'once', date: '2026-02-30' }, field: 'date', code: 'invalid' },
+    { name: 'once interval is forbidden', value: { freq: 'once', date: startsOn, interval: 1 }, field: 'interval', code: 'unknown_key' },
   ];
-  it.each(rejected)('R3.13 rejects $name', ({ value }) => {
-    const result = validateRecurrence(value, startsOn);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.errors.length).toBeGreaterThan(0);
-      expect(result.errors.every((error) => typeof error === 'string' && error.length > 0)).toBe(true);
-    }
+  it.each(rejected)('R3.13 rejects $name', ({ value, field, code }) => {
+    expect(validateRecurrence(value, startsOn)).toEqual({ ok: false, errors: [{ field, code }] });
   });
 
   it.each(['2026-02-30', '0000-01-01', '2026-9-14'])(
     'R3.13 rejects invalid startsOn %s', (date) => {
-      expect(validateRecurrence({ freq: 'daily', interval: 1 }, date).ok).toBe(false);
+      expect(validateRecurrence({ freq: 'daily', interval: 1 }, date)).toEqual({
+        ok: false, errors: [{ field: 'starts_on', code: 'invalid' }],
+      });
     },
   );
   it('R3.13 accepts a once rule on a real leap day', () => {
     const rule = { freq: 'once', date: '2028-02-29' };
     expect(validateRecurrence(rule, rule.date)).toEqual({ ok: true, value: rule });
+  });
+  it.each([
+    { value: null, errors: [{ field: 'starts_on', code: 'invalid' }, { field: 'freq', code: 'invalid' }] },
+    { value: { freq: 'yearly' }, errors: [{ field: 'starts_on', code: 'invalid' }, { field: 'freq', code: 'invalid' }] },
+    { value: { freq: 'once', date: startsOn }, errors: [{ field: 'starts_on', code: 'invalid' }] },
+    { value: { freq: 'once' }, errors: [{ field: 'starts_on', code: 'invalid' }, { field: 'date', code: 'required' }] },
+  ])('R3.13 reports independent errors with an invalid start $value', ({ value, errors }) => {
+    expect(validateRecurrence(value, '2026-02-30')).toEqual({ ok: false, errors });
+  });
+  it('R3.13 reports every unknown key alongside interval and weekday problems', () => {
+    expect(validateRecurrence({
+      freq: 'weekly', interval: 0, byday: ['XX', 'XX'], extra: true, other: true,
+    }, startsOn)).toEqual({ ok: false, errors: [
+      { field: 'extra', code: 'unknown_key' }, { field: 'other', code: 'unknown_key' },
+      { field: 'interval', code: 'out_of_range' }, { field: 'byday', code: 'invalid' },
+      { field: 'byday', code: 'duplicate' },
+    ] });
+  });
+  it('R3.13 reports a once mismatch alongside an unknown key', () => {
+    expect(validateRecurrence({ freq: 'once', date: '2026-09-15', extra: true }, startsOn)).toEqual({
+      ok: false, errors: [{ field: 'extra', code: 'unknown_key' }, { field: 'date', code: 'mismatch' }],
+    });
+  });
+  it('R3.13 reports too many weekdays and a duplicate', () => {
+    expect(validateRecurrence({
+      freq: 'weekly', interval: 1, byday: ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU', 'MO'],
+    }, startsOn)).toEqual({ ok: false, errors: [
+      { field: 'byday', code: 'too_many' }, { field: 'byday', code: 'duplicate' },
+    ] });
+  });
+  it('R3.13 reports too many month days and a duplicate', () => {
+    expect(validateRecurrence({
+      freq: 'monthly', interval: 1, bymonthday: [...Array.from({ length: 31 }, (_, i) => i + 1), 1],
+    }, startsOn)).toEqual({ ok: false, errors: [
+      { field: 'bymonthday', code: 'too_many' }, { field: 'bymonthday', code: 'duplicate' },
+    ] });
+  });
+  it('R3.13 reports independent interval and month-day problems', () => {
+    expect(validateRecurrence({
+      freq: 'monthly', interval: null, bymonthday: ['1', 0, 0],
+    }, startsOn)).toEqual({ ok: false, errors: [
+      { field: 'interval', code: 'invalid' }, { field: 'bymonthday', code: 'invalid' },
+      { field: 'bymonthday', code: 'out_of_range' }, { field: 'bymonthday', code: 'duplicate' },
+    ] });
   });
 });
 
@@ -91,14 +156,27 @@ describe('R3.14 times and occurrence keys', () => {
     },
   );
   it.each([
-    { value: null }, { value: undefined }, { value: '08:00' }, { value: {} },
-    { value: [800] }, { value: ['20:00', '08:00'] }, { value: ['08:00', '08:00'] },
-    ...['24:00', '8:00', '08:60', '08:00:30', '08:00\n', ' 08:00', ''].map((time) => ({ value: [time] })),
-    { value: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'] },
-  ])('R3.14 rejects invalid times $value', ({ value }) => {
-    const result = validateTimesOfDay(value);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.errors.length).toBeGreaterThan(0);
+    { value: null, code: 'invalid' }, { value: undefined, code: 'required' },
+    { value: '08:00', code: 'invalid' }, { value: {}, code: 'invalid' },
+    { value: [800], code: 'invalid' }, { value: ['20:00', '08:00'], code: 'unsorted' },
+    { value: ['08:00', '08:00'], code: 'duplicate' },
+    ...['24:00', '8:00', '08:60', '08:00:30', '08:00\n', ' 08:00', ''].map((time) => ({ value: [time], code: 'invalid' })),
+    { value: ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'], code: 'too_many' },
+  ])('R3.14 rejects invalid times $value', ({ value, code }) => {
+    expect(validateTimesOfDay(value)).toEqual({ ok: false, errors: [{ field: 'times_of_day', code }] });
+  });
+  it('R3.14 reports duplicate times even when they are not adjacent or sorted', () => {
+    expect(validateTimesOfDay(['08:00', '20:00', '08:00'])).toEqual({ ok: false, errors: [
+      { field: 'times_of_day', code: 'duplicate' }, { field: 'times_of_day', code: 'unsorted' },
+    ] });
+  });
+  it('R3.14 reports too many times alongside invalid and duplicate entries', () => {
+    expect(validateTimesOfDay(['24:00', '24:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'])).toEqual({
+      ok: false, errors: [
+        { field: 'times_of_day', code: 'too_many' }, { field: 'times_of_day', code: 'invalid' },
+        { field: 'times_of_day', code: 'duplicate' },
+      ],
+    });
   });
 
   it.each([
