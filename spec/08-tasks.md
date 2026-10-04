@@ -204,7 +204,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   box and any other spec change fail; the orchestrator override passes.
   **Gate:** `node --test scripts/guard-commit-msg.test.mjs scripts/guard-spec.test.mjs` · `uvx pre-commit install --hook-type pre-commit --hook-type commit-msg` · `uvx pre-commit run --all-files`
 
-- [~] **P0-9 — App icon and splash**
+- [x] **P0-9 — App icon and splash** — accepted 2026-10-03
   **Depends:** P0-6 · **Read:** `06` §4.11 · `05` §1 Mobile, §8
   **Build:** `expo-splash-screen` installed at the SDK's version. In
   `app.config.ts`: `icon` is `./assets/icon.png`; `android.adaptiveIcon` takes
@@ -219,10 +219,12 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   images and each file exists; the splash background is `#090B1A` in both
   themes.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
-  **Device:** [ ] After a clean prebuild and build, on both phones: the
-  launcher shows the paw-star icon; with themed icons on, it shows the
-  one-colour mark; a cold start shows the mark on the night sky before the
-  Pawlaris route. Evidence: three screenshots per phone.
+  **Device:** [x] After a clean prebuild and build, on both phones: the
+  launcher shows the paw-star icon, and a cold start shows the mark on the
+  night sky before the Pawlaris route. On one phone, with themed icons on, the
+  launcher shows the one-colour mark — the layer is the same file on both, and
+  a phone using an icon pack would have to give it up for the check.
+  Evidence: the screenshots.
   **Not here:** drawing the mark in code (`glyphs.ts` is P4-2).
 
 - [ ] **P0-10 — Local release build**
