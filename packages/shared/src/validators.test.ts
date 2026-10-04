@@ -172,6 +172,11 @@ describe('form validators', () => {
         '2026-10-04T12:00:00-03:00', null, 0]) expect(validate({ ...valid, [field]: value }))
         .toEqual([{ field, code: 'invalid' }]);
     });
+
+    it(`VL-13 rejects an instant ahead of UTC in ${field}`, () => {
+      expect(validate({ ...valid, [field]: '2026-10-04T12:00:00+01:00' }))
+        .toEqual([{ field, code: 'invalid' }]);
+    });
   }
 
   for (const { validate, valid, fields } of [
@@ -198,6 +203,16 @@ describe('form validators', () => {
       if (nullable) expect(validate({ ...valid, [field]: null })).toEqual([]);
       for (const value of ['', 'pet', 1]) expect(validate({ ...valid, [field]: value })).toEqual([{ field, code: 'invalid' }]);
     });
+
+    for (const { reason, value } of [
+      { reason: 'a non-hexadecimal letter', value: 'g0000000-0000-4000-8000-000000000001' },
+      { reason: 'misplaced hyphens', value: '0000000-00000-4000-8000-000000000001' },
+    ]) {
+      it.each(fields)(`VL-15 rejects a 36-character UUID with ${reason} in %s`, (field) => {
+        expect(value).toHaveLength(36);
+        expect(validate({ ...valid, [field]: value })).toEqual([{ field, code: 'invalid' }]);
+      });
+    }
   }
 
   it('VL-16 validates integer sort orders at PostgreSQL bounds', () => {
