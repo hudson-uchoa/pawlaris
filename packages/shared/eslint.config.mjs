@@ -26,6 +26,18 @@ export default [
           message: 'Construct Date with an explicit instant.',
         },
         {
+          selector: "CallExpression[callee.name='Date']",
+          message: 'Pass an explicit instant instead of calling the host clock.',
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length>=2]",
+          message: 'Use Date.UTC instead of constructing a host-local date.',
+        },
+        {
+          selector: "MemberExpression[property.name=/^(toLocaleString|toLocaleDateString|toLocaleTimeString|toDateString|toTimeString)$/], MemberExpression[property.value=/^(toLocaleString|toLocaleDateString|toLocaleTimeString|toDateString|toTimeString)$/]",
+          message: 'Use explicit-zone Intl formatting in time.ts instead of host-local formatting.',
+        },
+        {
           selector: "MemberExpression[property.name=/^(getDate|getDay|getFullYear|getHours|getMilliseconds|getMinutes|getMonth|getSeconds|getTimezoneOffset|getYear|setDate|setFullYear|setHours|setMilliseconds|setMinutes|setMonth|setSeconds|setYear)$/], MemberExpression[property.value=/^(getDate|getDay|getFullYear|getHours|getMilliseconds|getMinutes|getMonth|getSeconds|getTimezoneOffset|getYear|setDate|setFullYear|setHours|setMilliseconds|setMinutes|setMonth|setSeconds|setYear)$/]",
           message: 'Use UTC Date methods instead of host-local time.',
         },

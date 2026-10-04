@@ -38,6 +38,23 @@ describe('TZ-1 golden timezone vectors', () => {
     expect(slotInstant('2026-10-04', '00:00', 'Asia/Kathmandu')).toBe(instant);
   });
 
+  it.each(['0001-01-01', '0096-02-29'])(
+    'TZ-1 UTC conversions preserve the four-digit year in %s', (date) => {
+      const instant = Date.parse(`${date}T12:30:00Z`);
+      expect(localDate(instant, 'UTC')).toBe(date);
+      expect(localTime(instant, 'UTC')).toBe('12:30');
+      expect(slotInstant(date, '12:30', 'UTC')).toBe(instant);
+      expect(startOfLocalDay(date, 'UTC')).toBe(Date.parse(`${date}T00:00:00Z`));
+    },
+  );
+
+  it('TZ-1 a valid local date can resolve past the UTC four-digit year boundary', () => {
+    const instant = Date.parse('+010000-01-01T04:59:00Z');
+    expect(slotInstant('9999-12-31', '23:59', 'America/New_York')).toBe(instant);
+    expect(localDate(instant, 'America/New_York')).toBe('9999-12-31');
+    expect(localTime(instant, 'America/New_York')).toBe('23:59');
+  });
+
   it('TZ-1 reuses one explicit-zone formatter across functions and instants', () => {
     const formatter = vi.spyOn(Intl, 'DateTimeFormat');
     try {
