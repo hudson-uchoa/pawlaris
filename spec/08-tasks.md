@@ -350,7 +350,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/reminders.test.ts`
   **Not here:** notification titles and bodies (P5-7).
 
-- [~] **P1-6 — Walk math**
+- [x] **P1-6 — Walk math** — accepted 2026-10-04
   **Depends:** P0-3 · **Read:** `02` §4.3 · `03` §7 · `07` §4.5
   **Build:** `src/walk.ts` — `haversineM(a, b)`; `createAccumulator()` with
   `add(point: {lat, lon, t, acc, paused})` and `snapshot()` →
