@@ -157,3 +157,37 @@ EAS cloud builds are optional. Build commands and owner signing-key
 preparation are in [build.md](build.md).
 
 Implementation reference: [Expo local development builds](https://docs.expo.dev/develop/development-builds/introduction/?buildenv=build-locally).
+
+## P0-7 — GitHub Actions CI (2026-10-03)
+
+Actions are pinned to immutable commits in `.github/workflows/ci.yml`.
+No application dependency or lockfile changes are required.
+
+| Action | Release line | Pinned commit | Licence |
+|---|---|---|---|
+| `actions/checkout` | v7 | `3d3c42e5aac5ba805825da76410c181273ba90b1` | MIT |
+| `actions/setup-node` | v7 | `820762786026740c76f36085b0efc47a31fe5020` | MIT |
+| `pnpm/action-setup` | v6 | `f520eceda224fe1a4aed5a2a27a194379a409996` | MIT |
+| `astral-sh/setup-uv` | v7 | `94527f2e458b27549849d47d273a16bec83a01e9` | MIT |
+| `docker/setup-qemu-action` | v4 | `99012661954931238ded8c8b007157a8430204e1` | Apache-2.0 |
+| `docker/setup-buildx-action` | v4 | `f87e5991a6d7451dcb8d9637bfbc97413f497069` | Apache-2.0 |
+| `docker/login-action` | v4 | `dbcb813823bdd20940b903addbd779551569679f` | Apache-2.0 |
+| `docker/build-push-action` | v7 | `c3c9e263c25d99ce0380d002d59b67737d91b0dc` | Apache-2.0 |
+
+The hosted runner is Ubuntu 24.04. Checks reuse Node 24.15.0, pnpm 12.4.1
+from `packageManager`, uv 0.12.13, Python 3.12 and the frozen lockfiles.
+The API job uses the `postgres:16` image with trust authentication only
+inside its disposable runner, and generates a masked signing key per run.
+The secrets job runs the existing Gitleaks 8.30.1 CLI image over Git history
+with redacted output. It uses no Gitleaks action licence or account.
+
+GitHub Actions and GHCR use the public repository's free tier. No payment
+method is needed; the fallback is `pnpm verify` locally and a local Docker
+Buildx image build, as specified in `spec/00-constitution.md` P1.
+
+Implementation references: [checkout](https://github.com/actions/checkout),
+[setup-node](https://github.com/actions/setup-node),
+[pnpm setup](https://github.com/pnpm/action-setup),
+[uv setup](https://github.com/astral-sh/setup-uv),
+[Gitleaks CLI](https://github.com/gitleaks/gitleaks), and
+[Docker Buildx publishing](https://github.com/docker/build-push-action).
