@@ -281,3 +281,20 @@ helper implementations in packages/shared/src/taskEdit.ts).
   successor now keeps the old cadence *(ADR-034, `07` §4.3)*.
 - *Changed — the end date:* the old patch ends at `E − 1` unless the template
   already ends earlier; an end date never moves later.
+
+## Q-10 — P1-5 — Which notification kinds and health channel should be used?
+**Asked:** 2026-10-04
+**Where:** spec/07-test-harness.md §4.4; spec/09-screens.md §9.1–§9.3
+**Problem:** the planner's item shape includes `kind` and `channel` but does
+not name the kind values or the channel for health dues. Timers need the task
+title for their body, while a deleted task can be absent from the replica.
+**I would assume:** use kinds `reminder`, `health_due` and `timer`; health
+dues use `reminders-routine`, and timers use `timers`. Keep a running timer
+even if its template is absent, omitting its optional `taskTitle`; likewise
+omit a health due's optional `petName` if the pet is absent. Health dues stay
+eligible until their event is deleted or edited, including for archived
+pets, as R2.11 says. The 200-item cap applies to task reminders only; health
+dues include today +30, and equal fire times sort by identifier for a stable
+result independent of replica row order.
+**Blocking:** no (proceeding on the assumption, confined to
+packages/shared/src/reminders.ts).
