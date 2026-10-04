@@ -226,4 +226,25 @@ describe('form validators', () => {
     ]);
     expect(input).toEqual(before);
   });
+
+  it('VL-19 preserves recurrence unknown-key errors even for a form field name', () => {
+    expect(validateTask({ ...task, recurrence: { ...task.recurrence, starts_on: task.starts_on } }))
+      .toEqual([{ field: 'starts_on', code: 'unknown_key' }]);
+  });
+
+  it('VL-20 reports an invalid or absent start once without inventing a once-date mismatch', () => {
+    for (const starts_on of [null, undefined, 'invalid']) {
+      const code = starts_on === undefined ? 'required' : 'invalid';
+      expect(validateTask({ ...task, starts_on, recurrence: { freq: 'once', date: task.starts_on } }))
+        .toEqual([{ field: 'starts_on', code }]);
+    }
+  });
+
+  it('VL-21 detects duplicate UUIDs regardless of hexadecimal letter case', () => {
+    const lower = 'aaaaaaaa-0000-4000-8000-000000000001';
+    expect(validateTask({ ...task, pet_ids: [lower] })).toEqual([]);
+    expect(validateTask({ ...task, pet_ids: [lower.toUpperCase()] })).toEqual([]);
+    expect(validateTask({ ...task, pet_ids: [lower, lower.toUpperCase()] }))
+      .toEqual([{ field: 'pet_ids', code: 'duplicate' }]);
+  });
 });
