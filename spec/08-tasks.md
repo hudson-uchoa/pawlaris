@@ -299,7 +299,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/index.test.ts src/dates.test.ts src/time.test.ts`
   **Not here:** recurrence.
 
-- [~] **P1-2 — Recurrence engine**
+- [x] **P1-2 — Recurrence engine** — accepted 2026-10-04
   **Depends:** P1-1 · **Read:** `03` §4.1, §4.2 · `02` §3.2 · `07` §4.1
   **Build:** `src/recurrence.ts` — types `Recurrence`, `OccurrenceInput`;
   `validateRecurrence(value, startsOn)` → `{ok: true, value} | {ok: false, errors}`;
