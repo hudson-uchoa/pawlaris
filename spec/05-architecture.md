@@ -670,3 +670,21 @@ reaches the other phone within 3 s. The outbox and the pull are never
 debounced. The box is placed near the family.
 **Consequence:** the dominant remaining delay is one network round trip, which
 no code can remove.
+
+### ADR-033 — A missed occurrence carries over whatever its frequency *(2026-10-04)*
+**Context:** R6.5 carried a missed occurrence into Atrasadas for weekly,
+monthly and once templates and never for `daily` ones, because "a missed
+breakfast is not owed tomorrow". But `daily` includes every 2, 3 or 30 days:
+a weekly dose missed on Monday stayed visible until given, while a dose due
+every 3 days vanished the next morning. Found while reviewing P1-3.
+**Decision (the owner):** one rule for every frequency. An incomplete
+occurrence stays in today's Atrasadas until it is completed or the same
+template has an occurrence dated today. Reverses the daily exception of R6.5.
+A template that has ended — `ends_on` before today, by Encerrar, by its end
+date or by a fork — carries nothing: without the daily exception, every edit
+of a daily task would otherwise leave yesterday's missed occurrence in
+Atrasadas for 30 days beside the new version.
+**Consequence:** nothing changes for a task of every day, which always has an
+occurrence today. The day view no longer looks at the frequency; it looks at
+`ends_on`. The last dose of a course with an end date, if missed, is not
+carried into the day after the course ends.

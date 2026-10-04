@@ -179,21 +179,25 @@ non-archived pets *(Q-8)*.
 | DV-16 | weekly on Monday, missed; viewing Wednesday (today) | in Atrasadas with `originalDate` = Monday |
 | DV-17 | same, but now completed | not shown as overdue |
 | DV-18 | same template also occurs today | Monday's is **not** carried |
-| DV-19 | daily, missed yesterday; viewing today | not carried |
+| DV-19 | viewing today: a rule of every day, missed yesterday; and a rule of every 3 days, missed on its last date, with today an off day | the first is not carried — today's occurrence replaces it; the second is carried, with `originalDate` = that date *(ADR-033)* |
 | DV-20 | `once` 30 days ago, incomplete | carried; 31 days ago → not carried |
 | DV-21 | viewing a day other than today | no carry-overs at all |
 | DV-22 | two live completions for one key, one of them in `pendingCompletionIds` | the acknowledged one is used |
 | DV-23 | three items in a group | ordered by slot, then `sort_order`, then title; all-day items first |
-| DV-24 | template soft-deleted; template with `ends_on` before the day; template whose pets are all archived or soft-deleted | no occurrences — each of the three proven on its own, with every other condition satisfied |
+| DV-24 | template soft-deleted; template with `ends_on` before the day; template whose pets are all archived or soft-deleted | no occurrences — each of the three proven on its own, with every other condition satisfied. The ended template missed its last occurrence yesterday, and that is not carried either *(ADR-033)* |
 | DV-25 | `now` = `2026-10-04T02:30:00Z`, tz São Paulo, `date` from `localDate(now)` | the day is 2026-10-03 |
 | DV-26 | every item in scope done, at least one | `allDone` true; with zero items → false |
 | DV-27 | a live completion dated on the day, for a template that ended yesterday and has no successor occurrence with that key | shown under Concluídas as an `orphan` item with `title` = its `title_snapshot` *(R6.15)*; the same completion dated the day before is not shown |
-| DV-28 | same, but a successor (`replaces_task_id` → the old template) has an occurrence with the same key and pet | that occurrence counts as done; no separate orphan item |
+| DV-28 | same, but a successor (`replaces_task_id` → the old template) has an occurrence with the same key and pet | that occurrence counts as done; no separate orphan item; the old template's occurrence missed the day before is not carried *(ADR-033)* |
 
-Carry-over, precisely *(R6.5)*: when `date` is today, for each non-daily
-template, take its most recent occurrence date `D` with `today − 30 ≤ D < today`.
-If the template has **no** occurrence dated today, every incomplete occurrence
-on `D` is carried into Atrasadas.
+Carry-over, precisely *(R6.5, ADR-033)*: when `date` is today, for each
+template of any frequency that has not ended (`ends_on` is null or
+`ends_on ≥ today`), take its most recent occurrence date `D` with
+`today − 30 ≤ D < today`. If the template has **no** occurrence dated today,
+every incomplete occurrence on `D` is carried into Atrasadas. The frequency is
+never looked at: a rule of every day simply always has an occurrence today.
+A template with `ends_on < today` carries nothing, whether it was ended or
+forked.
 
 Orphans *(R6.15)* follow the scope of the template they belong to.
 
