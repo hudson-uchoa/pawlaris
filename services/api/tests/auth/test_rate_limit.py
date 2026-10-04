@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from httpx import AsyncClient
 
 from app.clock import FrozenClock
+from app.errors import ApiError
 from app.schemas.auth import Login
 from app.security.ratelimit import LoginRateLimiter
 from app.services.auth import login
@@ -108,9 +109,9 @@ async def test_r1_5_success_resets_email_failure_counter(
     body = {"email": account.user.email, "password": secrets.token_urlsafe(24)}
     for _ in range(4):
         assert (await client.post("/api/v1/auth/login", json=body)).status_code == 401
-    assert (
-        await client.post("/api/v1/auth/login", json=account.body())
-    ).status_code == 200
+    success = account.body()
+    success["email"] = success["email"].upper()
+    assert (await client.post("/api/v1/auth/login", json=success)).status_code == 200
     for _ in range(5):
         assert (await client.post("/api/v1/auth/login", json=body)).status_code == 401
     assert (await client.post("/api/v1/auth/login", json=body)).status_code == 429
@@ -170,3 +171,35 @@ async def test_r1_5_rate_limit_state_is_per_application(
         assert second.tracked_emails == 1
     finally:
         await second_app.state.engine.dispose()
+
+
+@pytest.mark.parametrize("email_wait", [20, 90])
+def test_r1_5_retry_after_uses_longer_email_or_global_wait(
+    frozen_clock: FrozenClock,
+    email_wait: int,
+) -> None:
+    limiter = LoginRateLimiter(frozen_clock)
+    email = f"{secrets.token_hex(12)}@example.invalid"
+    for _ in range(5):
+        limiter.check(email)
+    frozen_clock.advance(timedelta(seconds=900 - email_wait))
+    for i in range(30):
+        limiter.check(f"{i}@example.invalid")
+    with pytest.raises(ApiError) as caught:
+        limiter.check(email.upper())
+    assert caught.value.headers["Retry-After"] == str(max(email_wait, 60))
+
+
+def test_r1_5_success_clears_counter_with_different_email_case(
+    frozen_clock: FrozenClock,
+) -> None:
+    limiter = LoginRateLimiter(frozen_clock)
+    email = f"{secrets.token_hex(12)}@example.invalid"
+    for _ in range(5):
+        limiter.check(email)
+    limiter.success(email.upper())
+    for _ in range(5):
+        limiter.check(email)
+    with pytest.raises(ApiError) as caught:
+        limiter.check(email)
+    assert caught.value.status == 429
