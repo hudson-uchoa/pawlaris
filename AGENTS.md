@@ -293,7 +293,9 @@ subject, it is doing too much — split it.
   here: the formatter runs before every commit, so formatting belongs to the
   commit that introduces the code. A rename is a `refactor` commit of its own.
 - Lint and type-check pass at every commit. Tests may fail from a task's
-  contract or Red commit until its last code commit, and nowhere else.
+  contract or Red commit until its last code commit, and nowhere else. The
+  one exception is a disposable `ci-check/*` branch that proves CI fails when
+  it should: it is never merged and is deleted after the run *(Q-5)*.
 - Do not amend, squash or rebase commits already reported in a session's report.
 
 ### The shape of a task's history
