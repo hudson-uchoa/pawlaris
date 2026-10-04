@@ -38,6 +38,9 @@ node scripts/doctor.mjs
 adb devices -l
 ```
 
+`adb devices` prints each phone's serial; replace `<serial>` locally with
+that value. Keep serials and the PC's LAN address out of repository evidence.
+
 The Android checks must be `OK`; each phone must be `device`, rather than
 `unauthorized` or `offline`. Maestro is not needed for a local build.
 
@@ -73,12 +76,12 @@ needed with `Remove-NetFirewallRule -DisplayName 'Pawlaris dev API'`.
 ## Development client
 
 `expo-dev-client` is already pinned in `apps/mobile/package.json`. Set the API
-URL before both prebuild and Metro startup. This example uses the address
-observed on 2026-10-03; replace it if the PC's LAN address changes.
+URL before both prebuild and Metro startup. Replace `<PC-LAN-IP>` with the
+PC's current LAN address.
 
 ```powershell
 Set-Location C:\Hudson\Pawlaris\apps\mobile
-$env:EXPO_PUBLIC_API_URL = 'http://192.168.0.102:8000/api/v1'
+$env:EXPO_PUBLIC_API_URL = 'http://<PC-LAN-IP>:8000/api/v1'
 npx expo run:android --device motorola_edge_70
 ```
 
@@ -88,7 +91,7 @@ In a second terminal with the same API URL:
 
 ```powershell
 Set-Location C:\Hudson\Pawlaris\apps\mobile
-$env:EXPO_PUBLIC_API_URL = 'http://192.168.0.102:8000/api/v1'
+$env:EXPO_PUBLIC_API_URL = 'http://<PC-LAN-IP>:8000/api/v1'
 npx expo run:android --device SM_S918B --no-bundler
 ```
 
@@ -104,13 +107,11 @@ npx expo start --dev-client --lan
 
 Metro may choose the VPN adapter. USB avoids that and the need to open its
 port in the firewall. Start Metro with `--localhost` instead of `--lan`, then
-in another terminal forward port 8081 for each phone and open the project:
+in another terminal run these commands once per phone, using its serial:
 
 ```powershell
-adb -s 0090763603 reverse tcp:8081 tcp:8081
-adb -s RXCW10649GX reverse tcp:8081 tcp:8081
-adb -s 0090763603 shell am start -a android.intent.action.VIEW -d 'exp+pawlaris://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081' app.pawlaris
-adb -s RXCW10649GX shell am start -a android.intent.action.VIEW -d 'exp+pawlaris://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081' app.pawlaris
+adb -s <serial> reverse tcp:8081 tcp:8081
+adb -s <serial> shell am start -a android.intent.action.VIEW -d 'exp+pawlaris://expo-development-client/?url=http%3A%2F%2F127.0.0.1%3A8081' app.pawlaris
 ```
 
 The API still uses the LAN URL; this forwards only Metro. For cable-free
