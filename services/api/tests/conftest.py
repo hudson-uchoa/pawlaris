@@ -22,6 +22,7 @@ from app.settings import Settings
 from tests._probe import ProbeState, router
 
 API_ROOT = Path(__file__).resolve().parents[1]
+pytest_plugins = ["tests.factories"]
 
 
 @pytest.fixture(scope="session")
