@@ -20,8 +20,12 @@ export type OccurrenceInput = {
   to: DateKey;
 };
 
-// Q-7: validators return English string errors; malformed keys throw RangeError.
-type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: string[] };
+type ValidationError = {
+  field: string;
+  code: 'required' | 'invalid' | 'out_of_range' | 'duplicate' | 'unsorted'
+    | 'too_many' | 'mismatch' | 'unknown_key';
+};
+type ValidationResult<T> = { ok: true; value: T } | { ok: false; errors: ValidationError[] };
 
 const WEEKDAYS = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
 
@@ -35,65 +39,101 @@ function isTime(value: unknown): value is string {
 }
 
 export function validateRecurrence(value: unknown, startsOn: DateKey): ValidationResult<Recurrence> {
+  const errors: ValidationError[] = [];
   if (!isDateKey(startsOn)) {
-    return { ok: false, errors: ['startsOn must be a real calendar date.'] };
+    errors.push({ field: 'starts_on', code: 'invalid' });
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    return { ok: false, errors: ['Recurrence must be an object.'] };
+    errors.push({ field: 'freq', code: value === undefined ? 'required' : 'invalid' });
+    return { ok: false, errors };
   }
   const rule = value as Record<string, unknown>;
   const { freq } = rule;
   if (freq !== 'daily' && freq !== 'weekly' && freq !== 'monthly' && freq !== 'once') {
-    return { ok: false, errors: ['Recurrence frequency is not supported.'] };
+    errors.push({ field: 'freq', code: freq === undefined ? 'required' : 'invalid' });
+    return { ok: false, errors };
   }
   const keys = freq === 'once' ? ['freq', 'date']
     : freq === 'weekly' ? ['freq', 'interval', 'byday']
       : freq === 'monthly' ? ['freq', 'interval', 'bymonthday'] : ['freq', 'interval'];
-  if (Object.keys(rule).some((key) => !keys.includes(key))) {
-    return { ok: false, errors: ['Recurrence contains unknown keys.'] };
+  for (const key of Object.keys(rule)) {
+    if (!keys.includes(key)) errors.push({ field: key, code: 'unknown_key' });
   }
   if (freq === 'once') {
-    if (typeof rule.date !== 'string' || !isDateKey(rule.date) || rule.date !== startsOn) {
-      return { ok: false, errors: ['Once date must be a real calendar date equal to startsOn.'] };
+    const { date } = rule;
+    if (date === undefined) errors.push({ field: 'date', code: 'required' });
+    else if (typeof date !== 'string' || !isDateKey(date)) {
+      errors.push({ field: 'date', code: 'invalid' });
+    } else {
+      if (isDateKey(startsOn) && date !== startsOn) errors.push({ field: 'date', code: 'mismatch' });
+      if (errors.length === 0) return { ok: true, value: { freq, date } };
     }
-    return { ok: true, value: { freq, date: rule.date } };
+    return { ok: false, errors };
   }
   const { interval } = rule;
-  if (typeof interval !== 'number' || !Number.isInteger(interval) || interval < 1 || interval > 365) {
-    return { ok: false, errors: ['Interval must be an integer from 1 to 365.'] };
+  if (interval === undefined) errors.push({ field: 'interval', code: 'required' });
+  else if (typeof interval !== 'number' || !Number.isInteger(interval)) {
+    errors.push({ field: 'interval', code: 'invalid' });
+  } else if (interval < 1 || interval > 365) {
+    errors.push({ field: 'interval', code: 'out_of_range' });
   }
   if (freq === 'weekly') {
     const byday: unknown = rule.byday;
-    if (!Array.isArray(byday) || byday.length < 1 || byday.length > 7
-      || !byday.every(isWeekday) || new Set(byday).size !== byday.length) {
-      return { ok: false, errors: ['byday must contain 1 to 7 unique weekday codes.'] };
+    if (byday === undefined) errors.push({ field: 'byday', code: 'required' });
+    else if (!Array.isArray(byday)) errors.push({ field: 'byday', code: 'invalid' });
+    else {
+      if (byday.length === 0) errors.push({ field: 'byday', code: 'required' });
+      if (byday.length > 7) errors.push({ field: 'byday', code: 'too_many' });
+      if (!byday.every(isWeekday)) errors.push({ field: 'byday', code: 'invalid' });
+      if (new Set(byday).size !== byday.length) errors.push({ field: 'byday', code: 'duplicate' });
+      if (errors.length === 0 && typeof interval === 'number' && byday.every(isWeekday)) {
+        return { ok: true, value: { freq, interval, byday: [...byday] } };
+      }
     }
-    return { ok: true, value: { freq, interval, byday: [...byday] } };
+    return { ok: false, errors };
   }
   if (freq === 'monthly') {
     const bymonthday: unknown = rule.bymonthday;
-    if (!Array.isArray(bymonthday) || bymonthday.length < 1 || bymonthday.length > 31
-      || !bymonthday.every((day: unknown): day is number =>
-        typeof day === 'number' && Number.isInteger(day) && day >= 1 && day <= 31)
-      || new Set(bymonthday).size !== bymonthday.length) {
-      return { ok: false, errors: ['bymonthday must contain 1 to 31 unique integers from 1 to 31.'] };
+    if (bymonthday === undefined) errors.push({ field: 'bymonthday', code: 'required' });
+    else if (!Array.isArray(bymonthday)) errors.push({ field: 'bymonthday', code: 'invalid' });
+    else {
+      if (bymonthday.length === 0) errors.push({ field: 'bymonthday', code: 'required' });
+      if (bymonthday.length > 31) errors.push({ field: 'bymonthday', code: 'too_many' });
+      if (!bymonthday.every((day: unknown) => typeof day === 'number' && Number.isInteger(day))) {
+        errors.push({ field: 'bymonthday', code: 'invalid' });
+      }
+      if (bymonthday.some((day: unknown) =>
+        typeof day === 'number' && Number.isInteger(day) && (day < 1 || day > 31))) {
+        errors.push({ field: 'bymonthday', code: 'out_of_range' });
+      }
+      if (new Set(bymonthday).size !== bymonthday.length) errors.push({ field: 'bymonthday', code: 'duplicate' });
+      if (errors.length === 0 && typeof interval === 'number'
+        && bymonthday.every((day: unknown): day is number => typeof day === 'number')) {
+        return { ok: true, value: { freq, interval, bymonthday: [...bymonthday] } };
+      }
     }
-    return { ok: true, value: { freq, interval, bymonthday: [...bymonthday] } };
+    return { ok: false, errors };
   }
-  return { ok: true, value: { freq, interval } };
+  if (errors.length === 0 && typeof interval === 'number') return { ok: true, value: { freq, interval } };
+  return { ok: false, errors };
 }
 
 export function validateTimesOfDay(value: unknown): ValidationResult<string[]> {
-  if (!Array.isArray(value) || value.length > 8 || !value.every(isTime)) {
-    return { ok: false, errors: ['Times must contain 0 to 8 HH:mm entries from 00:00 to 23:59.'] };
+  if (!Array.isArray(value)) {
+    return { ok: false, errors: [{ field: 'times_of_day', code: value === undefined ? 'required' : 'invalid' }] };
   }
-  if (value.some((time, index) => {
-    const previous = value[index - 1];
-    return previous !== undefined && previous >= time;
-  })) {
-    return { ok: false, errors: ['Times must be unique and sorted ascending.'] };
+  const errors: ValidationError[] = [];
+  if (value.length > 8) errors.push({ field: 'times_of_day', code: 'too_many' });
+  if (!value.every(isTime)) errors.push({ field: 'times_of_day', code: 'invalid' });
+  if (new Set(value).size !== value.length) errors.push({ field: 'times_of_day', code: 'duplicate' });
+  if (value.every(isTime)) {
+    if (value.some((time, index) => {
+      const previous = value[index - 1];
+      return previous !== undefined && previous > time;
+    })) errors.push({ field: 'times_of_day', code: 'unsorted' });
+    if (errors.length === 0) return { ok: true, value: [...value] };
   }
-  return { ok: true, value: [...value] };
+  return { ok: false, errors };
 }
 
 export function occurrences(input: OccurrenceInput): string[] {
