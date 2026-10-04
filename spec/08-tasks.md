@@ -327,7 +327,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Tests:** `dayView.test.ts` — DV-1 … DV-28, one `it` per case, named by code.
   **Gate:** `pnpm -C packages/shared exec vitest run src/dayView.test.ts`
 
-- [ ] **P1-4 — Task edits and forks**
+- [~] **P1-4 — Task edits and forks**
   **Depends:** P1-3 · **Read:** `02` R3.6–R3.10 · `07` §4.3
   **Build:** `src/taskEdit.ts` — `SCHEDULE_FIELDS`, `COSMETIC_FIELDS`,
   `classifyTaskEdit(old, edited)`, `forkEffectiveDate({template, completions,
