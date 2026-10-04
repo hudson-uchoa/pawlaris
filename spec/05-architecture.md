@@ -39,6 +39,13 @@ weight for something the three motion libraries and plain components already
 do *(pillar 3)*.
 Adding a dependency that is not in this table needs an orchestrator decision.
 
+**Native versions come from the SDK.** Every Expo or React Native native
+module — a direct dependency, or a peer the package manager installs on its
+own — is pinned to the version the installed SDK names in
+`expo/bundledNativeModules.json`. A newer release is never taken because it is
+newer: native modules check each other's versions at build time, and only a
+native build shows a mismatch (Reanimated and Worklets, P0-6).
+
 ### API (`services/api`)
 
 | Concern | Choice |

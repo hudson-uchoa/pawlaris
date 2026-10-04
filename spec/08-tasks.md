@@ -152,15 +152,17 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
 
 - [~] **P0-6 — Local Android build**
   **Depends:** P0-5, H3, H4 · **Read:** `05` §8, §9
-  **Build:** `expo-dev-client` installed; `docs/build.md`: prerequisites; the
+  **Build:** `expo-dev-client` installed; the root overrides pin every native
+  peer to the SDK's version (`05` §1) — `react-native-reanimated` among them,
+  which `expo-router` brings in; `docs/build.md`: prerequisites; the
   exact commands for a dev build and a release build (`arm64-v8a`); how to point
   the app at the dev machine's API over the LAN, including the Windows Firewall
   rule for the API port; the `keytool` command the owner uses to generate the
   release keystore (H9); common failures and their fixes.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
   **Device:** [ ] `npx expo run:android` builds and installs the dev client on
-  both phones; the app opens. Evidence: the build's final lines, `adb devices`,
-  a screenshot from each phone.
+  both phones; the app opens. Evidence: the build's final lines, `adb devices`
+  with the serials redacted *(07 §13)*, a screenshot from each phone.
 
 - [ ] **P0-7 — CI**
   **Depends:** P0-3, P0-4, P0-5, H5 · **Read:** `07` §11

@@ -94,4 +94,13 @@ in pnpm-workspace.yaml; Device check blocked, recorded in
 docs/evidence/P0-6.md). The mobile gate passed 3/3, and
 `pnpm verify --allow-pending` passed 13 with 0 failures and 1 pending.
 
-**Answer:** pending orchestrator
+**Answer:** orchestrator — 2026-10-03. P0-6 fixes it. Making the Android build
+work is that task's purpose, so the pin is its to correct; asking first was
+right. Add `react-native-reanimated: 4.5.1` to the root overrides beside the
+Worklets pin — the pair the installed SDK names in
+`expo/bundledNativeModules.json`, confirmed by Reanimated's own compatibility
+table (4.5.x with Worklets 0.10.x on React Native 0.86) — regenerate the
+lockfile and build on both phones. It is finding R1 of the P0-6 review. The
+mismatch does come from P0-5, whose review checked a JavaScript export and so
+never ran the native version check; `05` §1 now states the rule that would
+have prevented it.

@@ -499,6 +499,9 @@ Some checks need a phone in someone's hand, or the box. They cannot run in
   person are marked `OWNER`.
 - Whoever runs a step records its raw output, the device model, the Android
   version and the date under it.
+- The repository is public. Evidence and documentation name a phone by its
+  model, never by its serial number: write `<serial>` where `adb` prints one,
+  and `<PC-LAN-IP>` for the dev machine's address.
 - When every step has a result, the orchestrator flips the line to
   `**Device:** [x]`.
 - Tasks that depend on this one need only its code to be accepted. The release
