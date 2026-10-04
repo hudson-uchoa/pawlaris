@@ -344,7 +344,8 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Depends:** P1-3 · **Read:** `02` §3.5 · `09` §9.2, §9.3 · `07` §4.4
   **Build:** `src/reminders.ts` — `planReminders(input)` → the data items of
   `07` §4.4, sorted by `fireAt`. `input` includes `suppressedIds`. `fp` is a
-  stable string hash of the item's other fields.
+  stable string hash of the item's other fields. Kinds, channels and the
+  archived-pet rule for health dues are in `07` §4.4 *(Q-10, ADR-035)*.
   **Tests:** `reminders.test.ts` — RM-1 … RM-12.
   **Gate:** `pnpm -C packages/shared exec vitest run src/reminders.test.ts`
   **Not here:** notification titles and bodies (P5-7).

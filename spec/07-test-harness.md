@@ -248,6 +248,12 @@ it has no occurrence between `E` and `S`, so nothing is lost or doubled.
 channel, kind, taskId?, occurrenceKey?, taskTitle?, petNames?, healthEventId?,
 healthTitle?, petName?, timerId?, fp }`. The app turns it into title and body.
 
+`kind` is `reminder`, `health_due` or `timer`. `channel` is
+`reminders-critical` or `reminders-routine` for a task reminder (RM-11),
+`reminders-routine` for a health due and `timers` for a timer. Items are
+sorted by `fireAt`, then by `id`, so the result does not depend on the
+order of the replica's rows *(Q-10)*.
+
 | Case | Expect |
 |---|---|
 | RM-1 | an occurrence with a time, assigned to me, incomplete, in the future → planned, id `rem:<task>:<key>`, `fireAt = slotInstant` |
@@ -256,9 +262,9 @@ healthTitle?, petName?, timerId?, fp }`. The app turns it into title and body.
 | RM-4 | fully complete → not planned; `per_pet` 2/4 → planned |
 | RM-5 | slot in the past → not planned |
 | RM-6 | horizon: day +7 planned, day +8 not |
-| RM-7 | 250 candidates → the 200 soonest |
-| RM-8 | health event due in 10 days → `due:<id>` at 09:00 local that day; due date passed → not planned |
-| RM-9 | timer started by me, running → `tmr:<id>` at `ends_at`; started by another, or cancelled → not planned |
+| RM-7 | 250 candidates → the 200 soonest; the cap counts task reminders only, never health dues or timers |
+| RM-8 | health event due in 10 days → `due:<id>` at 09:00 local that day, with `petName`; due date passed → not planned; due in 30 days → planned, in 31 → not; the event deleted, or its pet archived or absent from the replica → not planned *(ADR-035)* |
+| RM-9 | timer started by me, running → `tmr:<id>` at `ends_at`; started by another, or cancelled → not planned; its template absent from the replica → still planned, without `taskTitle` |
 | RM-10 | changing a template's title changes the item's `fp`; changing nothing keeps it |
 | RM-11 | `reminder_class` maps to channel `reminders-critical` / `reminders-routine` |
 | RM-12 | an id listed in `suppressedIds` is not planned |

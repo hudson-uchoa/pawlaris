@@ -108,7 +108,8 @@ in `apps/mobile/src/replica/selectors.ts`, which wraps `buildDayView` from
    *(R6.11)*.
 3. **Walk banner** (only when another member has an `active` walk younger than
    12 h): "Hudson está passeando com a Katarina desde 18:02" `walk-banner`.
-4. **Próximos cuidados** (today only, only when non-empty) — health events with
+4. **Próximos cuidados** (today only, only when non-empty) — health events of
+   non-archived pets *(R2.2)* with
    `next_due_on` within the next 7 days or overdue: pet avatar, title,
    "vence em 3 dias" / "vence hoje" / "venceu há 2 dias". Tap → pet profile.
 5. **Atrasadas** — section header in `danger` color with a count.
@@ -483,7 +484,8 @@ timers })` in `packages/shared/src/reminders.ts` is pure and returns the
 - task reminders: every occurrence in `[today, today + 7 days]` that has a time,
   fires after `now`, belongs to a template assigned to `me` or to nobody, and is
   not fully complete *(R3.32–R3.34)*; if more than 200, the 200 soonest
-- health dues: `next_due_on` within 30 days, fire instant after `now`
+- health dues: `next_due_on` within 30 days, fire instant after `now`, the
+  pet in the replica and not archived *(R2.2)*; channel `reminders-routine`
 - timers: not cancelled, `started_by = me`, `ends_at > now`
 
 `reconcile()` in `apps/mobile/src/notifications/` compares the desired set with

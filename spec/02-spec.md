@@ -97,8 +97,9 @@ Vocabulary used everywhere:
   `sex` (`female` | `male` | `unknown`), `breed`, `color`, `birthdate`,
   `microchip_id`, `notes`, avatar photo, `sort_order`.
 - **R2.2** Pets are archived, never deleted. An archived pet disappears from the
-  pets grid and from task occurrences, and its history stays readable. A leader
-  can unarchive.
+  pets grid, from task occurrences and from health reminders — its events
+  leave Próximos cuidados and schedule no notification *(ADR-035)* — and its
+  history stays readable. A leader can unarchive, and all three come back.
 - **R2.3** Avatars are compressed on the device before upload (longest edge
   1024 px, JPEG quality 0.8) and rendered from a local file, so the grid never
   waits on the network.
@@ -122,7 +123,7 @@ Vocabulary used everywhere:
   `procedure`, `other`.
 - **R2.10** Fields: `title` (required), `notes`, `occurred_at`, optional
   `next_due_on` (a date), optional photo attachment.
-- **R2.11** An event with `next_due_on` appears in the dashboard's
+- **R2.11** An event with `next_due_on`, of a pet that is not archived, appears in the dashboard's
   **Próximos cuidados** section from 7 days before the due date until the event
   is edited or deleted, and schedules one local notification for 09:00 family
   time on the due date.
