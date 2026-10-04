@@ -66,3 +66,32 @@ internals may stay in the build, with their licences in
 `apps/mobile/assets/LICENSES.md`; the app never selects them. The cost here is
 small — the font is 944 KB against a 60 MB APK budget. `AGENTS.md` rule 10 now
 says so; no code change is needed.
+
+## Q-3 — P0-6 — Who should align the existing native peer versions?
+**Asked:** 2026-10-03
+**Where:** pnpm-workspace.yaml overrides; pnpm-lock.yaml;
+spec/08-tasks.md P0-6 Device; AGENTS.md section 8
+**Problem:** the first real Android build, using the Motorola Edge 70,
+fails at `:react-native-reanimated:assertWorkletsVersionTask`. The
+pre-existing P0-5 lockfile resolves Reanimated 4.7.1, while the root
+override pins Worklets 0.10.1. The native error requires Worklets 0.13.x
+for Reanimated 4.7.1. Expo 57.0.26's `bundledNativeModules.json` instead
+names Reanimated 4.5.1 with Worklets 0.10.1. Reanimated's installed
+`compatibility.json` also lists 4.5.x with Worklets 0.10.x and React
+Native 0.86. The mismatch predates installing `expo-dev-client`.
+The root peer configuration belongs to P0-5, and section 8 says to ask
+before changing code owned by another task. May a P0-6 follow-up add an
+exact Reanimated 4.5.1 override alongside the existing Worklets pin,
+regenerate the lockfile and rerun both native builds, or should the
+orchestrator return this as a P0-5 finding?
+**I would assume:** keep the P0-5 peer configuration unchanged until that
+scope decision. Submit the completed P0-6 dependency setup and build
+guide with the Device check pending separately, as allowed by
+`spec/07-test-harness.md` section 13. The SDK's 4.5.1/0.10.1 pair is the
+proposed fix; it has not been installed or verified on either phone.
+**Blocking:** no (proceeded with the existing peer overrides unchanged
+in pnpm-workspace.yaml; Device check blocked, recorded in
+docs/evidence/P0-6.md). The mobile gate passed 3/3, and
+`pnpm verify --allow-pending` passed 13 with 0 failures and 1 pending.
+
+**Answer:** pending orchestrator
