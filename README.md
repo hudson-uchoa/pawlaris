@@ -13,6 +13,7 @@ who did it. Built for two people and five pets, to cost nothing a month.
 ![FastAPI](https://img.shields.io/badge/API-FastAPI-009688)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791)
 ![cost](https://img.shields.io/badge/cost-%240%20a%20month-success)
+![license](https://img.shields.io/badge/license-MIT-blue)
 
 [Spec](spec/README.md) ·
 [Requirements](spec/02-spec.md) ·
@@ -220,5 +221,4 @@ Portuguese, because that is what the family reads.
 
 ## License
 
-No license has been chosen yet. Until one is, the source is published to be
-read, and all rights are reserved.
+[MIT](LICENSE). Use it, change it, build your own from it.
