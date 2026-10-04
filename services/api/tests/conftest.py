@@ -1,18 +1,12 @@
-import asyncio
-import os
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from pathlib import Path
-from uuid import uuid4
 
 import pytest
-from alembic import command
-from alembic.config import Config
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import SecretStr
 from sqlalchemy import text
-from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from app.clock import FrozenClock
@@ -27,25 +21,10 @@ pytest_plugins = ["tests.factories"]
 
 @pytest.fixture(scope="session")
 async def database_url() -> AsyncIterator[str]:
-    from dotenv import dotenv_values
+    from tests.factories import migrate, private_database
 
-    configured = os.environ.get("TEST_DATABASE_URL") or dotenv_values(
-        API_ROOT / ".env"
-    ).get("TEST_DATABASE_URL")
-    if not configured:
-        pytest.fail("TEST_DATABASE_URL is required for integration tests")
-    admin_url = make_url(configured)
-    name = f"pawlaris_test_{uuid4().hex}"
-    admin = create_async_engine(admin_url, isolation_level="AUTOCOMMIT")
-    created = False
-    try:
-        async with admin.connect() as connection:
-            await connection.execute(text(f'CREATE DATABASE "{name}"'))
-        created = True
-        test_url = admin_url.set(database=name).render_as_string(hide_password=False)
-        config = Config(str(API_ROOT / "alembic.ini"))
-        config.attributes["database_url"] = test_url
-        await asyncio.to_thread(command.upgrade, config, "head")
+    async with private_database() as test_url:
+        await migrate(test_url, "upgrade", "head")
         engine = create_async_engine(test_url)
         try:
             async with engine.begin() as connection:
@@ -58,11 +37,6 @@ async def database_url() -> AsyncIterator[str]:
         finally:
             await engine.dispose()
         yield test_url
-    finally:
-        if created:
-            async with admin.connect() as connection:
-                await connection.execute(text(f'DROP DATABASE "{name}" WITH (FORCE)'))
-        await admin.dispose()
 
 
 @pytest.fixture
