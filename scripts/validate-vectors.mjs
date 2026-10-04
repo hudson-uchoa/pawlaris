@@ -101,6 +101,14 @@ const uniqueNames = (list, where) => {
     }
   }
   for (const t of REQUIRED_TAGS) if (!tags.has(t)) fail(where, `no vector carries the required tag "${t}"`);
+  // An interval is anchored to starts_on. Only a range that begins in an off
+  // period tells that apart from anchoring to `from`, and each frequency has
+  // its own arithmetic, so each needs such a vector.
+  for (const freq of ['daily', 'weekly', 'monthly']) {
+    if (!(f.vectors ?? []).some((v) => v.recurrence?.freq === freq && (v.tags ?? []).includes('mid-interval'))) {
+      fail(where, `no ${freq} vector carries the tag "mid-interval"`);
+    }
+  }
 }
 
 // ---- time-vectors.json -----------------------------------------------------
