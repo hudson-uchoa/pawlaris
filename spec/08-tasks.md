@@ -365,7 +365,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/walk.test.ts`
 
 - [~] **P1-7 — Small helpers and validators**
-  **Depends:** P1-3 · **Read:** `02` R2.4, R2.7, R2.11 · `03` §2–§4 (limits) · `06` §2.1 (identity) · `07` §4.6
+  **Depends:** P1-3 · **Read:** `02` R2.4, R2.7, R2.11 · `03` §2–§4 (limits) · `04` §3 (password) · `06` §2.1 (identity) · `07` §4.6
   **Build:** `src/pets.ts` — `petAge(birthdate, today)` → `{years, months, days}`;
   `needsWeightConfirmation(prevKg, nextKg)`; `upcomingCare({healthEvents, pets,
   today})` → items due within 7 days or overdue, each with `daysUntil`.
