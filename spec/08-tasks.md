@@ -317,7 +317,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/recurrence.test.ts`
   **Not here:** anything that knows about completions.
 
-- [x] **P1-3 — Entities and the day view**
+- [x] **P1-3 — Entities and the day view** — accepted 2026-10-04
   **Depends:** P1-2 · **Read:** `04` §2 · `02` §6 · `07` §4.2
   **Build:** `src/entities.ts` — the ten row types of `04` §2 **written by hand**
   (the generated API types do not contain them until P2; P2-6 adds a compile-time
@@ -327,7 +327,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Tests:** `dayView.test.ts` — DV-1 … DV-28, one `it` per case, named by code.
   **Gate:** `pnpm -C packages/shared exec vitest run src/dayView.test.ts`
 
-- [~] **P1-4 — Task edits and forks**
+- [x] **P1-4 — Task edits and forks** — accepted 2026-10-04
   **Depends:** P1-3 · **Read:** `02` R3.6–R3.10 · `07` §4.3
   **Build:** `src/taskEdit.ts` — `SCHEDULE_FIELDS`, `COSMETIC_FIELDS`,
   `classifyTaskEdit(old, edited)`, `forkEffectiveDate({template, completions,
