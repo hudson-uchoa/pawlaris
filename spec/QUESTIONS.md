@@ -242,3 +242,25 @@ non-archived pets. All-day occurrences sort before timed ones, then by
 sees, so it was put to the owner, who had not answered by the time of the
 review: all-day first stands as the default until they say otherwise. R6.6
 and `07` §4.2 now state both.
+
+## Q-9 — P1-4 — What are the edit and fork helper boundary rules?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P1-4 Build; spec/02-spec.md R3.6–R3.8;
+spec/07-test-harness.md §4.3 FK-6, FK-7; spec/04-api-contract.md §9
+**Problem:** the helpers are named without exact edit/result types or an
+equality rule for object and array fields. FK-6 and R3.8 set the successor's
+start to E, but FK-7 sets it to the edited once date. The create payload has
+no revision, update timestamp, deletion timestamp or creator, and the helper
+has neither a clock nor a current user with which to fill a replica row.
+**I would assume:** edits are a partial selection of the schedule and
+cosmetic fields of R3.6. Classification compares supplied schedule values
+structurally (object key order ignored, array order retained); unchanged or
+empty edits return cosmetic. Lifecycle changes use their separate helpers.
+The fork returns the TaskCreate-shaped payload of API §9, copying the old
+end date and all unchanged editable fields, without replica metadata.
+For a once successor, FK-7 is the exception: starts_on equals the merged
+recurrence.date; other successors start at E. The old patch always ends
+at E minus one day. Today's live completions are matched against the old
+template's generated occurrence keys, not their completion timestamp.
+**Blocking:** no (proceeding on the assumption, confined to the types and
+helper implementations in packages/shared/src/taskEdit.ts).
