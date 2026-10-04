@@ -334,3 +334,15 @@ samples at most 32 pairs, retaining both endpoints. Inputs are valid,
 chronologically ordered fixes; no input is mutated.
 **Blocking:** no (proceeding on the assumption, confined to
 packages/shared/src/walk.ts)
+
+**Answer:** orchestrator — 2026-10-04. As assumed, with one change.
+
+- *Confirmed:* epoch milliseconds and fractional seconds; the accumulator
+  counts every fix and a paused fix clears the counted position; the 6 371 000
+  m sphere; null pace without moving time; `[lat, lon, t, acc]` upload
+  tuples; a preview sampled evenly from the simplified route with both ends
+  kept; inputs valid and in order, never mutated.
+- *Changed — current speed:* path length over the window counts GPS jitter
+  as movement: standing still read 2 to 4 km/h in a simulation. It is the
+  displacement between the oldest and the newest good fix of the window, and
+  zero under the 5 m floor that distance already has *(R4.12, `07` §4.5)*.

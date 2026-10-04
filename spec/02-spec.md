@@ -345,7 +345,9 @@ Vocabulary used everywhere:
   distance only when it is at least 5 m from the last counted position, so GPS
   jitter while standing still adds nothing.
 - **R4.12** Live metrics: distance, elapsed time, average pace, current speed.
-  Pace shows `--` while average speed is below 0.5 m/s.
+  Pace shows `--` while average speed is below 0.5 m/s. Current speed is the
+  straight-line displacement over the last 10 s of good fixes, and reads zero
+  under the 5 m floor of R4.11: a dog standing at a tree shows no speed.
 - **R4.13** Pause and resume are supported. Paused time counts toward neither
   elapsed time nor pace.
 - **R4.14** Finishing saves distance, duration, average pace and the route. The
