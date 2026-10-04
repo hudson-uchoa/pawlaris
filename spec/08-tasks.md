@@ -446,7 +446,9 @@ tests cover them for its routes.
   of `04` §3 implemented exactly, with `parent_id` set on every successor and
   the revocation committed before the 401. The `client_for(user)` test fixture.
   **Tests:** `tests/auth/test_login.py` (success shape; wrong password and
-  unknown email both 401 `invalid_credentials`; disabled account 401);
+  unknown email both 401 `invalid_credentials`, the unknown email costing
+  exactly one password hash; disabled account 401; an unexpected failure in
+  an auth route logs its type and a stack frame, and no message);
   `test_refresh.py` and `test_rate_limit.py` per `07` §5.2;
   `test_closed_registration.py`; `test_me.py` (get; patch display name;
   password change revokes all chains and the old password stops working).

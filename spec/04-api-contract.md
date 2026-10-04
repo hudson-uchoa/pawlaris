@@ -172,7 +172,11 @@ DELETE /me/push-token {token}                                  -> 204
 - **`/auth/login`:** verifies the password; creates a new chain. A disabled
   account answers `401 invalid_credentials`. Rate limit per R1.5: an in-memory
   counter keyed by lowercase email, 5 failures in a sliding 15 minutes → `429`
-  until the window frees a slot; a success clears the counter.
+  until the window frees a slot; a success clears the counter. **An attempt is
+  counted when it starts**, so attempts in flight count against the limit: of
+  20 simultaneous wrong passwords for one email, 5 are checked and 15 get
+  `429`. An attempt that ends in neither a success nor `invalid_credentials`
+  — an internal error, a cancelled request — gives its place back.
 - **`/auth/refresh`** *(R1.8)*:
 
   | Presented token | Result |
