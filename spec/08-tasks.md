@@ -227,7 +227,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   Evidence: the screenshots.
   **Not here:** drawing the mark in code (`glyphs.ts` is P4-2).
 
-- [~] **P0-10 — Local release build**
+- [x] **P0-10 — Local release build** — accepted 2026-10-04
   **Depends:** P0-9 · **Read:** `05` §8, §9 · `docs/build.md` · Q-4 in `QUESTIONS.md`
   **Build:** make the release variant build on the dev machine. After a clean
   prebuild, `.\gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a`
@@ -239,7 +239,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   Correct the release section of `docs/build.md` to what actually works.
   **Tests:** none (it is a build).
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
-  **Device:** [ ] The release APK builds. On one phone it installs and opens
+  **Device:** [x] The release APK builds. On one phone it installs and opens
   the Pawlaris route with no Metro running; the dev client is installed again
   afterwards. Evidence: the build's final lines, the APK's size, a screenshot.
   **Not here:** release signing (P8-5).
