@@ -16,7 +16,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.errors import problem_response, register_handlers
-from app.routers import health
+from app.routers import auth, health
 from app.settings import Settings
 
 
@@ -111,6 +111,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
         app.state.engine, expire_on_commit=False
     )
     app.include_router(health.router, prefix="/api/v1")
+    app.include_router(auth.router, prefix="/api/v1")
     register_handlers(app)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(TimingMiddleware, clock=clock)
