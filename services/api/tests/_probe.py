@@ -12,6 +12,8 @@ from app.clock import FrozenClock
 from app.db import CommitCallback, get_session, transactional
 from app.deps import after_commit, get_clock
 from app.errors import ApiError
+from app.idempotency import IdempotentMutation, idempotent
+from app.schemas.rows import Pet as PetRow
 
 router = APIRouter()
 
@@ -22,6 +24,22 @@ class ProbeBody(BaseModel):
     marker: str
     fail_commit: bool = False
     fail_callback: bool = False
+
+
+class ProbePetBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    id: UUID4
+    name: str
+    fail_handler: bool = False
+    fail_commit: bool = False
+
+
+@router.post("/pet", response_model=PetRow)
+async def idempotent_pet(
+    value: ProbePetBody,
+    mutation: Annotated[IdempotentMutation, Depends(idempotent("pets"))],
+) -> PetRow:
+    raise NotImplementedError("not implemented")
 
 
 @dataclass
