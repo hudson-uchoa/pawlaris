@@ -136,3 +136,19 @@ portable and avoids an absolute machine-specific path.
 on disk and nothing else, the lockfile and every gate are unaffected, and both
 phones build with it. `05` §9 now records the path-length limit beside the
 no-spaces rule.
+
+## Q-5 — P0-7 — How may the seeded type-error PR be committed?
+**Asked:** 2026-10-03
+**Where:** spec/08-tasks.md P0-7 Device; AGENTS.md §4.2 and §5
+**Problem:** the Device check requires a red pull-request run with a seeded
+type error, then its reversion. GitHub must receive that error in a commit to
+run the PR checks. The manual requires lint and type-check to pass at every
+commit and permits intentional failures only in tests between Red and Green.
+There is no exception for a disposable CI-validation branch.
+**I would assume:** finish the CI code and green PR check, leaving the seeded
+error check OWNER until the orchestrator authorizes the temporary failing
+commit on a disposable branch and its subsequent revert. Never put the
+intentional type error on the phase branch.
+**Blocking:** no (proceeded with the seeded-error Device step deferred,
+confined to docs/evidence/P0-7.md; code acceptance is independent of Device
+checks under spec/07-test-harness.md §13).
