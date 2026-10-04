@@ -85,7 +85,9 @@ async def test_sy1_orm_fetches_generated_values_on_insert_and_update(
             # Force a real UPDATE without assigning either generated column.
             from sqlalchemy.orm.attributes import flag_modified
 
-            flag_modified(row, "id")
+            flag_modified(
+                row, "name" if table_name in ("family", "pet") else "family_id"
+            )
             await session.flush()
             assert not {"revision", "updated_at"} & inspect(row).unloaded
             assert row.revision == before + 1
@@ -102,15 +104,15 @@ async def test_sy3_hard_delete_is_forbidden(
     try:
         async with AsyncSession(engine) as session:
             rows = await fam.make_rows(session)
+            row_id = rows[table_name].id
             await session.commit()
-            row = rows[table_name]
             table = Base.metadata.tables[table_name]
             with pytest.raises(DBAPIError, match="hard delete forbidden"):
-                await session.execute(table.delete().where(table.c.id == row.id))
+                await session.execute(table.delete().where(table.c.id == row_id))
             await session.rollback()
             assert (
-                await session.execute(select(table.c.id).where(table.c.id == row.id))
-            ).scalar_one() == row.id
+                await session.execute(select(table.c.id).where(table.c.id == row_id))
+            ).scalar_one() == row_id
     finally:
         await engine.dispose()
 

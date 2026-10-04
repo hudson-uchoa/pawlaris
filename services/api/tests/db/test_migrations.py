@@ -38,7 +38,7 @@ async def test_migrations_upgrade_downgrade_upgrade(
                                 text(
                                     "SELECT typname FROM pg_type "
                                     "JOIN pg_namespace n ON n.oid "
-                                    "= typnamespace"
+                                    "= typnamespace "
                                     "WHERE typtype = 'e' AND n.nspname = 'public'"
                                 )
                             )
@@ -51,7 +51,7 @@ async def test_migrations_upgrade_downgrade_upgrade(
                                 text(
                                     "SELECT proname FROM pg_proc "
                                     "JOIN pg_namespace n ON n.oid "
-                                    "= pronamespace"
+                                    "= pronamespace "
                                     "WHERE n.nspname = 'public' AND proname IN "
                                     "('bump_revision', "
                                     "'bump_revision_family', "

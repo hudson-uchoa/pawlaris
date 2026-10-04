@@ -1,16 +1,12 @@
 from datetime import date, datetime
+from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, JsonValue, model_validator
+from pydantic import BaseModel, ConfigDict, JsonValue
 
 
 class Row(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
-
-    @model_validator(mode="before")
-    @classmethod
-    def pending(cls, value: object) -> object:
-        raise NotImplementedError("not implemented")
 
 
 class Family(Row):
@@ -25,7 +21,7 @@ class Family(Row):
 class Member(Row):
     id: UUID
     display_name: str
-    role: str
+    role: Literal["leader", "member"]
     color: str
     disabled_at: datetime | None
     revision: int
@@ -36,8 +32,8 @@ class Member(Row):
 class Pet(Row):
     id: UUID
     name: str
-    species: str
-    sex: str
+    species: Literal["cat", "dog"]
+    sex: Literal["female", "male", "unknown"]
     breed: str | None
     color: str | None
     birthdate: date | None
@@ -67,7 +63,7 @@ class WeightEntry(Row):
 class HealthEvent(Row):
     id: UUID
     pet_id: UUID
-    type: str
+    type: Literal["vaccine", "medication", "vet_visit", "symptom", "procedure", "other"]
     title: str
     notes: str | None
     occurred_at: datetime
@@ -83,17 +79,19 @@ class TaskTemplate(Row):
     id: UUID
     title: str
     description: str | None
-    category: str
+    category: Literal[
+        "feeding", "medication", "hygiene", "litter", "play", "vet", "other"
+    ]
     assigned_to: UUID | None
     requires_photo: bool
     timer_seconds: int | None
-    reminder_class: str
+    reminder_class: Literal["critical", "routine"]
     sort_order: int
     recurrence: dict[str, JsonValue]
     times_of_day: list[str]
     starts_on: date
     pet_ids: list[UUID]
-    completion_mode: str
+    completion_mode: Literal["together", "per_pet"]
     ends_on: date | None
     replaces_task_id: UUID | None
     created_by: UUID
@@ -135,7 +133,7 @@ class Walk(Row):
     id: UUID
     pet_id: UUID
     user_id: UUID
-    status: str
+    status: Literal["active", "finished", "discarded"]
     started_at: datetime
     ended_at: datetime | None
     paused_ms: int
@@ -153,7 +151,7 @@ class Walk(Row):
 
 class Asset(Row):
     id: UUID
-    kind: str
+    kind: Literal["pet_avatar", "task_proof", "health_attachment"]
     mime: str
     bytes: int
     width: int
