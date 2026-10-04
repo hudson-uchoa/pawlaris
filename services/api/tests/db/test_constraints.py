@@ -9,6 +9,40 @@ from app.models import Base, ServerMeta
 from tests.factories import INSTANT, MakeFamily
 
 
+async def test_cp1_live_completions_accept_two_pets(make_family: MakeFamily) -> None:
+    fam = await make_family(pets=2)
+    engine = create_async_engine(fam.database_url)
+    table = Base.metadata.tables["task_completion"]
+    try:
+        async with AsyncSession(engine) as session:
+            values = await fam.row_values(session, "task_completion")
+            await session.execute(
+                Base.metadata.tables["task_template"]
+                .update()
+                .where(Base.metadata.tables["task_template"].c.id == values["task_id"])
+                .values(completion_mode="per_pet", pet_ids=[pet.id for pet in fam.pets])
+            )
+            for pet in fam.pets:
+                await session.execute(
+                    table.insert().values(**{**values, "id": uuid4(), "pet_id": pet.id})
+                )
+            await session.commit()
+            pet_ids = (
+                (
+                    await session.execute(
+                        select(table.c.pet_id).where(
+                            table.c.task_id == values["task_id"]
+                        )
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            assert set(pet_ids) == {pet.id for pet in fam.pets}
+    finally:
+        await engine.dispose()
+
+
 @pytest.mark.parametrize("per_pet", [False, True], ids=["NULL", "pet"])
 async def test_cp1_cp4_live_unique_index_and_undo(
     make_family: MakeFamily, per_pet: bool
@@ -74,6 +108,7 @@ async def test_r3_1_empty_pet_ids_are_rejected(make_family: MakeFamily) -> None:
         "2026-9-14",
         "2026-09-14T8:00",
         "2026-09-14T08:00Z",
+        "2026-09-14T08:00:00",
         "2026-09-14\n",
         "",
     ],
