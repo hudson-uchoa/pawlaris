@@ -1,5 +1,5 @@
 {
-  "$comment": "Golden vectors for packages/shared/src/time.ts — spec/03-data-model.md §4.3 (TZ-1). Authored by the orchestrator. READ-ONLY for the implementer. startOfLocalDay(date, tz) is slotInstant(date, \"00:00\", tz) and is covered by those vectors.",
+  "$comment": "Golden vectors for packages/shared/src/time.ts — spec/03-data-model.md §4.3 (TZ-1). Authored by the orchestrator. READ-ONLY for the implementer. startOfLocalDay(date, tz) is slotInstant(date, \"00:00\", tz) and is covered by those vectors. Europe/London and Australia/Sydney are here because they are east of UTC: only there does the result depend on probing the offset a day before the wall time.",
   "version": 1,
   "localDate": [
     {
@@ -67,6 +67,48 @@
       "instant": "2026-11-02T04:30:00Z",
       "tz": "America/New_York",
       "expect": "2026-11-01"
+    },
+    {
+      "name": "London: 00:59 GMT, a minute before spring-forward",
+      "instant": "2026-03-29T00:59:00Z",
+      "tz": "Europe/London",
+      "expect": "2026-03-29"
+    },
+    {
+      "name": "London: 02:00 BST, the first minute after spring-forward",
+      "instant": "2026-03-29T01:00:00Z",
+      "tz": "Europe/London",
+      "expect": "2026-03-29"
+    },
+    {
+      "name": "London: first 01:30 on fall-back day (BST)",
+      "instant": "2026-10-25T00:30:00Z",
+      "tz": "Europe/London",
+      "expect": "2026-10-25"
+    },
+    {
+      "name": "London: second 01:30 on fall-back day (GMT)",
+      "instant": "2026-10-25T01:30:00Z",
+      "tz": "Europe/London",
+      "expect": "2026-10-25"
+    },
+    {
+      "name": "Sydney: 03:30 AEDT on spring-forward day is still the previous UTC day",
+      "instant": "2026-10-03T16:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "2026-10-04"
+    },
+    {
+      "name": "Sydney: first 02:30 on fall-back day (AEDT)",
+      "instant": "2026-04-04T15:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "2026-04-05"
+    },
+    {
+      "name": "Sydney: second 02:30 on fall-back day (AEST)",
+      "instant": "2026-04-04T16:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "2026-04-05"
     },
     {
       "name": "UTC: identity",
@@ -141,6 +183,48 @@
       "instant": "2026-11-02T04:30:00Z",
       "tz": "America/New_York",
       "expect": "23:30"
+    },
+    {
+      "name": "London: 00:59 GMT, a minute before spring-forward",
+      "instant": "2026-03-29T00:59:00Z",
+      "tz": "Europe/London",
+      "expect": "00:59"
+    },
+    {
+      "name": "London: 02:00 BST, the first minute after spring-forward",
+      "instant": "2026-03-29T01:00:00Z",
+      "tz": "Europe/London",
+      "expect": "02:00"
+    },
+    {
+      "name": "London: first 01:30 on fall-back day (BST)",
+      "instant": "2026-10-25T00:30:00Z",
+      "tz": "Europe/London",
+      "expect": "01:30"
+    },
+    {
+      "name": "London: second 01:30 on fall-back day (GMT)",
+      "instant": "2026-10-25T01:30:00Z",
+      "tz": "Europe/London",
+      "expect": "01:30"
+    },
+    {
+      "name": "Sydney: 03:30 AEDT on spring-forward day is still the previous UTC day",
+      "instant": "2026-10-03T16:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "03:30"
+    },
+    {
+      "name": "Sydney: first 02:30 on fall-back day (AEDT)",
+      "instant": "2026-04-04T15:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "02:30"
+    },
+    {
+      "name": "Sydney: second 02:30 on fall-back day (AEST)",
+      "instant": "2026-04-04T16:30:00Z",
+      "tz": "Australia/Sydney",
+      "expect": "02:30"
     },
     {
       "name": "UTC: identity",
@@ -254,6 +338,90 @@
       "time": "20:00",
       "tz": "America/New_York",
       "expect": "2026-11-02T01:00:00Z"
+    },
+    {
+      "name": "London: midnight on spring-forward day (GMT)",
+      "date": "2026-03-29",
+      "time": "00:00",
+      "tz": "Europe/London",
+      "expect": "2026-03-29T00:00:00Z"
+    },
+    {
+      "name": "London: 01:30 does not exist on spring-forward day -> pre-transition offset (wall clock reads 02:30)",
+      "date": "2026-03-29",
+      "time": "01:30",
+      "tz": "Europe/London",
+      "expect": "2026-03-29T01:30:00Z"
+    },
+    {
+      "name": "London: morning of spring-forward day (BST)",
+      "date": "2026-03-29",
+      "time": "10:00",
+      "tz": "Europe/London",
+      "expect": "2026-03-29T09:00:00Z"
+    },
+    {
+      "name": "London: 00:30 before fall-back (BST)",
+      "date": "2026-10-25",
+      "time": "00:30",
+      "tz": "Europe/London",
+      "expect": "2026-10-24T23:30:00Z"
+    },
+    {
+      "name": "London: 01:30 exists twice on fall-back day -> the first (BST)",
+      "date": "2026-10-25",
+      "time": "01:30",
+      "tz": "Europe/London",
+      "expect": "2026-10-25T00:30:00Z"
+    },
+    {
+      "name": "London: 02:30 after fall-back (GMT)",
+      "date": "2026-10-25",
+      "time": "02:30",
+      "tz": "Europe/London",
+      "expect": "2026-10-25T02:30:00Z"
+    },
+    {
+      "name": "Sydney: midnight on spring-forward day (AEST)",
+      "date": "2026-10-04",
+      "time": "00:00",
+      "tz": "Australia/Sydney",
+      "expect": "2026-10-03T14:00:00Z"
+    },
+    {
+      "name": "Sydney: 02:30 does not exist on spring-forward day -> pre-transition offset (wall clock reads 03:30)",
+      "date": "2026-10-04",
+      "time": "02:30",
+      "tz": "Australia/Sydney",
+      "expect": "2026-10-03T16:30:00Z"
+    },
+    {
+      "name": "Sydney: morning of spring-forward day (AEDT)",
+      "date": "2026-10-04",
+      "time": "10:00",
+      "tz": "Australia/Sydney",
+      "expect": "2026-10-03T23:00:00Z"
+    },
+    {
+      "name": "Sydney: midnight on fall-back day (AEDT)",
+      "date": "2026-04-05",
+      "time": "00:00",
+      "tz": "Australia/Sydney",
+      "expect": "2026-04-04T13:00:00Z"
+    },
+    {
+      "name": "Sydney: 02:30 exists twice on fall-back day -> the first (AEDT)",
+      "date": "2026-04-05",
+      "time": "02:30",
+      "tz": "Australia/Sydney",
+      "expect": "2026-04-04T15:30:00Z"
+    },
+    {
+      "name": "Sydney: evening of fall-back day (AEST)",
+      "date": "2026-04-05",
+      "time": "20:00",
+      "tz": "Australia/Sydney",
+      "expect": "2026-04-05T10:00:00Z"
     },
     {
       "name": "UTC: identity",
