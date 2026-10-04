@@ -7,11 +7,12 @@
 
 # Pawlaris
 
-**Pet care for one family, under a night sky.**
+**Pet care for your household, under a night sky — yours to run, free to keep.**
 
 A self-hosted, offline-first Android app for looking after the pets you share
 a home with: who was fed, who got their medicine, who has been walked, and
-who did it. Built for two people and five pets, to cost nothing a month.
+who did it. It was made for one home with two people and five pets, and it is
+built so that any home can run its own, with no subscription to anybody.
 
 ![status](https://img.shields.io/badge/status-in%20development-orange)
 ![platform](https://img.shields.io/badge/platform-Android-3ddc84)
@@ -29,12 +30,17 @@ who did it. Built for two people and five pets, to cost nothing a month.
 [Backlog](spec/08-tasks.md) ·
 [Reviews](docs/reviews)
 
+<p align="center">
+  <img src="docs/screens/screens-night.png" alt="Five concept screens in the night theme: today's tasks, a completed day with shooting stars, the pets grid, a pet's profile with its weight chart, and a walk being recorded">
+</p>
+<p align="center"><sub>Concept screens: the design the app is being built to. They are drawings, not screenshots — no screen exists in the app yet.</sub></p>
+
 > [!IMPORTANT]
-> Pawlaris is being built in the open and is not usable yet. The foundation is
-> done: the three packages build, lint and test, CI is green, and an empty app
-> carrying the mark installs on both phones. The domain logic is being
-> written now, and nothing a family could use exists so far. The
-> [backlog](spec/08-tasks.md) shows exactly where it stands.
+> Pawlaris is being built in the open and is not usable yet. The foundation
+> and the domain logic are done and tested: dates and time zones, recurrence,
+> the day view, reminders, walk math and form validation. The server is being
+> written now. No screen exists so far, and nothing a household could use.
+> The [backlog](spec/08-tasks.md) shows exactly where it stands.
 
 ## What Pawlaris Is
 
@@ -43,13 +49,53 @@ double up on or forget. Did the cat get her pill, or did we both assume the
 other did it? Pawlaris answers that from either phone, in the same second it
 happens.
 
-The name is Polaris with a paw. The pets it was made for are Aurora, Asteria,
-Aelin and Andrômeda — four cats — and Katarina, a dog. So the app has one
-visual idea, the night sky: every pet is a star, a finished task is a star
+The name is Polaris with a paw. The pets it was first made for are Aurora,
+Asteria, Aelin and Andrômeda — four cats — and Katarina, a dog. So the app has
+one visual idea, the night sky: every pet is a star, a finished task is a star
 lit, and a finished day is a complete constellation.
 
-It is a small product on purpose: one family, a server that fits in 1 GB of
-memory, and no account anywhere that could send a bill.
+## Yours to Run
+
+Apps for this exist, and many of them charge by the month, cap the pets or
+the people you can add, and keep your animals' records on their servers.
+Pawlaris is the other way round.
+
+- **You host it.** The server is a Docker Compose stack that fits in 1 GB of
+  memory: an old laptop, a mini PC or a small box at home.
+- **It costs nothing a month.** No subscription, no paid tier, no ads. Every
+  dependency has a permanent free tier and a named fallback.
+- **Your data stays yours.** It lives in your own PostgreSQL, and backups are
+  part of the plan, not an add-on.
+- **The code is yours too.** MIT licensed: use it, change it, make your own.
+
+What to know before you plan on it:
+
+- It is **Android only**.
+- It knows **cats and dogs**.
+- The app speaks **Brazilian Portuguese**. Its text is kept in one place
+  (`apps/mobile/src/i18n/`), so a translation is a contained change, but no
+  language switch is planned.
+- One installation serves **one household**, with a leader who invites the
+  other members.
+
+## A Look at the Design
+
+<p align="center">
+  <img src="docs/screens/screens-dawn.png" alt="Four concept screens: sign in, a new task, and today's tasks and a pet's profile in the dawn theme">
+</p>
+
+- **A task is a star waiting to be lit.** One tap lights it and says who did
+  it and when, in that person's colour, on both phones.
+- **Once for all, or once per pet.** A task can be done for every pet together
+  or pet by pet; when the last one is done, the pets join into a constellation.
+- **A finished day is a complete sky.** When everything is done, shooting
+  stars cross the header, once.
+- **Two themes, both first-class.** Deep space at night, and a pale violet
+  dawn by day.
+
+The drawings follow [`spec/09-screens.md`](spec/09-screens.md) and the tokens
+in [`spec/06-ux-motion-spec.md`](spec/06-ux-motion-spec.md). The names of the
+pets are real; the ages, weights and tasks shown are examples.
 
 ## The Five Pillars
 
@@ -70,7 +116,8 @@ optimized later.
 ## What It Will Do
 
 All of this is specified, requirement by requirement, in
-[`spec/02-spec.md`](spec/02-spec.md). None of it is built yet.
+[`spec/02-spec.md`](spec/02-spec.md). The logic behind it is built and tested;
+the server and the screens are not.
 
 **Pets**
 
@@ -82,6 +129,7 @@ All of this is specified, requirement by requirement, in
 - Recurring tasks — feeding, medication, hygiene, litter, play — done once
   for every pet together or once per pet, assigned to a person or left open.
 - One tap to complete, with undo. Optional photo proof.
+- A missed dose stays on the list until it is given or the next one is due.
 - Timers, and reminders that fire on time without the app open.
 
 **Walks**
@@ -92,7 +140,7 @@ All of this is specified, requirement by requirement, in
 
 **A shared home**
 
-- Two roles, leader and member, and invitations to join the family.
+- Two roles, leader and member, and invitations to join the household.
 - Everything one person does appears on the other phone within seconds.
 - The dashboard, *Hoje* ("today"): what is overdue, what is due now, what is
   coming later, and what is already done.
@@ -110,7 +158,7 @@ The phone is where work happens. The server is where it is kept.
 └─────────────┘     /sync     └──────────┘     /sync      └─────────────┘
 ```
 
-- **Offline-first.** Each phone holds a full replica of the family's data.
+- **Offline-first.** Each phone holds a full replica of the household's data.
   Screens render from it and never wait for the network.
 - **Every write is idempotent.** The phone generates the id and an
   idempotency key, queues the mutation in an outbox and applies it locally at
@@ -121,7 +169,7 @@ The phone is where work happens. The server is where it is kept.
   device by a pure TypeScript engine. The server never computes a schedule.
 
 The reasoning behind each choice is recorded as a decision in
-[`spec/05-architecture.md`](spec/05-architecture.md) — 32 of them so far.
+[`spec/05-architecture.md`](spec/05-architecture.md) — 35 of them so far.
 
 ## Stack
 
@@ -160,8 +208,10 @@ person who decides what the product should be.
   makes them pass, and that order is checked in review.
 - **Nothing is done until its gate is green.** One command, `pnpm verify`,
   runs every lint, type-check and test in the repository.
-- **Every task is reviewed against the spec.** The reviews, findings and
-  fixes are public in [`docs/reviews`](docs/reviews).
+- **Every task is reviewed against the spec.** The reviewer runs the gates
+  again, checks the code against an independent reference where one can be
+  written, and breaks the code on purpose to see whether the tests notice.
+  The reviews, findings and fixes are public in [`docs/reviews`](docs/reviews).
 
 The rules each agent follows are in [`AGENTS.md`](AGENTS.md) and
 [`CLAUDE.md`](CLAUDE.md).
@@ -175,7 +225,7 @@ services/api      FastAPI backend                       (uv, pytest)
 infra             compose, deploy and backup scripts
 scripts           the harness runner and the commit guards
 spec              the specification
-docs              versions, devices, reviews
+docs              versions, devices, reviews, concept screens
 ```
 
 ## Run From Source
@@ -213,8 +263,8 @@ The backlog is ordered and each phase builds on the one before it. The live
 state of every task is its checkbox in [`spec/08-tasks.md`](spec/08-tasks.md).
 
 - [x] **P0 — Foundation** — scaffolds, harness, hooks, CI, Android builds
-- [ ] **P1 — Pure domain** — dates, recurrence, day view, reminders, walk math *(in progress)*
-- [ ] **P2 — Server** — schema, auth, sync, every route
+- [x] **P1 — Pure domain** — dates, recurrence, day view, reminders, walk math
+- [ ] **P2 — Server** — schema, auth, sync, every route *(in progress)*
 - [ ] **P3 — Client core** — replica, outbox, pull, socket
 - [ ] **P4 — Identity, shell, auth, pets**
 - [ ] **P5 — Tasks**
@@ -225,7 +275,7 @@ state of every task is its checkbox in [`spec/08-tasks.md`](spec/08-tasks.md).
 ## Language
 
 Everything in the repository is in English. The app itself speaks Brazilian
-Portuguese, because that is what the family reads.
+Portuguese, because that is what the household it was first made for reads.
 
 ## License
 
