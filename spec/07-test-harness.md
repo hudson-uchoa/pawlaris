@@ -313,6 +313,17 @@ ago → −2, and it stays until the event is edited or deleted; a deleted event
 → not; an event whose pet is archived, soft-deleted or absent from the
 replica → not *(ADR-035)*. Sorted by due date, then by event id.
 
+Shapes *(Q-12)*: `petAge(birthdate, today)` counts whole months from the
+birth day, clamped to the end of a shorter month, and the rest in days; a
+birthdate after `today` throws `RangeError`. A validator takes the form's
+values under the row's field names and returns every error as
+`{field, code}` with the codes of Q-7; a value that is not an object is
+`{field: 'form', code: 'invalid'}`, and unknown keys are ignored. Lengths
+count code points. A reference is a canonical hyphenated UUID: a 36-character
+string that is not one is `invalid`. An instant is UTC, ending in `Z` or
+`+00:00`: any other offset, ahead of UTC or behind it, is `invalid`. The
+password limit, 8–128, is in `04` §3.
+
 ---
 
 ## 5. API gates (`services/api/tests`)

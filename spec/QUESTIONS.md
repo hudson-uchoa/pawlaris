@@ -375,3 +375,12 @@ be omitted. Unknown form keys are ignored (only recurrence rejects them, as
 membership or permissions, which require replica/server context.
 **Blocking:** no (proceeding on the assumption, confined to
 packages/shared/src/pets.ts and packages/shared/src/validators.ts).
+
+**Answer:** orchestrator — 2026-10-04. As assumed, all of it: the age in
+whole months from the birth day with the rest in days, and `RangeError` for
+a future birthdate; care items as copies of the event with `daysUntil`; the
+required fields of each form; the codes of Q-7, with `out_of_range` for a
+length or a number outside its limit; lengths in code points; canonical
+UUIDs; UTC instants only; unknown form keys ignored. The password limit was
+asked of `03` and lives in `04` §3: the task's Read line now says so. `07`
+§4.6 states these shapes.
