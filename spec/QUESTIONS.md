@@ -222,3 +222,15 @@ one of `required`, `invalid`, `out_of_range`, `duplicate`, `unsorted`,
 `splitKey` throws `RangeError` on a malformed key; `occurrences` takes
 validated input. It is finding R1 of the P1-2 review, and the P1-2 **Build**
 line carries it.
+
+## Q-8 — P1-3 — How do all-day slots sort and together progress count?
+**Asked:** 2026-10-04
+**Where:** spec/02-spec.md R6.6; spec/07-test-harness.md §4.2
+**Problem:** group ordering starts with slot time, but all-day items have
+`slotMs: null`. The item shape requires progress for both modes, while the
+cases specify its count only for `per_pet`.
+**I would assume:** all-day items sort before timed items, then use the same
+sort-order and title tie breakers. Together progress counts the one required
+completion (0/1 or 1/1), while per-pet progress counts active linked pets.
+**Blocking:** no (proceeding on the assumptions, isolated in
+`compareItems` and `completionProgress` in packages/shared/src/dayView.ts).
