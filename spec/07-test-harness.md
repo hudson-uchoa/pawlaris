@@ -156,6 +156,8 @@ buildDayView({
 
 Each item carries `taskId, occurrenceKey, slotMs | null, originalDate, mode,
 pets[], progress {done, total}, completions[], assignedTo, title, orphan`.
+`progress` is 0/1 or 1/1 for `together`; for `per_pet` it counts the linked,
+non-archived pets *(Q-8)*.
 
 | Case | Given | Expect |
 |---|---|---|
@@ -167,7 +169,7 @@ pets[], progress {done, total}, completions[], assignedTo, title, orphan`.
 | DV-6 | `together`, one live completion | Concluídas, with that completion |
 | DV-7 | `per_pet`, 4 pets, 2 live completions | stays in its time group, progress 2/4 |
 | DV-8 | `per_pet`, 4 pets, 4 live completions | Concluídas, 4/4 |
-| DV-9 | `per_pet`, 4 pets, one archived, the other 3 complete | Concluídas, 3/3 |
+| DV-9 | `per_pet`, 4 pets, one archived, the other 3 complete | Concluídas, 3/3, and it is the only item: the archived pet's completion does not surface as an orphan |
 | DV-10 | a completion with `undone_at` set | counts as not done |
 | DV-11 | scope `mine` | templates assigned to me + unassigned; others' excluded |
 | DV-12 | scope `all` | everything |
@@ -181,11 +183,11 @@ pets[], progress {done, total}, completions[], assignedTo, title, orphan`.
 | DV-20 | `once` 30 days ago, incomplete | carried; 31 days ago → not carried |
 | DV-21 | viewing a day other than today | no carry-overs at all |
 | DV-22 | two live completions for one key, one of them in `pendingCompletionIds` | the acknowledged one is used |
-| DV-23 | three items in a group | ordered by slot, then `sort_order`, then title |
-| DV-24 | template soft-deleted; template with `ends_on` before the day; template whose pets are all archived | no occurrences |
+| DV-23 | three items in a group | ordered by slot, then `sort_order`, then title; all-day items first |
+| DV-24 | template soft-deleted; template with `ends_on` before the day; template whose pets are all archived or soft-deleted | no occurrences — each of the three proven on its own, with every other condition satisfied |
 | DV-25 | `now` = `2026-10-04T02:30:00Z`, tz São Paulo, `date` from `localDate(now)` | the day is 2026-10-03 |
 | DV-26 | every item in scope done, at least one | `allDone` true; with zero items → false |
-| DV-27 | a live completion dated on the day, for a template that ended yesterday and has no successor occurrence with that key | shown under Concluídas as an `orphan` item with `title` = its `title_snapshot` *(R6.15)* |
+| DV-27 | a live completion dated on the day, for a template that ended yesterday and has no successor occurrence with that key | shown under Concluídas as an `orphan` item with `title` = its `title_snapshot` *(R6.15)*; the same completion dated the day before is not shown |
 | DV-28 | same, but a successor (`replaces_task_id` → the old template) has an occurrence with the same key and pet | that occurrence counts as done; no separate orphan item |
 
 Carry-over, precisely *(R6.5)*: when `date` is today, for each non-daily

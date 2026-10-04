@@ -408,6 +408,7 @@ Vocabulary used everywhere:
   template has an occurrence dated today. Daily occurrences never carry
   over; a missed breakfast is not owed tomorrow.
 - **R6.6** Inside a group, order is by slot time, then `sort_order`, then title.
+  All-day occurrences have no slot and come first.
 - **R6.7** A `per_pet` occurrence is fully complete when every linked,
   non-archived pet has a live completion. Partially complete, it stays in its
   time group and shows `2/4`.
