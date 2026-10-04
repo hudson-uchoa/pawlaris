@@ -150,7 +150,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
   **Not here:** any dependency not needed to boot.
 
-- [~] **P0-6 — Local Android build**
+- [x] **P0-6 — Local Android build** — accepted 2026-10-03
   **Depends:** P0-5, H3, H4 · **Read:** `05` §8, §9
   **Build:** `expo-dev-client` installed; the root overrides pin every native
   peer to the SDK's version (`05` §1) — `react-native-reanimated` among them,
@@ -160,7 +160,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   rule for the API port; the `keytool` command the owner uses to generate the
   release keystore (H9); common failures and their fixes.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
-  **Device:** [ ] `npx expo run:android` builds and installs the dev client on
+  **Device:** [x] `npx expo run:android` builds and installs the dev client on
   both phones; the app opens. Evidence: the build's final lines, `adb devices`
   with the serials redacted *(07 §13)*, a screenshot from each phone.
 
@@ -551,7 +551,9 @@ of `07` §10 for the directories it creates.
 
 - [ ] **P3-1 — SQLite layer**
   **Depends:** P0-5 · **Read:** `03` §10, §11 · `10` §1 · `07` §6
-  **Build:** `db/driver.ts` (`SqlDriver`; `expoSqliteDriver()` on the synchronous
+  **Build:** first, set `@types/react` in `apps/mobile` to the range the SDK
+  expects (`npx expo install --check` reports it; noticed in P0-6).
+  `db/driver.ts` (`SqlDriver`; `expoSqliteDriver()` on the synchronous
   API, with the re-entrant `transaction`); `db/migrations.ts` + `db/open.ts`
   (`openDatabase(driver)` applies pending migrations in a transaction and sets
   `user_version`); `db/replicaRepo.ts` (`get`, `upsert`, `remove`,
