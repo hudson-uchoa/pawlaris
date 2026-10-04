@@ -204,7 +204,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   box and any other spec change fail; the orchestrator override passes.
   **Gate:** `node --test scripts/guard-commit-msg.test.mjs scripts/guard-spec.test.mjs` · `uvx pre-commit install --hook-type pre-commit --hook-type commit-msg` · `uvx pre-commit run --all-files`
 
-- [ ] **P0-9 — App icon and splash**
+- [~] **P0-9 — App icon and splash**
   **Depends:** P0-6 · **Read:** `06` §4.11 · `05` §1 Mobile, §8
   **Build:** `expo-splash-screen` installed at the SDK's version. In
   `app.config.ts`: `icon` is `./assets/icon.png`; `android.adaptiveIcon` takes
