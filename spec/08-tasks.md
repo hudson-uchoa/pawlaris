@@ -418,9 +418,12 @@ tests cover them for its routes.
   **Depends:** P2-1 · **Read:** `02` §1.1, §1.2 · `03` §2 · `04` §3 (token formats, hashing) · `05` §2.1, §5
   **Build:** `app/security/passwords.py` (`hash_password`, `verify_password` —
   Argon2id with the fixed parameters, run through `asyncio.to_thread` behind a
-  module-level semaphore of 2); `app/security/tokens.py` (`issue_access(user,
-  clock)`, `decode_access(token, clock)` raising `ApiError(401,
-  'token_invalid')`; `new_refresh_token()` → `(token, sha256_hex)`);
+  module-level semaphore of 2; a cancelled caller raises `CancelledError`
+  whatever its thread then does, and keeps its slot until the thread ends);
+  `app/security/tokens.py` (`issue_access(user, clock, settings)`,
+  `decode_access(token, clock, settings)` raising `ApiError(401,
+  'token_invalid')` — `settings` is required: nothing in `app/` builds
+  `Settings()` outside `create_app` and the CLI; `new_refresh_token()` → `(token, sha256_hex)`);
   `app/cli.py bootstrap --family <name> --timezone <tz> --user
   "<name>:<email>:<role>"…` reading each password from `PAWLARIS_PASSWORD_<n>`
   or prompting with `getpass`; assigns identity keys in order; refuses (exit 1)
@@ -428,7 +431,10 @@ tests cover them for its routes.
   **Tests:** `tests/auth/test_passwords.py`; `tests/auth/test_tokens.py`
   (valid; expired by frozen clock at exactly 15 min; tampered signature; wrong
   algorithm); `tests/auth/test_bootstrap.py` (own scratch database: creates
-  family, users, distinct identity keys; a second run refuses).
+  family, users, distinct identity keys, with a timezone other than the
+  default and the stored one asserted; a second run refuses; the CLI
+  subprocess is awaited with a timeout, so one that waits for input fails the
+  test instead of blocking it).
   **Gate:** `uv run --directory services/api pytest tests/auth -q`
 
 - [ ] **P2-3 — Login, refresh, logout, me**

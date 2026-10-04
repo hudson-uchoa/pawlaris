@@ -315,7 +315,9 @@ housekeeping on a timer is fine.
 
 - Argon2id, `m=19456, t=2, p=1`. Parameters are fixed by the spec; the hash
   time is measured on the box once (P8-1) and must be under 500 ms.
-- Access 15 min; refresh 30 days, rotating, with a 60 s reuse grace *(ADR-024)*.
+- Access 15 min; refresh 30 days, rotating. A rotated token presented again
+  is honoured until a token issued from it has been used; there is no time
+  window *(R1.8, ADR-024)*.
 - No public registration; leader-issued invites only.
 - Login rate limit: 5 failures per email per 15 min, in memory. A restart clears
   it, which is acceptable for two users.
