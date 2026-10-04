@@ -161,3 +161,22 @@ is made with `--no-verify`, because the local type-check hook would rightly
 refuse it. `AGENTS.md` §5 now names this as the only exception to "lint and
 type-check pass at every commit". The orchestrator and the owner run this
 check, since opening a pull request needs the owner's GitHub account.
+
+## Q-6 — P1-1 — What are the date helper signatures and invalid-input rules?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P1-1 Build; packages/shared/src/dates.ts
+**Problem:** the task names the date helpers but does not specify the
+arguments to `formatDateKey`, the supported year range, or what parsers and
+arithmetic helpers do with invalid calendar dates. `Date.UTC` normalizes
+invalid dates and treats years 0 through 99 as 1900 through 1999, so passing
+its result through unchanged would make validation accept nonexistent dates.
+**I would assume:** `formatDateKey({y, m, d})` is the inverse of
+`parseDateKey(key)`, with months numbered 1 through 12. Date keys use real
+Gregorian dates in years 0001 through 9999. `isDateKey` returns false for
+invalid keys; parsing, formatting and arithmetic throw `RangeError` for
+invalid dates or non-integer day offsets, including results outside the
+four-digit year range. Comparisons and differences are signed from the
+first argument to the second (`daysBetween(a, b) = b - a`;
+`compareDateKey(a, b)` is negative when a precedes b).
+**Blocking:** no (proceeding on the assumption, confined to
+packages/shared/src/dates.ts)
