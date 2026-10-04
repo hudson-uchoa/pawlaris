@@ -124,10 +124,14 @@ describe('day view', () => {
       templates: [template({ completion_mode: 'per_pet' })], completions: rows,
       pets: petIds.map((id) => pet(id, { archived_at: id === 'pet-d' ? stamp : null })),
     }));
+    expect(view.done).toHaveLength(1);
     expect(view.done[0]).toMatchObject({
       progress: { done: 3, total: 3 }, pets: petIds.slice(0, 3).map((id) => pet(id)),
       completions: rows.slice(0, 3),
     });
+    expect(view.overdue).toEqual([]);
+    expect(view.now).toEqual([]);
+    expect(view.later).toEqual([]);
   });
 
   it('DV-10 ignores undone rows and permits a new live completion', () => {
@@ -281,12 +285,15 @@ describe('day view', () => {
     expect(mixed.map((task) => task.id)).toEqual(['later', 'earlier', 'all-day']);
   });
 
-  it('DV-24 excludes deleted, ended, and wholly archived scheduled templates', () => {
-    const view = buildDayView(input({ templates: [
-      template({ id: 'deleted', deleted_at: stamp }),
-      template({ id: 'archived', pet_ids: ['archived'] }),
-    ], pets: [pet('archived', { archived_at: stamp })] }));
-    expect(view).toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
+  it('DV-24 independently excludes deleted templates, ended templates, and inactive pets', () => {
+    expect(buildDayView(input({ templates: [template({ deleted_at: stamp })] })))
+      .toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
+    for (const patch of [{ archived_at: stamp }, { deleted_at: stamp }]) {
+      expect(buildDayView(input({ pets: petIds.map((id) => pet(id, patch)) })))
+        .toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
+    }
+    expect(buildDayView(input({ templates: [template({ ends_on: addDays(date, -1) })] })))
+      .toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
     const ended = template({
       recurrence: { freq: 'weekly', interval: 1, byday: ['TU'] }, ends_on: addDays(date, -1),
     });
@@ -329,6 +336,13 @@ describe('day view', () => {
       .done).toEqual([]);
     expect(buildDayView(input({ templates: [old], completions: [completion({ undone_at: stamp })] }))
       .done).toEqual([]);
+    const yesterday = addDays(date, -1);
+    const previousStamp = new Date(slotInstant(yesterday, '08:00', tz)).toISOString();
+    const previousRow = {
+      ...row, occurrence_key: `${yesterday}T08:00`, completed_at: previousStamp, updated_at: previousStamp,
+    };
+    expect(buildDayView(input({ templates: [old], completions: [previousRow] })))
+      .toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
     const partial = buildDayView(input({ templates: [{ ...old, completion_mode: 'per_pet' }],
       completions: perPetCompletions(2),
     }));
