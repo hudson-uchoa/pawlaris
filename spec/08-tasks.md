@@ -404,8 +404,11 @@ tests cover them for its routes.
   two families' counters are independent); `tests/db/test_migrations.py` (own
   scratch database); `tests/db/test_constraints.py` (the completion live-unique
   index rejects a second live row and allows one after an undo, with `pet_id`
-  NULL and non-NULL; empty `pet_ids` rejected; `occurrence_key` format checked
-  on completions and timers; `server_meta` accepts exactly one row);
+  NULL and non-NULL, and accepts live rows for two different pets of one
+  occurrence; empty `pet_ids` rejected; `occurrence_key` format checked
+  on completions and timers, a key with seconds among the rejected;
+  `server_meta` accepts exactly one row, and two scratch databases get
+  different epochs);
   `tests/db/test_schemas.py` (each schema serializes a factory row to exactly
   the keys of `04` §2).
   **Gate:** `uv run --directory services/api pytest tests/db -q`
