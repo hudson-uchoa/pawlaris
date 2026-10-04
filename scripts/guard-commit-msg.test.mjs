@@ -20,6 +20,28 @@ test('P0-8: the AGENTS.md example passes', () => {
   assert.deepEqual(validateCommitMessage(valid, branch), []);
 });
 
+test('P0-8 R1: the AGENTS.md example with Git editor comments passes', () => {
+  const message = valid + '\n' +
+    '# Please enter the commit message for your changes. Lines starting\n' +
+    "# with '#' will be ignored, and an empty message aborts the commit.\n" +
+    '#\n# On branch phase/P0-foundation\n' +
+    '# Changes to be committed:\n#\tmodified: scripts/guard-commit-msg.mjs\n';
+  for (const newline of ['\n', '\r\n']) {
+    assert.deepEqual(validateCommitMessage(message.replaceAll('\n', newline), branch), []);
+  }
+});
+
+test('P0-8 R1: the AGENTS.md example with a scissors line and diff passes', () => {
+  const message = valid + '\n' +
+    '# ------------------------ >8 ------------------------\n' +
+    '# Do not modify or remove the line above.\n' +
+    'diff --git a/example.mjs b/example.mjs\n' +
+    '--- a/example.mjs\n+++ b/example.mjs\n@@ -1 +1 @@\n+' + 'a'.repeat(100) + '\n';
+  for (const newline of ['\n', '\r\n']) {
+    assert.deepEqual(validateCommitMessage(message.replaceAll('\n', newline), branch), []);
+  }
+});
+
 const failures = [
   ['allowed type', valid.replace('feat(api)', 'style(api)'), 'type'],
   ['allowed scope', valid.replace('feat(api)', 'feat(server)'), 'scope'],

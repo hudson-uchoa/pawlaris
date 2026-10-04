@@ -4,7 +4,10 @@ import { pathToFileURL } from 'node:url';
 
 /** @param {string} message @param {string} branch @returns {string[]} */
 export function validateCommitMessage(message, branch) {
-  const lines = message.replaceAll('\r\n', '\n').trimEnd().split('\n');
+  const rawLines = message.replaceAll('\r\n', '\n').split('\n');
+  const scissors = rawLines.indexOf('# ------------------------ >8 ------------------------');
+  const lines = (scissors < 0 ? rawLines : rawLines.slice(0, scissors))
+    .filter((line) => !line.startsWith('#')).join('\n').trimEnd().split('\n');
   const first = lines[0] ?? '';
   if (/^Merge (?:branch |remote-tracking branch |tag |commit |pull request )/.test(first) ||
     (/^Revert ".+"$/.test(first) &&
