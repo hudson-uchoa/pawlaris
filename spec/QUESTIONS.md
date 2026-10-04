@@ -346,3 +346,32 @@ packages/shared/src/walk.ts)
   as movement: standing still read 2 to 4 km/h in a simulation. It is the
   displacement between the oldest and the newest good fix of the window, and
   zero under the 5 m floor that distance already has *(R4.12, `07` §4.5)*.
+
+## Q-12 — P1-7 — What are the helper and form-validation boundary shapes?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P1-7; spec/07-test-harness.md §4.6;
+spec/03-data-model.md §2–§4; spec/09-screens.md §5.1
+**Problem:** The task leaves age decomposition at short months, invalid or
+future birthdates, the upcoming-care item shape, and validator arguments and
+error codes unspecified. The password limit is in `09`, not in `03`.
+**I would assume:** `petAge` takes two valid date keys (callers handle absent
+birthdates), throws `RangeError` for invalid or future dates, and counts full
+calendar months using the birth day clamped to the destination month's end;
+the remainder is days, with years and months split from full months.
+`needsWeightConfirmation` takes valid kilogram numbers and a nullable previous
+value. Care items are event copies with `daysUntil`; no input is mutated.
+Form validators take `unknown` objects with snake-case row field names,
+excluding generated ids and replica metadata; `validatePassword` takes an
+unknown scalar and reports the `password` field with the 8–128 limit of `09`.
+Required form fields are name/species, pet_id/weight_kg/measured_at,
+pet_id/type/title/occurred_at, and title/recurrence/starts_on/pet_ids; optional
+fields use the schema defaults. Codes use Q-7's vocabulary, with
+`out_of_range` for length, numeric and decimal limits. Length counts Unicode
+code points like PostgreSQL, without trimming. UUID references use canonical
+hyphenated UUID strings; instants use real UTC ISO timestamps ending in Z or
++00:00. Nullable schema fields accept null; other optional fields may only
+be omitted. Unknown form keys are ignored (only recurrence rejects them, as
+`03` expressly requires). Validation checks syntax and limits, not family
+membership or permissions, which require replica/server context.
+**Blocking:** no (proceeding on the assumption, confined to
+packages/shared/src/pets.ts and packages/shared/src/validators.ts).
