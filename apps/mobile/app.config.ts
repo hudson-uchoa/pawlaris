@@ -9,9 +9,28 @@ const config: ExpoConfig = {
   scheme: 'pawlaris',
   platforms: ['android'],
   userInterfaceStyle: 'automatic',
-  android: { package: 'app.pawlaris' },
+  icon: './assets/icon.png',
+  android: {
+    package: 'app.pawlaris',
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-foreground.png',
+      backgroundImage: './assets/adaptive-background.png',
+      monochromeImage: './assets/adaptive-monochrome.png',
+    },
+  },
   plugins: [
     'expo-router',
+    [
+      'expo-splash-screen',
+      {
+        image: './assets/splash-icon.png',
+        backgroundColor: '#090B1A',
+        dark: {
+          image: './assets/splash-icon.png',
+          backgroundColor: '#090B1A',
+        },
+      },
+    ],
     [
       'expo-build-properties',
       { android: { usesCleartextTraffic: apiUrl.startsWith('http://') } },
