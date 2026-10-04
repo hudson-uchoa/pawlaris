@@ -340,7 +340,7 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Gate:** `pnpm -C packages/shared exec vitest run src/taskEdit.test.ts`
   **Not here:** the human-readable schedule summary (it is Portuguese; P4-1).
 
-- [ ] **P1-5 — Reminder planner**
+- [~] **P1-5 — Reminder planner**
   **Depends:** P1-3 · **Read:** `02` §3.5 · `09` §9.2, §9.3 · `07` §4.4
   **Build:** `src/reminders.ts` — `planReminders(input)` → the data items of
   `07` §4.4, sorted by `fireAt`. `input` includes `suppressedIds`. `fp` is a
