@@ -180,7 +180,7 @@ describe('day view', () => {
     expect(view.overdue).toEqual([]);
   });
 
-  it('DV-16 carries only incomplete slots on the latest missed non-daily date', () => {
+  it('DV-16 carries only incomplete slots on the latest missed date', () => {
     const view = buildDayView(input({ templates: [
       { ...weekly, times_of_day: ['08:00', '20:00'] },
     ], completions: [completion({ occurrence_key: mondayKey })] }));
@@ -211,10 +211,25 @@ describe('day view', () => {
     expect(view.now.map((item) => item.occurrenceKey)).toEqual([`${date}T08:00`]);
   });
 
-  it('DV-19 never carries missed daily occurrences', () => {
+  it('DV-19 replaces missed everyday occurrences and carries every-three-days doses on off days', () => {
     const view = buildDayView(input());
     expect(view.overdue).toEqual([]);
     expect(view.now.map((item) => item.originalDate)).toEqual([date]);
+    const yesterday = addDays(date, -1);
+    for (const endsOn of [null, date, addDays(date, 1)]) {
+      const dose = template({
+        recurrence: { freq: 'daily', interval: 3 }, starts_on: yesterday, ends_on: endsOn,
+      });
+      const offDay = buildDayView(input({ templates: [dose] }));
+      expect(offDay.overdue).toHaveLength(1);
+      expect(offDay.overdue[0]).toMatchObject({
+        occurrenceKey: `${yesterday}T08:00`, originalDate: yesterday,
+        progress: { done: 0, total: 1 }, orphan: false,
+      });
+      expect(offDay.now).toEqual([]);
+      expect(offDay.later).toEqual([]);
+      expect(offDay.done).toEqual([]);
+    }
   });
 
   it('DV-20 includes thirty days ago and excludes thirty-one days ago', () => {
@@ -269,10 +284,14 @@ describe('day view', () => {
   it('DV-24 excludes deleted, ended, and wholly archived scheduled templates', () => {
     const view = buildDayView(input({ templates: [
       template({ id: 'deleted', deleted_at: stamp }),
-      template({ id: 'ended', ends_on: addDays(date, -1) }),
       template({ id: 'archived', pet_ids: ['archived'] }),
     ], pets: [pet('archived', { archived_at: stamp })] }));
     expect(view).toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
+    const ended = template({
+      recurrence: { freq: 'weekly', interval: 1, byday: ['TU'] }, ends_on: addDays(date, -1),
+    });
+    expect(buildDayView(input({ templates: [ended] })))
+      .toEqual({ overdue: [], now: [], later: [], done: [], allDone: false });
   });
 
   it('DV-25 uses the family-local day across UTC midnight', () => {
@@ -320,13 +339,16 @@ describe('day view', () => {
   });
 
   it('DV-28 counts matching predecessor completions for successor occurrences', () => {
-    const old = template({ ends_on: addDays(date, -1) });
+    const old = template({
+      recurrence: { freq: 'weekly', interval: 1, byday: ['TU'] }, ends_on: addDays(date, -1),
+    });
     const successor = template({ id: 'new', starts_on: date, replaces_task_id: old.id });
     const row = completion();
     const view = buildDayView(input({ templates: [old, successor], completions: [row] }));
     expect(view.done).toHaveLength(1);
     expect(view.done[0]).toMatchObject({ taskId: 'new', orphan: false, completions: [row] });
     expect(view.now).toEqual([]);
+    expect(view.overdue).toEqual([]);
     const perPetOld = { ...old, completion_mode: 'per_pet' as const };
     const perPetNew = { ...successor, completion_mode: 'per_pet' as const };
     const rows = perPetCompletions(4);

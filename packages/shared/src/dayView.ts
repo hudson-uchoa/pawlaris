@@ -119,7 +119,8 @@ export function buildDayView(input: DayViewInput): DayView {
     });
     if (pets.length === 0) continue;
     let keys = keysBetween(template, input.date, input.date);
-    const carrying = keys.length === 0 && input.date === today && template.recurrence.freq !== 'daily';
+    const carrying = keys.length === 0 && input.date === today
+      && (template.ends_on === null || template.ends_on >= today);
     if (carrying) {
       const past = keysBetween(template, addDays(today, -30), addDays(today, -1));
       const latest = past.at(-1);
