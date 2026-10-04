@@ -5,6 +5,27 @@ from app.models import Base
 from tests.factories import ScratchDatabase, migrate
 
 
+async def test_sy2_scratch_databases_have_distinct_epochs(
+    scratch_database: ScratchDatabase,
+) -> None:
+    epochs = []
+    for _ in range(2):
+        async with scratch_database() as url:
+            engine = create_async_engine(url)
+            try:
+                async with engine.connect() as connection:
+                    epochs.append(
+                        (
+                            await connection.execute(
+                                text("SELECT sync_epoch FROM server_meta")
+                            )
+                        ).scalar_one()
+                    )
+            finally:
+                await engine.dispose()
+    assert epochs[0] != epochs[1]
+
+
 async def test_migrations_upgrade_downgrade_upgrade(
     scratch_database: ScratchDatabase,
 ) -> None:
