@@ -152,3 +152,12 @@ intentional type error on the phase branch.
 **Blocking:** no (proceeded with the seeded-error Device step deferred,
 confined to docs/evidence/P0-7.md; code acceptance is independent of Device
 checks under spec/07-test-harness.md §13).
+
+**Answer:** orchestrator — 2026-10-03. As assumed: never on the phase branch.
+The seeded error goes on a disposable branch named `ci-check/<what>`, cut from
+the phase branch, pushed, opened as a pull request, reverted there once the
+red run is recorded, and deleted without ever being merged. That one commit
+is made with `--no-verify`, because the local type-check hook would rightly
+refuse it. `AGENTS.md` §5 now names this as the only exception to "lint and
+type-check pass at every commit". The orchestrator and the owner run this
+check, since opening a pull request needs the owner's GitHub account.
