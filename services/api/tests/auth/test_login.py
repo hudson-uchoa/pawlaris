@@ -103,6 +103,31 @@ async def test_r1_5_login_email_is_case_insensitive(
     assert (await client.post("/api/v1/auth/login", json=body)).status_code == 200
 
 
+async def test_r1_5_unknown_email_costs_exactly_one_password_hash(
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.security.passwords import hash_password
+
+    calls = 0
+
+    async def count_hash(password: str) -> str:
+        nonlocal calls
+        calls += 1
+        return await hash_password(password)
+
+    monkeypatch.setattr("app.services.auth.hash_password", count_hash)
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": f"{secrets.token_hex(12)}@example.invalid",
+            "password": secrets.token_urlsafe(24),
+        },
+    )
+    assert response.status_code == 401
+    assert calls == 1
+
+
 async def test_id1_auth_bodies_reject_unknown_fields_without_echoing_secrets(
     client: AsyncClient,
     account: LoginAccount,
