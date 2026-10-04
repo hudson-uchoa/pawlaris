@@ -148,10 +148,18 @@ $env:EXPO_PUBLIC_API_URL = 'https://<BOX-HOST>/api/v1'
 npx expo prebuild --platform android --clean
 Set-Location android
 .\gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a
+.\gradlew.bat --stop
 ```
 
 The APK is `apps/mobile/android/app/build/outputs/apk/release/app-release.apk`.
 The explicit Gradle property restricts native libraries to `arm64-v8a`.
+On Windows, `plugins/withShortNativePaths.cjs` configures Reanimated's CMake
+staging directory as `android/.native/reanimated` instead of the package's
+long `.cxx` path. This also shortens its generated Worklets prefab paths.
+The plugin runs during prebuild, so the setting survives `--clean`; its
+cache lives inside the ignored, generated Android project. Keep the short
+pnpm virtual store settings too. No package source edits are needed.
+
 For a local release run on a selected ARM64 phone, Expo also supports
 `npx expo run:android --variant release --device motorola_edge_70`.
 
@@ -161,6 +169,22 @@ configuration, read from the environment, and the signed APK distribution
 check. Do not hand-edit the generated signing block as a persistent setup.
 The APK is embedded and does not need Metro. Switch back to the development
 API URL and regenerate the native project before resuming HTTP development.
+
+To check the standalone APK, stop Metro, unlock one connected phone, then:
+
+```powershell
+adb -s <serial> install -r app\build\outputs\apk\release\app-release.apk
+adb -s <serial> shell am force-stop app.pawlaris
+adb -s <serial> shell am start -W -n app.pawlaris/.MainActivity
+```
+
+Expect the Pawlaris route without a development launcher or a Metro connection.
+This local preview and the dev client currently use the generated debug key,
+so `install -r` can replace them without deleting data. The owner's final
+release key in P8-5 will require the signing-key switch described below.
+Return to `apps/mobile`, set the development API URL, run a clean prebuild,
+then `npx expo run:android --device motorola_edge_70` to restore the dev client.
+Use the model of the phone selected for the release check.
 
 ## Owner: create the release keystore (H9)
 
@@ -189,7 +213,8 @@ Uninstalling deletes that phone's local data.
 | SDK/NDK/CMake missing or licence rejected | Install the exact version named in the build output using SDK Manager and accept its licence. Keep `ANDROID_HOME` at `C:\Android\Sdk`. |
 | CMake/NDK cannot read a path | Check the repository, SDK and native build cache paths for spaces. If Gradle's cache is implicated, set `GRADLE_USER_HOME` to a writable path without spaces before restarting the build. |
 | Gradle download or dependency resolution fails | Check internet/proxy access to Google's Maven repository, Maven Central and the Gradle distribution host; retry the same build. |
-| Ninja reports `build.ninja` still dirty after 100 tries | Check native prefab paths. Install from the root with the workspace's short `.p/` virtual store settings, regenerate Android, then rebuild; do not bypass native checks. |
+| Ninja reports `build.ninja` still dirty after 100 tries | Install from the root with the workspace's short `.p/` virtual store settings, then run `prebuild --clean`. Check that the generated root `android/build.gradle` sets Reanimated's `buildStagingDirectory` to `android/.native/reanimated` on Windows. Rebuild without editing native package sources or bypassing checks. |
+| `prebuild --clean` reports `EBUSY` on a generated `.dex` file | Stop Gradle before regenerating, with `android/gradlew.bat --stop`. If the interrupted clean already removed the wrapper, locate `gradle.bat` below `$env:USERPROFILE\.gradle\wrapper\dists\gradle-9.3.1-bin` and run it with `--stop`, then retry prebuild. |
 | App cannot reach Metro | Keep Metro running; use the USB reverse commands above, or the correct LAN adapter, port 8081 firewall rule and matching Wi-Fi. |
 | API unreachable from the phone | Check the PC IP, Private firewall rule, Uvicorn's `0.0.0.0` binding and phone Wi-Fi. Check `/health` in the phone browser. |
 | `CLEARTEXT ... not permitted` | Set the HTTP dev API URL, regenerate with `prebuild --clean`, rebuild, then restart Metro with that URL. |
@@ -197,8 +222,13 @@ Uninstalling deletes that phone's local data.
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | The installed app has another signing key. Drain the outbox before the owner uninstalls it and installs the desired APK. |
 
 Device results and screenshots belong in [evidence/P0-6.md](evidence/P0-6.md).
+The clean release build and standalone phone check are recorded in
+[evidence/P0-10.md](evidence/P0-10.md).
 
 References: [Expo local development builds](https://docs.expo.dev/develop/development-builds/introduction/?buildenv=build-locally),
 [Expo CLI build variants](https://docs.expo.dev/more/expo-cli/#compiling-android),
 [Android app signing](https://developer.android.com/studio/publish/app-signing),
 and [pnpm virtual store settings](https://github.com/pnpm/pnpm.io/blob/main/versioned_docs/version-10.x/settings.md#virtualstoredirmaxlength).
+The [Android CMake staging directory API](https://android.googlesource.com/platform/tools/base/+/HEAD/build-system/gradle-api/src/main/java/com/android/build/api/dsl/Cmake.kt)
+documents the native path setting; its directory must sit outside temporary
+Gradle `build/` outputs.
