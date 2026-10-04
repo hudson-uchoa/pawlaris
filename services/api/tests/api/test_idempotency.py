@@ -1,0 +1,289 @@
+import asyncio
+from collections.abc import Callable
+from uuid import UUID, uuid1, uuid4
+
+import pytest
+from fastapi import FastAPI
+from sqlalchemy import func, select, text, update
+from sqlalchemy.exc import DBAPIError
+
+from app.idempotency import ENTITY_REGISTRY, IdempotentMutation, SyncModel
+from app.locks import lock_family
+from app.models import AppliedMutation, FamilyRevision, Pet
+from tests.conftest import ClientFor
+from tests.factories import MakeFamily
+from tests.security.matrix import IDEMPOTENT_ROUTES
+
+type Idem = Callable[[], dict[str, str]]
+
+
+async def revision(app: FastAPI, family_id: UUID) -> int:
+    async with app.state.session_factory() as session:
+        return (
+            await session.execute(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family_id
+                )
+            )
+        ).scalar_one()
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+async def test_id2_replay_preserves_row_and_family_revision(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    route: tuple[str, str],
+) -> None:
+    family = await make_family()
+    client = client_for(family.users[0])
+    headers = idem()
+    body = {"id": str(uuid4()), "name": "Probe pet"}
+    first = await client.request(*route, json=body, headers=headers)
+    assert first.status_code == 200
+    before = await revision(app, family.id)
+    second = await client.request(
+        *route, json={**body, "name": "Changed intent"}, headers=headers
+    )
+    assert second.status_code == 200
+    assert second.json() == first.json()
+    assert await revision(app, family.id) == before
+    async with app.state.session_factory() as session:
+        stored = await session.get(AppliedMutation, UUID(headers["Idempotency-Key"]))
+        assert stored is not None
+        assert stored.entity_id == UUID(first.json()["id"])
+        assert stored.family_id == family.id
+        assert stored.user_id == family.users[0].id
+        assert stored.entity == IDEMPOTENT_ROUTES[route]
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+async def test_id2_concurrent_duplicate_has_one_write(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    route: tuple[str, str],
+) -> None:
+    family = await make_family()
+    client = client_for(family.users[0])
+    headers = idem()
+    before = await revision(app, family.id)
+    bodies = [
+        {"id": str(uuid4()), "name": name} for name in ("First pet", "Second pet")
+    ]
+    responses = await asyncio.wait_for(
+        asyncio.gather(
+            *(client.request(*route, json=body, headers=headers) for body in bodies)
+        ),
+        timeout=10,
+    )
+    assert [response.status_code for response in responses] == [200, 200]
+    assert responses[0].json() == responses[1].json()
+    assert responses[0].json()["id"] in [body["id"] for body in bodies]
+    assert await revision(app, family.id) == before + 1
+    async with app.state.session_factory() as session:
+        assert (
+            await session.scalar(
+                select(func.count())
+                .select_from(Pet)
+                .where(Pet.id.in_([UUID(body["id"]) for body in bodies]))
+            )
+            == 1
+        )
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+async def test_id3_cross_family_replay_reveals_nothing(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    route: tuple[str, str],
+) -> None:
+    first, second = await make_family(), await make_family()
+    headers = idem()
+    body = {"id": str(uuid4()), "name": "Private pet"}
+    assert (
+        await client_for(first.users[0]).request(*route, json=body, headers=headers)
+    ).status_code == 200
+    before = await revision(app, second.id)
+    response = await client_for(second.users[0]).request(
+        *route, json=body, headers=headers
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "idempotency_key_reused"
+    assert body["id"] not in response.text and body["name"] not in response.text
+    assert await revision(app, second.id) == before
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+async def test_id3_cross_entity_replay_reveals_nothing(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    route: tuple[str, str],
+) -> None:
+    family = await make_family()
+    headers = idem()
+    async with app.state.session_factory() as session:
+        session.add(
+            AppliedMutation(
+                client_mutation_id=UUID(headers["Idempotency-Key"]),
+                family_id=family.id,
+                user_id=family.users[0].id,
+                entity="weight_entries",
+                entity_id=uuid4(),
+            )
+        )
+        await session.commit()
+    before = await revision(app, family.id)
+    response = await client_for(family.users[0]).request(
+        *route, headers=headers, json={"id": str(uuid4()), "name": "Probe pet"}
+    )
+    assert response.status_code == 422
+    assert response.json()["code"] == "idempotency_key_reused"
+    assert await revision(app, family.id) == before
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+@pytest.mark.parametrize(
+    "key", [None, "malformed", "", str(uuid1()), str(uuid4()).upper()]
+)
+async def test_id2_missing_or_malformed_key_is_400_without_write(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    route: tuple[str, str],
+    key: str | None,
+) -> None:
+    family = await make_family()
+    before = await revision(app, family.id)
+    headers = {} if key is None else {"Idempotency-Key": key}
+    response = await client_for(family.users[0]).request(
+        *route, headers=headers, json={"id": str(uuid4()), "name": "Probe pet"}
+    )
+    assert response.status_code == 400
+    assert response.json()["code"] == "idempotency_key_required"
+    assert await revision(app, family.id) == before
+
+
+@pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
+@pytest.mark.parametrize("fault,status", [("fail_handler", 409), ("fail_commit", 500)])
+async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    route: tuple[str, str],
+    fault: str,
+    status: int,
+) -> None:
+    family = await make_family()
+    headers, row_id = idem(), uuid4()
+    before = await revision(app, family.id)
+    response = await client_for(family.users[0]).request(
+        *route,
+        headers=headers,
+        json={"id": str(row_id), "name": "Probe pet", fault: True},
+    )
+    assert response.status_code == status
+    async with app.state.session_factory() as session:
+        assert (
+            await session.get(AppliedMutation, UUID(headers["Idempotency-Key"])) is None
+        )
+        assert await session.get(Pet, row_id) is None
+    assert await revision(app, family.id) == before
+    assert app.state.probe.events == []
+    retry = await client_for(family.users[0]).request(
+        *route, headers=headers, json={"id": str(row_id), "name": "Probe pet"}
+    )
+    assert retry.status_code == 200
+    assert app.state.probe.events == ["pet visible"]
+
+
+async def test_id2_replay_returns_current_row_including_tombstone(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+) -> None:
+    family = await make_family()
+    client, headers = client_for(family.users[0]), idem()
+    row_id = uuid4()
+    body = {"id": str(row_id), "name": "Original pet"}
+    assert (
+        await client.post("/probe/pet", headers=headers, json=body)
+    ).status_code == 200
+    async with app.state.session_factory() as session:
+        await session.execute(
+            update(Pet)
+            .where(Pet.id == row_id)
+            .values(name="Current pet", deleted_at=app.state.clock.now())
+        )
+        await session.commit()
+    before = await revision(app, family.id)
+    response = await client.post("/probe/pet", headers=headers, json=body)
+    assert response.status_code == 200
+    assert response.json()["name"] == "Current pet"
+    assert response.json()["deleted_at"] is not None
+    assert response.json()["revision"] == before
+    assert await revision(app, family.id) == before
+    assert app.state.probe.events == ["pet visible"]
+
+
+@pytest.mark.parametrize("entity", ENTITY_REGISTRY)
+async def test_id2_registry_replays_each_current_contract_shape(
+    app: FastAPI,
+    make_family: MakeFamily,
+    entity: str,
+) -> None:
+    family = await make_family()
+    entry = ENTITY_REGISTRY[entity]
+    key = uuid4()
+    async with app.state.session_factory() as session:
+        rows = await family.make_rows(session)
+        row = rows[entry.model.__tablename__]
+        session.add(
+            AppliedMutation(
+                client_mutation_id=key,
+                family_id=family.id,
+                user_id=family.users[0].id,
+                entity=entity,
+                entity_id=row.id,
+            )
+        )
+        await session.commit()
+        expected = entry.schema.model_validate(row).model_dump(mode="json")
+    before = await revision(app, family.id)
+
+    async def forbidden_handler() -> SyncModel:
+        raise AssertionError("A replay must never execute its handler")
+
+    async with app.state.session_factory() as session:
+        response = await IdempotentMutation(session, family.users[1], str(key), entity)(
+            forbidden_handler
+        )
+    assert response.model_dump(mode="json") == expected
+    assert await revision(app, family.id) == before
+
+
+async def test_family_lock_serializes_same_family_without_blocking_another(
+    app: FastAPI,
+    make_family: MakeFamily,
+) -> None:
+    first, second = await make_family(), await make_family()
+    async with (
+        app.state.session_factory() as holder,
+        app.state.session_factory() as contender,
+    ):
+        await lock_family(holder, first.id)
+        await contender.execute(text("SET LOCAL lock_timeout = '200ms'"))
+        await lock_family(contender, second.id)
+        with pytest.raises(DBAPIError, match="lock timeout"):
+            await lock_family(contender, first.id)
+        await contender.rollback()
+        await holder.commit()
+        await asyncio.wait_for(lock_family(contender, first.id), timeout=5)
