@@ -93,3 +93,42 @@ async def test_r1_4_hash_and_verify_share_two_slots_off_the_event_loop(
         observer.shutdown()
     assert calls == 6
     assert maximum == 2
+
+
+async def test_r1_4_cancelled_jobs_keep_their_slot_until_the_thread_finishes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = threading.Event()
+    two_started = threading.Event()
+    third_started = threading.Event()
+    lock = threading.Lock()
+    calls = 0
+
+    class Hasher:
+        def hash(self, password: str) -> str:
+            nonlocal calls
+            with lock:
+                calls += 1
+                if calls == 2:
+                    two_started.set()
+                if calls == 3:
+                    third_started.set()
+            release.wait(timeout=2)
+            return secrets.token_hex(24)
+
+    monkeypatch.setattr(passwords, "_hasher", Hasher())
+    credential = secrets.token_urlsafe(24)
+    tasks = [asyncio.create_task(passwords.hash_password(credential)) for _ in range(2)]
+    observer = ThreadPoolExecutor(max_workers=1)
+    loop = asyncio.get_running_loop()
+    try:
+        assert await loop.run_in_executor(observer, two_started.wait, 1)
+        tasks[0].cancel()
+        tasks.append(asyncio.create_task(passwords.hash_password(credential)))
+        assert not await loop.run_in_executor(observer, third_started.wait, 0.1)
+    finally:
+        release.set()
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        observer.shutdown()
+    assert isinstance(results[0], asyncio.CancelledError)
+    assert third_started.is_set()
