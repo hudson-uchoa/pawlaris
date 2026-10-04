@@ -437,7 +437,7 @@ tests cover them for its routes.
   test instead of blocking it).
   **Gate:** `uv run --directory services/api pytest tests/auth -q`
 
-- [ ] **P2-3 — Login, refresh, logout, me**
+- [~] **P2-3 — Login, refresh, logout, me**
   **Depends:** P2-2 · **Read:** `02` §1.1, §1.2 · `04` §2 (Me), §3 · `03` §2
   **Build:** `routers/auth.py` — every route of `04` §3 **except** `redeem` and
   the push-token routes; `deps.current_user` (decodes the token, loads the user,
