@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import UUID4, BaseModel, ConfigDict
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import FrozenClock
@@ -13,6 +13,7 @@ from app.db import CommitCallback, get_session, transactional
 from app.deps import after_commit, get_clock
 from app.errors import ApiError
 from app.idempotency import IdempotentMutation, SyncModel, idempotent
+from app.models import Pet
 from app.schemas.rows import Pet as PetRow
 
 router = APIRouter()
@@ -37,10 +38,41 @@ class ProbePetBody(BaseModel):
 @router.post("/pet", response_model=PetRow)
 async def idempotent_pet(
     value: ProbePetBody,
+    request: Request,
     mutation: Annotated[IdempotentMutation, Depends(idempotent("pets"))],
 ) -> PetRow:
     async def operation() -> SyncModel:
-        raise NotImplementedError("not implemented")
+        session = mutation.session
+        row = Pet(
+            id=value.id,
+            family_id=mutation.user.family_id,
+            name=value.name,
+            species="cat",
+            created_by=mutation.user.id,
+        )
+        session.add(row)
+        await session.flush()
+
+        async def callback() -> None:
+            async with request.app.state.session_factory() as observer:
+                visible = await observer.scalar(select(Pet.id).where(Pet.id == row.id))
+            state = cast(ProbeState, request.app.state.probe)
+            state.events.append("pet visible" if visible == row.id else "pet missing")
+
+        callbacks = cast(
+            list[CommitCallback], session.info.setdefault("after_commit", [])
+        )
+        callbacks.append(callback)
+        if value.fail_handler:
+            raise ApiError(409, "last_leader", "Injected handler failure.")
+        if value.fail_commit:
+            marker = uuid4().hex
+            for _ in range(2):
+                await session.execute(
+                    text("INSERT INTO probe_commit (id, marker) VALUES (:id, :marker)"),
+                    {"id": uuid4(), "marker": marker},
+                )
+        return row
 
     return cast(PetRow, await mutation(operation))
 

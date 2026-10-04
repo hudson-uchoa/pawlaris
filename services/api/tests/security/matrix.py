@@ -14,8 +14,10 @@ PERMISSION_MATRIX: dict[tuple[str, str], dict[str, int]] = {
     ("GET", "/api/v1/me"): {"member": 200, "leader": 200},
     ("PATCH", "/api/v1/me"): {"member": 200, "leader": 200},
     ("POST", "/api/v1/me/password"): {"member": 204, "leader": 204},
-    ("POST", "/probe/pet"): {"member": 200, "leader": 200},
 }
 
 # Test-only probe until production sync mutations arrive.
+PROBE_PERMISSION_MATRIX: dict[tuple[str, str], dict[str, int]] = {
+    ("POST", "/probe/pet"): {"member": 200, "leader": 200},
+}
 IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {("POST", "/probe/pet"): "pets"}
