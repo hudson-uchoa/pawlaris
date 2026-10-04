@@ -172,7 +172,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   `linux/amd64,linux/arm64` with Buildx and pushes
   `ghcr.io/<owner>/pawlaris-api:<sha>`, plus `:stable` when the ref is `main`.
   **Gate:** `pnpm verify --allow-pending`
-  **Device:** [ ] A green run on a pull request; a red run on a pull request
+  **Device:** [x] A green run on a pull request; a red run on a pull request
   with a seeded type error on a disposable `ci-check/*` branch (then reverted,
   never merged, *Q-5*); one manual dispatch of the `image` job that pushes an
   image. Evidence: the three run URLs. Run by the orchestrator and the owner.
