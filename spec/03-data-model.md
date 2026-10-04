@@ -138,6 +138,7 @@ CREATE TABLE family (
   updated_at timestamptz NOT NULL,
   deleted_at timestamptz                                  -- never set in v1
 );
+CREATE INDEX family_rev ON family (id, revision);
 
 CREATE TYPE family_role AS ENUM ('leader', 'member');
 
@@ -156,6 +157,7 @@ CREATE TABLE app_user (
   deleted_at    timestamptz                    -- never set; disabled_at is the off switch
 );
 CREATE INDEX app_user_family ON app_user (family_id);
+CREATE INDEX app_user_family_rev ON app_user (family_id, revision);
 ```
 
 `color` is one of the eight **identity keys**, in this order (the same list as
@@ -287,7 +289,9 @@ CREATE INDEX health_event_family_rev ON health_event (family_id, revision);
 ```
 
 Every syncable table gets the same index shape, `(family_id, revision)`; it is
-the only access path `/sync` uses.
+the only access path `/sync` uses. `family`, whose own `id` is the family id,
+gets `(id, revision)`. The SQL in this file lists all ten, and a database
+built by the migrations is identical to one built by running this SQL.
 
 ---
 
