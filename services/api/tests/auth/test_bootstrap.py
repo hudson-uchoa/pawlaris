@@ -44,7 +44,13 @@ async def run_bootstrap(
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
-    stdout, stderr = await process.communicate()
+    try:
+        async with asyncio.timeout(20):
+            stdout, stderr = await process.communicate()
+    except TimeoutError:
+        process.kill()
+        await process.communicate()
+        raise
     return process.returncode, (stdout + stderr).decode()
 
 
@@ -58,7 +64,7 @@ async def test_r1_2_bootstrap_creates_family_members_identity_keys_and_refuses_r
     ]
     async with scratch_database() as url:
         code, output = await run_bootstrap(
-            url, users, credentials, timezone="America/Sao_Paulo"
+            url, users, credentials, timezone="Europe/London"
         )
         assert code == 0
         assert all(password not in output for password in credentials)
@@ -69,7 +75,7 @@ async def test_r1_2_bootstrap_creates_family_members_identity_keys_and_refuses_r
                 family = (await session.execute(select(Family))).scalar_one()
                 members = (await session.execute(select(AppUser))).scalars().all()
                 assert family.name == "Test household"
-                assert family.timezone == "America/Sao_Paulo"
+                assert family.timezone == "Europe/London"
                 assert len(members) == 3
                 by_name = {member.display_name: member for member in members}
                 for i, key in enumerate(["#5B7DB1", "#B15B6B", "#4F8A6B"]):
