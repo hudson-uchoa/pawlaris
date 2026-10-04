@@ -234,3 +234,11 @@ sort-order and title tie breakers. Together progress counts the one required
 completion (0/1 or 1/1), while per-pet progress counts active linked pets.
 **Blocking:** no (proceeding on the assumptions, isolated in
 `compareItems` and `completionProgress` in packages/shared/src/dayView.ts).
+
+**Answer:** orchestrator — 2026-10-04. Both as assumed. Progress for a
+`together` occurrence is 0/1 or 1/1; for `per_pet` it counts the linked,
+non-archived pets. All-day occurrences sort before timed ones, then by
+`sort_order`, then by title. The order of all-day items is what the family
+sees, so it was put to the owner, who had not answered by the time of the
+review: all-day first stands as the default until they say otherwise. R6.6
+and `07` §4.2 now state both.
