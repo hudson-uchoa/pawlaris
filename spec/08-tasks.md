@@ -332,8 +332,11 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   **Build:** `src/taskEdit.ts` — `SCHEDULE_FIELDS`, `COSMETIC_FIELDS`,
   `classifyTaskEdit(old, edited)`, `forkEffectiveDate({template, completions,
   today})` (never earlier than `template.starts_on`), `buildFork(old, edited, E,
-  newId)` → `{newTemplate, oldPatch}`, `buildEnd(old, E)`.
-  **Tests:** `taskEdit.test.ts` — FK-1 … FK-9.
+  newId)` → `{newTemplate, oldPatch}`, `buildEnd(old, E)`. `newTemplate` is the
+  `TaskCreate` payload of `04` §9, and its `starts_on` keeps the old cadence as
+  `07` §4.3 states *(ADR-034)*. `pet_ids`, `byday` and `bymonthday` are compared
+  as sets. `buildEnd` never moves an end date later *(Q-9)*.
+  **Tests:** `taskEdit.test.ts` — FK-1 … FK-13.
   **Gate:** `pnpm -C packages/shared exec vitest run src/taskEdit.test.ts`
   **Not here:** the human-readable schedule summary (it is Portuguese; P4-1).
 

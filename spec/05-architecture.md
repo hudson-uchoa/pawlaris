@@ -688,3 +688,17 @@ Atrasadas for 30 days beside the new version.
 occurrence today. The day view no longer looks at the frequency; it looks at
 `ends_on`. The last dose of a course with an end date, if missed, is not
 carried into the day after the course ends.
+
+### ADR-034 — A fork keeps the cadence *(2026-10-04)*
+**Context:** an interval is counted from `starts_on` (`03` §4.2), and R3.8
+gave a fork's successor `starts_on = E`. So any schedule edit of a template
+with an interval above 1 restarted its cycle on the day of the edit. Measured
+while reviewing P1-4: a dose every 3 days given on the 4th, its time edited on
+the 5th, came due again on the 5th; an every-other-Monday task slipped a
+week; a dose every 3 months due in November moved to January.
+**Decision (the owner):** when an edit leaves `freq` and `interval` as they
+were, the successor starts on the first day on or after `E` that lies on the
+old cycle, which keeps every later occurrence where it was. When the edit
+changes `freq` or `interval`, the new cycle counts from `E`.
+**Consequence:** a successor may start after `E`; the old template has no
+occurrence in between. `starts_on` stays the only anchor: no new column.

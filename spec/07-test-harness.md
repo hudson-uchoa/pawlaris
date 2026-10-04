@@ -205,15 +205,42 @@ Orphans *(R6.15)* follow the scope of the template they belong to.
 
 | Case | Given | Expect |
 |---|---|---|
-| FK-1 | patch touches only cosmetic fields | `classifyTaskEdit` → `cosmetic` |
+| FK-1 | patch touches only cosmetic fields | `classifyTaskEdit` → `cosmetic`; so does a patch whose schedule values equal the old ones, including `pet_ids`, `byday` or `bymonthday` holding the same members in another order |
 | FK-2 | patch changes `times_of_day` (or any schedule field) | `schedule` |
 | FK-3 | no live completion for today's occurrences | `forkEffectiveDate` → today |
 | FK-4 | one live completion for today | tomorrow |
 | FK-5 | an undone completion for today only | today |
-| FK-6 | `buildFork(old, edits, E, newId)` | new row: `newId`, `starts_on = E`, `replaces_task_id = old.id`, edits applied, cosmetic fields copied; old patch `{ends_on: E − 1}` |
+| FK-6 | `buildFork(old, edits, E, newId)`, old rule of every day | new template: `newId`, `starts_on = E`, `replaces_task_id = old.id`, `ends_on` copied, edits applied, cosmetic fields copied; old patch `{ends_on: E − 1}` |
 | FK-7 | fork of a `once` template to a new date | new `starts_on` = the new date |
-| FK-8 | `buildEnd(old, E)` | `{ends_on: E − 1}` |
+| FK-8 | `buildEnd(old, E)` | `{ends_on: E − 1}`; when the old template already ends before that, its own `ends_on` — an end date never moves later |
 | FK-9 | the old template starts next Monday; edited today | `forkEffectiveDate` → next Monday (`E ≥ old.starts_on`) |
+| FK-10 | daily every 3 days from 2026-10-01; only `times_of_day` edited; `E` = 2026-10-05, an off day | new `starts_on` = 2026-10-07, the next day of the old cycle; with `E` = 2026-10-07 → 2026-10-07 |
+| FK-11 | weekly every 2 weeks on Monday from 2026-09-28; only `times_of_day` edited; `E` = 2026-10-07, an off week | new `starts_on` = 2026-10-12, the Monday of the next on week; with `E` = 2026-10-14, a day of an on week → 2026-10-14 |
+| FK-12 | monthly every 3 months on the 5th from 2026-08-05; only `times_of_day` edited; `E` = 2026-10-07, an off month | new `starts_on` = 2026-11-01, the first day of the next on month; with `E` = 2026-11-20 → 2026-11-20 |
+| FK-13 | the same daily template; the edit changes `interval` to 2, or `freq` to weekly; `E` = 2026-10-05 | new `starts_on` = `E`: a new cadence counts from the day it takes effect |
+
+`buildFork` returns the `TaskCreate` payload of `04` §9 for the new template —
+no `revision`, `updated_at`, `deleted_at` or `created_by`; the mutation layer
+fills those *(Q-9)*. An edited `starts_on` is ignored: the start of a
+successor is computed, never chosen.
+
+The successor's start, precisely *(R3.8, ADR-034)*, with `old` the template
+being replaced and `rule` its recurrence after the edits:
+
+1. `rule.freq` is `once` → `rule.date`.
+2. `rule.freq` or `rule.interval` differs from the old template's → `E`.
+3. Otherwise, the first day `S ≥ E` on the old cycle:
+   - **daily**: `r = daysBetween(old.starts_on, E) % interval`; `S = E` when
+     `r` is 0, else `E + (interval − r)` days.
+   - **weekly**: `r = weeksBetween(mondayOf(old.starts_on), mondayOf(E)) %
+     interval`; `S = E` when `r` is 0, else `mondayOf(E) + 7 × (interval − r)`
+     days.
+   - **monthly**: `r = monthsBetween(old.starts_on, E) % interval`; `S = E`
+     when `r` is 0, else the first day of the month `interval − r` months
+     after `E`'s.
+
+With `interval` 1 this is always `E`. The old template still ends on `E − 1`;
+it has no occurrence between `E` and `S`, so nothing is lost or doubled.
 
 ### 4.4 Reminders — RM cases
 
