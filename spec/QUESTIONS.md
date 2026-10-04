@@ -298,3 +298,15 @@ dues include today +30, and equal fire times sort by identifier for a stable
 result independent of replica row order.
 **Blocking:** no (proceeding on the assumption, confined to
 packages/shared/src/reminders.ts).
+
+**Answer:** orchestrator — 2026-10-04. As assumed, with one change.
+
+- *Confirmed:* kinds `reminder`, `health_due` and `timer`; health dues on
+  `reminders-routine`, timers on `timers`; a running timer whose template is
+  not in the replica is still planned, without `taskTitle`; the 200 cap counts
+  task reminders only; health dues run from today to today + 30; equal fire
+  times sort by id.
+- *Changed — archived pets:* R2.11 was silent on them and the owner decided:
+  a health event of an archived pet schedules nothing *(ADR-035)*. A health
+  due is planned only when its pet is in the replica and not archived, so
+  `petName` is always present on it.

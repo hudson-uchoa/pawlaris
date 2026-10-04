@@ -702,3 +702,15 @@ old cycle, which keeps every later occurrence where it was. When the edit
 changes `freq` or `interval`, the new cycle counts from `E`.
 **Consequence:** a successor may start after `E`; the old template has no
 occurrence in between. `starts_on` stays the only anchor: no new column.
+
+### ADR-035 — An archived pet has no health reminders *(2026-10-04)*
+**Context:** R2.2 took an archived pet out of the grid and of task
+occurrences and said nothing of its health events; R2.11 kept an event's
+reminder until the event was edited or deleted. A pet is archived when it is
+no longer with the family, and a vaccine reminder for it is the wrong thing
+to receive. Found while reviewing P1-5 (Q-10).
+**Decision (the owner):** a health event of an archived pet schedules no
+notification and does not appear in Próximos cuidados. Unarchiving brings
+both back. The events themselves are untouched.
+**Consequence:** the reminder planner and the dashboard read the pet's
+`archived_at`. Nothing is written on archive: it is a filter.
