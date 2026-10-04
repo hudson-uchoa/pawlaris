@@ -1,4 +1,5 @@
 import hashlib
+import json
 import secrets
 from datetime import timedelta
 
@@ -137,3 +138,30 @@ async def test_id1_auth_failure_logs_omit_exception_payloads(
         response = await client.post(path, json={})
     assert response.status_code == 500
     assert "Sensitive operation failed." not in caplog.text
+
+
+async def test_id1_auth_failure_log_has_type_and_frame_without_message(
+    frozen_clock: FrozenClock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    async def diagnostic_failure(scope: Scope, receive: Receive, send: Send) -> None:
+        raise RuntimeError("Sensitive operation failed.")
+
+    async with AsyncClient(
+        transport=ASGITransport(app=TimingMiddleware(diagnostic_failure, frozen_clock)),
+        base_url="http://test",
+    ) as client:
+        response = await client.post("/api/v1/auth/refresh", json={})
+    assert response.status_code == 500
+    errors = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "pawlaris.request" and record.levelname == "ERROR"
+    ]
+    assert len(errors) == 1
+    trace = errors[0]["exc"]
+    assert "RuntimeError" in trace
+    assert "test_login.py" in trace
+    assert "diagnostic_failure" in trace
+    assert "line " in trace
+    assert "Sensitive operation failed." not in trace
