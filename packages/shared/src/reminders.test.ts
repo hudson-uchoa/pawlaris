@@ -135,6 +135,15 @@ describe('reminder planner', () => {
       now: Date.parse('2026-10-08T01:00:00Z'),
       templates: [template({ times_of_day: ['23:00'] })],
     }).fireAt).toBe(Date.parse('2026-10-08T02:00:00Z'));
+    // A skipped local date may resolve to a future instant on the next day.
+    // Carry-over cards still cannot create reminders outside the date horizon.
+    expect(planReminders(input({
+      now: Date.parse('2011-12-30T21:00:00Z'), tz: 'Pacific/Apia',
+      templates: [template({
+        recurrence: { freq: 'once', date: '2011-12-30' },
+        starts_on: '2011-12-30', times_of_day: ['23:00'],
+      })],
+    }))).toEqual([]);
   });
 
   it('RM-6 includes day plus seven and excludes day plus eight', () => {
@@ -209,7 +218,7 @@ describe('reminder planner', () => {
     expect(onlyItem().fp).toBe(original.fp);
     expect(onlyItem({ templates: [template({ title: 'Dinner' })] }).fp).not.toBe(original.fp);
     expect(onlyItem({ pets: [pet('pet-a', { name: 'Renamed' })] }).fp).not.toBe(original.fp);
-    expect(onlyItem({ tz: 'UTC' }).fp).not.toBe(original.fp);
+    expect(onlyItem({ tz: 'America/New_York' }).fp).not.toBe(original.fp);
     expect(onlyItem({ templates: [template({ reminder_class: 'critical' })] }).fp).not.toBe(original.fp);
     expect(onlyItem({ templates: [template({ revision: 2, updated_at: '2026-10-07T10:01:00Z' })] }).fp)
       .toBe(original.fp);
