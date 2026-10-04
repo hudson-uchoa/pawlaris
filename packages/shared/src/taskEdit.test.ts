@@ -193,13 +193,19 @@ describe('task edits and forks', () => {
     expect(old.recurrence).toEqual({ freq: 'once', date: today });
   });
 
-  it('FK-8 ends the old template on the day before E including month and year boundaries', () => {
+  it('FK-8 ends before E without extending an earlier end date', () => {
     const old = template();
     const before = structuredClone(old);
     expect(buildEnd(old, today)).toEqual({ ends_on: '2026-10-06' });
     expect(buildEnd(old, '2026-11-01')).toEqual({ ends_on: '2026-10-31' });
     expect(buildEnd(old, '2027-01-01')).toEqual({ ends_on: '2026-12-31' });
-    expect(buildEnd(old, '2028-03-01')).toEqual({ ends_on: '2028-02-29' });
+    expect.soft(buildEnd(old, '2028-03-01')).toEqual({ ends_on: '2026-12-31' });
+    expect(buildEnd(template({ ends_on: null }), '2028-03-01')).toEqual({ ends_on: '2028-02-29' });
+    const ended = template({ ends_on: '2026-10-03' });
+    const endedBefore = structuredClone(ended);
+    expect.soft(buildEnd(ended, today)).toEqual({ ends_on: '2026-10-03' });
+    expect(buildEnd(template({ ends_on: '2026-10-06' }), today)).toEqual({ ends_on: '2026-10-06' });
+    expect(ended).toEqual(endedBefore);
     expect(old).toEqual(before);
   });
 

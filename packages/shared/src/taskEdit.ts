@@ -111,7 +111,10 @@ export function buildFork(
   return { newTemplate, oldPatch: buildEnd(old, E) };
 }
 
-export function buildEnd(_old: TaskTemplate, E: DateKey): EndPatch {
-  void _old;
-  return { ends_on: addDays(E, -1) };
+export function buildEnd(old: TaskTemplate, E: DateKey): EndPatch {
+  const endsOn = addDays(E, -1);
+  return {
+    ends_on: old.ends_on !== null && compareDateKey(old.ends_on, endsOn) < 0
+      ? old.ends_on : endsOn,
+  };
 }
