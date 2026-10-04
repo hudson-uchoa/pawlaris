@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="spec/brand/paw-star.svg">
+    <img src="spec/brand/paw-star-dawn.svg" width="132" alt="The Pawlaris mark: a paw whose four toes are stars">
+  </picture>
+</p>
+
 # Pawlaris
 
 **Pet care for one family, under a night sky.**
