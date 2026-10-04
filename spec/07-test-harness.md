@@ -271,15 +271,33 @@ order of the replica's rows *(Q-10)*.
 
 ### 4.5 Walk math — WK-2, WK-3 and friends
 
+Units *(Q-11)*: a point's `t`, `startedAt` and `now` are epoch
+milliseconds; distances are metres on a sphere of radius 6 371 000 m; seconds
+may be fractional. No function mutates its input.
+
 - `haversineM` — two known pairs within 0.5%.
 - Accumulator — a 10-point straight track with 10 m steps sums to the expected
   distance; a good fix less than 5 m from the last counted position adds
   nothing and does not move that position (20 jittering fixes around one spot
   add 0 m); a point with `acc > 30` adds nothing and does not become the
   counted position (WK-2); points flagged paused add nothing; the segment that
-  spans a pause is not counted.
+  spans a pause is not counted: a paused fix clears the counted position, and
+  the first good fix after it sets the position without adding distance.
+  `pointCount` counts every fix added, good or not.
 - `paceSecPerKm(distanceM, movingS)` — null under 0.5 m/s average.
+- `currentSpeedMps(points)` — displacement, not path *(R4.12)*. Take the
+  good fixes with `t ≥ latest.t − 10 000`, going back from the latest fix
+  and stopping at the first paused one. With fewer than two, or with the
+  oldest and newest at the same instant, 0. Otherwise `d` is the haversine
+  distance from the oldest to the newest: 0 when `d < 5`, else `d` divided
+  by their time difference in seconds. Cases: four fixes 6 m apart, 3 s apart,
+  on a line → 2 m/s; four fixes 3 s apart alternating 2 m either side of one
+  spot — standing still with jitter → 0; a window that reaches a paused fix
+  uses only the fixes after it.
 - `simplifyRoute` — WK-3 as stated in `03` §7; first and last points are kept.
+- `routeForUpload(points)` — `[lat, lon, t, acc]` tuples of the good,
+  unpaused fixes, simplified at 5 m: of three fixes, a middle one 7 m off the
+  line between the others is kept, and one 3 m off is dropped.
 - `routePreview(points)` — at most 32 `[lat, lon]` pairs, first and last kept.
 
 ### 4.6 Small helpers

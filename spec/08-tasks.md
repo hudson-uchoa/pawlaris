@@ -356,8 +356,8 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   `add(point: {lat, lon, t, acc, paused})` and `snapshot()` →
   `{distanceM, countedPosition, pointCount}` (a good fix counts only when it is
   ≥ 5 m from the counted position); `movingSeconds(startedAt, now, pausedMs)`;
-  `paceSecPerKm(distanceM, movingS)`; `currentSpeedMps(points)` (over the last
-  10 s of good points); `simplifyRoute(points, toleranceM)` (Douglas–Peucker on
+  `paceSecPerKm(distanceM, movingS)`; `currentSpeedMps(points)` (displacement over the
+  last 10 s of good points, zero under 5 m — `07` §4.5); `simplifyRoute(points, toleranceM)` (Douglas–Peucker on
   an equirectangular projection around the first point); `routeForUpload(points)`
   (drop `acc > 30` and paused points, then simplify at 5 m);
   `routePreview(points)` (≤ 32 `[lat, lon]` pairs).
@@ -1009,11 +1009,15 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   `timeInterval: 3000`, `distanceInterval: 0` and a foreground-service
   notification "Passeio em andamento"; the fallback of `09` §8.1), `pause()`,
   `resume()`, `stop()`; `walks/pointStore.ts` (append, read, rebuild an
-  accumulator from disk). Adds the 80% coverage floor for `src/walks`.
+  accumulator from disk). `pause()` writes one paused point itself, at the last
+  known position, so the accumulator always sees a pause even when no fix
+  arrives during it *(review of P1-6)*. Adds the 80% coverage floor for
+  `src/walks`.
   **Tests:** `walks/__tests__/pointStore.test.ts` — WK-1; paused points flagged;
   `tracker` with mocked location: the service path; the fallback path sets
   `kv.needs_background_location` and mode `foreground`; one walk at a time (a
-  second `start` throws).
+  second `start` throws); a pause with no fix during it adds no distance for
+  the segment across it.
   **Gate:** `pnpm -C apps/mobile exec jest src/walks`
   **Device:** [ ] On the Android 14+ phone, with foreground permission only:
   start a walk, lock the screen for 3 minutes while moving, unlock, and read the
