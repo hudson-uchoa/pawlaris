@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.clock import FrozenClock
 from app.deps import get_clock
 from app.main import create_app
+from app.models import AppUser
+from app.security.tokens import issue_access
 from app.settings import Settings
 from tests._probe import ProbeState, router
 
@@ -66,3 +68,28 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         base_url="http://test",
     ) as http:
         yield http
+
+
+type ClientFor = Callable[[AppUser], AsyncClient]
+
+
+@pytest.fixture
+async def client_for(
+    app: FastAPI, settings: Settings, frozen_clock: FrozenClock
+) -> AsyncIterator[ClientFor]:
+    clients: list[AsyncClient] = []
+
+    def create(user: AppUser) -> AsyncClient:
+        http = AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False),
+            base_url="http://test",
+            headers={
+                "Authorization": f"Bearer {issue_access(user, frozen_clock, settings)}"
+            },
+        )
+        clients.append(http)
+        return http
+
+    yield create
+    for http in clients:
+        await http.aclose()

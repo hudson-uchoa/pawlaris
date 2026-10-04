@@ -68,13 +68,14 @@ def test_settings_reads_env_from_api_directory(
     assert settings.jwt_secret.get_secret_value() not in repr(settings)
 
 
-def test_production_contract_contains_only_public_health(app: FastAPI) -> None:
-    from tests.security.matrix import PUBLIC_ROUTES
+def test_production_contract_contains_only_registered_routes(app: FastAPI) -> None:
+    from tests.security.matrix import PERMISSION_MATRIX, PUBLIC_ROUTES
 
     paths = cast(dict[str, object], app.openapi()["paths"])
     assert "/probe/write" in paths
     production = create_production_app()
-    assert set(production.openapi()["paths"]) == {path for _, path in PUBLIC_ROUTES}
+    expected = PUBLIC_ROUTES | PERMISSION_MATRIX.keys()
+    assert set(production.openapi()["paths"]) == {path for _, path in expected}
 
 
 def create_production_app() -> FastAPI:

@@ -17,6 +17,7 @@ from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.errors import problem_response, register_handlers
 from app.routers import auth, health
+from app.security.ratelimit import LoginRateLimiter
 from app.settings import Settings
 
 
@@ -105,6 +106,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.settings = settings
     app.state.clock = clock
+    app.state.login_limiter = LoginRateLimiter(clock)
     app.state.started_at = clock.monotonic()
     app.state.engine = make_engine(settings)
     app.state.session_factory = async_sessionmaker(
