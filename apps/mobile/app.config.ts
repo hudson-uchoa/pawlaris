@@ -20,6 +20,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    './plugins/withShortNativePaths.cjs',
     [
       'expo-splash-screen',
       {
