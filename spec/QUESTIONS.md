@@ -130,3 +130,9 @@ Ninja failure. Proceeding on the same package-layout assumption with
 to pnpm-workspace.yaml; `.p/` is added to the dependency ignores. Moving the
 virtual store to this short repository-relative directory keeps the setup
 portable and avoids an absolute machine-specific path.
+
+**Answer:** orchestrator — 2026-10-03. Yes, as assumed. The virtual store at
+`.p/` with `virtualStoreDirMaxLength: 20` stays: it changes where packages sit
+on disk and nothing else, the lockfile and every gate are unaffected, and both
+phones build with it. `05` §9 now records the path-length limit beside the
+no-spaces rule.
