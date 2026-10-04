@@ -1,4 +1,4 @@
-import { formatDateKey, parseDateKey, type DateKey } from './dates';
+import { formatDateKey, parseDateKey, utcDate, type DateKey } from './dates';
 
 const DAY_MS = 86_400_000;
 const formatters = new Map<string, Intl.DateTimeFormat>();
@@ -26,9 +26,7 @@ function wallParts(instantMs: number, tz: string) {
 function offset(instantMs: number, tz: string): number {
   const { y, m, d, hour, minute, second } = wallParts(instantMs, tz);
   // Offset probes may cross year 0000 or 10000 at the date-key boundaries.
-  const wallUtc = y < 100
-    ? Date.UTC(y + 400, m - 1, d, hour, minute, second) - 146097 * DAY_MS
-    : Date.UTC(y, m - 1, d, hour, minute, second);
+  const wallUtc = utcDate({ y, m, d }) + hour * 3_600_000 + minute * 60_000 + second * 1000;
   return wallUtc - instantMs;
 }
 
@@ -42,9 +40,11 @@ export function localTime(instantMs: number, tz: string): string {
 }
 
 export function slotInstant(date: DateKey, time: string, tz: string): number {
-  parseDateKey(date);
-  // An explicit UTC string preserves four-digit years below 0100.
-  const g = Date.parse(`${date}T${time}:00Z`);
+  if (time.length !== 5 || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+    throw new RangeError('Wall time must be HH:mm from 00:00 to 23:59.');
+  }
+  const g = utcDate(parseDateKey(date))
+    + Number(time.slice(0, 2)) * 3_600_000 + Number(time.slice(3)) * 60_000;
   const o1 = offset(g - DAY_MS, tz);
   const c1 = g - o1;
   const o2 = offset(c1, tz);
