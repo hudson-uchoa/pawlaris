@@ -11,12 +11,34 @@ const branch = 'phase/P0-foundation';
 const task = '- [ ] **P0-8 — Pre-commit hooks and commit guard**\n  **Build:** hooks\n';
 const change = { path: 'spec/08-tasks.md', before: task, after: task.replace('[ ]', '[~]') };
 
-test('P0-8: checkbox-only state changes pass', () => {
-  for (const state of ['[~]', '[x]']) {
-    assert.deepEqual(validateSpecChanges([{ ...change, after: task.replace('[ ]', state) }],
-      branch, undefined), []);
-  }
+test('P0-8 R2: an unstarted task may only become awaiting review', () => {
+  assert.deepEqual(validateSpecChanges([change], branch, undefined), []);
 });
+
+const forbiddenCheckboxChanges = [
+  ['accept an unstarted task', task, task.replace('[ ]', '[x]')],
+  ['accept a task awaiting review', task.replace('[ ]', '[~]'), task.replace('[ ]', '[x]')],
+  ['restart a task awaiting review', task.replace('[ ]', '[~]'), task],
+  ['reopen an accepted task', task.replace('[ ]', '[x]'), task.replace('[ ]', '[~]')],
+  ['change a non-task list checkbox', '- [ ] Owner prerequisite\n',
+    '- [~] Owner prerequisite\n'],
+];
+for (const before of [' ', '~', 'x']) {
+  for (const after of [' ', '~', 'x']) {
+    if (before !== after) {
+      forbiddenCheckboxChanges.push([`change a Device checkbox from [${before}] to [${after}]`,
+        `  **Device:** [${before}] Check on a phone.\n`,
+        `  **Device:** [${after}] Check on a phone.\n`]);
+    }
+  }
+}
+for (const [name, before, after] of forbiddenCheckboxChanges) {
+  test(`P0-8 R2: reject ${name} unless the orchestrator overrides`, () => {
+    const changes = [{ ...change, before, after }];
+    assert.deepEqual(validateSpecChanges(changes, branch, undefined), [change.path]);
+    assert.deepEqual(validateSpecChanges(changes, branch, 'orchestrator'), []);
+  });
+}
 
 for (const path of ['spec/00-constitution.md', 'spec/fixtures/vector.json',
   'spec/nested/file.ts', 'spec/contracts-extra/file.json']) {
@@ -86,6 +108,16 @@ test('P0-8: CLI inspects the index despite unstaged changes and catches renames'
   assert.equal(run().status, 1);
   assert.equal(run('orchestrator').status, 0);
   git('reset', '--hard', 'HEAD');
+  for (const [, before, after] of forbiddenCheckboxChanges) {
+    write(change.path, before);
+    git('add', change.path);
+    git('-c', 'core.hooksPath=/dev/null', 'commit', '--allow-empty', '-m', 'fixture');
+    write(change.path, after);
+    git('add', change.path);
+    assert.equal(run().status, 1);
+    assert.equal(run('orchestrator').status, 0);
+    git('reset', '--hard', 'HEAD');
+  }
   git('mv', 'spec/protected file.md', 'outside.md');
   assert.equal(run().status, 1);
 });

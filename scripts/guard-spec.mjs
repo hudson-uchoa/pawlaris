@@ -16,12 +16,12 @@ export function validateSpecChanges(changes, branch, role) {
     const oldLines = before.split('\n');
     const newLines = after.split('\n');
     if (oldLines.length !== newLines.length) return true;
-    // Only the state token on a real task or Device checkbox may change.
-    const checkbox = /^([ \t]*(?:- |\*\*Device:\*\* )\[)[ ~x](\] .*)$/;
+    // Implementers may submit a task for review, never accept it or tick Device boxes.
+    const taskCheckbox = /^- \[ \] \*\*P\d+-\d+ — /;
     return oldLines.some((line, index) => {
       const updated = newLines[index] ?? '';
-      return line !== updated && (!checkbox.test(line) || !checkbox.test(updated) ||
-        line.replace(checkbox, '$1$2') !== updated.replace(checkbox, '$1$2'));
+      return line !== updated && (!taskCheckbox.test(line) ||
+        updated !== line.replace('- [ ]', '- [~]'));
     });
   }).map(({ path }) => path);
 }
