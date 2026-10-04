@@ -4,6 +4,12 @@ import { addDays, daysBetween, mondayOf, weekdayOf } from './dates';
 import { localDate, localTime, slotInstant, startOfLocalDay } from './time';
 
 describe('TZ-1 golden timezone vectors', () => {
+  it.each(['24:00', '8:00', '08:60', '08:00:30', '08:00\n'])(
+    'TZ-1 R1 rejects malformed wall time %j', (time) => {
+      expect(() => slotInstant('2026-10-03', time, 'America/Sao_Paulo')).toThrow(RangeError);
+    },
+  );
+
   it.each(vectors.localDate)('TZ-1 localDate: $name', ({ instant, tz, expect: expected }) => {
     expect(localDate(Date.parse(instant), tz)).toBe(expected);
   });

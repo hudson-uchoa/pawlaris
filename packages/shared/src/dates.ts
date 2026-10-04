@@ -9,7 +9,7 @@ function validYearMonth(y: number, m: number): boolean {
     && Number.isInteger(m) && m >= 1 && m <= 12;
 }
 
-function utcDate({ y, m, d }: CalendarDate): number {
+export function utcDate({ y, m, d }: CalendarDate): number {
   // Date.UTC maps years 0–99 to 1900–1999. A Gregorian 400-year cycle
   // has exactly 146097 days, so shifting by one cycle preserves leap days.
   return y < 100
