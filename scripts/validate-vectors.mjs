@@ -133,7 +133,10 @@ const uniqueNames = (list, where) => {
     if (!INSTANT.test(v.expect ?? '')) fail(at, 'expect must be ISO UTC with seconds');
   }
   const zones = new Set((f.slotInstant ?? []).map((v) => v.tz));
-  for (const tz of ['America/Sao_Paulo', 'America/New_York']) {
+  // West of UTC alone does not pin the algorithm: with a negative offset, probing
+  // the offset at the wall time itself gives the same answers as probing it a
+  // day earlier. London and Sydney, east of UTC with DST, tell the two apart.
+  for (const tz of ['America/Sao_Paulo', 'America/New_York', 'Europe/London', 'Australia/Sydney']) {
     if (!zones.has(tz)) fail(where, `slotInstant has no vector for ${tz}`);
   }
 }
