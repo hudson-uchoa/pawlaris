@@ -150,7 +150,7 @@ look for connected phones: H4 is checked with `adb devices` in P0-6.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
   **Not here:** any dependency not needed to boot.
 
-- [ ] **P0-6 — Local Android build**
+- [~] **P0-6 — Local Android build**
   **Depends:** P0-5, H3, H4 · **Read:** `05` §8, §9
   **Build:** `expo-dev-client` installed; `docs/build.md`: prerequisites; the
   exact commands for a dev build and a release build (`arm64-v8a`); how to point
