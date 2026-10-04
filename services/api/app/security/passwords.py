@@ -18,10 +18,11 @@ async def _run[T](operation: Callable[[], T]) -> T:
             # Cancelling an await cannot stop Argon2's thread. Keep its slot held.
             while not worker.done():
                 try:
-                    await asyncio.shield(worker)
+                    await asyncio.wait({worker})
                 except asyncio.CancelledError:
                     continue
-            worker.result()
+            if not worker.cancelled():
+                worker.exception()
             raise
 
 
