@@ -63,7 +63,13 @@ class TimingMiddleware:
         try:
             await self.app(scope, receive, timed_send)
         except Exception:
-            error_traceback = traceback.format_exc()
+            if scope["path"].startswith("/api/v1/auth/") or scope["path"] == (
+                "/api/v1/me/password"
+            ):
+                # Library exceptions may carry credentials or SQL bind parameters.
+                error_traceback = "Authentication exception details suppressed."
+            else:
+                error_traceback = traceback.format_exc()
             if response_started:
                 raise
             response = problem_response(500, "internal_error", "Internal server error.")

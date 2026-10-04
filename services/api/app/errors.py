@@ -8,11 +8,19 @@ from starlette.responses import JSONResponse
 
 
 class ApiError(Exception):
-    def __init__(self, status: int, code: str, detail: str) -> None:
+    def __init__(
+        self,
+        status: int,
+        code: str,
+        detail: str,
+        *,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(detail)
         self.status = status
         self.code = code
         self.detail = detail
+        self.headers = headers or {}
 
 
 def register_handlers(app: FastAPI) -> None:
@@ -37,7 +45,9 @@ def problem_response(status: int, code: str, detail: str) -> JSONResponse:
 
 async def handle_api_error(request: Request, exc: Exception) -> JSONResponse:
     error = cast(ApiError, exc)
-    return problem_response(error.status, error.code, error.detail)
+    response = problem_response(error.status, error.code, error.detail)
+    response.headers.update(error.headers)
+    return response
 
 
 async def handle_http_error(request: Request, exc: Exception) -> JSONResponse:
