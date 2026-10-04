@@ -1,5 +1,5 @@
 import { ESLint } from 'eslint';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import shared from './index';
 
 describe('P0-3 shared package scaffold', () => {
@@ -11,10 +11,25 @@ describe('P0-3 shared package scaffold', () => {
 
 describe('RC-2 purity lint fixtures', () => {
   const eslint = new ESLint();
+  beforeAll(async () => {
+    await eslint.lintText('new Date(0).getTime();', { filePath: 'src/lint-fixture.ts' });
+  });
+
   const forbiddenSyntax = [
     'Date.now();',
     "Date['now']();",
     'new Date();',
+    'Date();',
+    'Date(0);',
+    'new Date(2026, 0);',
+    'new Date(2026, 0, 1, 12, 30, 0, 0);',
+    ...[
+      'toLocaleString', 'toLocaleDateString', 'toLocaleTimeString',
+      'toDateString', 'toTimeString',
+    ].flatMap((method) => [
+      `new Date(0).${method}();`,
+      `new Date(0)['${method}']();`,
+    ]),
     'Math.random();',
     ...[
       'getDate', 'getDay', 'getFullYear', 'getHours', 'getMilliseconds',
@@ -46,6 +61,14 @@ describe('RC-2 purity lint fixtures', () => {
   it('RC-2 permits explicit instants and UTC arithmetic', async () => {
     const results = await eslint.lintText(
       'new Date(Date.UTC(2026, 9, 3)).getUTCDate(); new Date(0).getTime();',
+      { filePath: 'src/lint-fixture.ts' },
+    );
+    expect(results.flatMap((result) => result.messages)).toEqual([]);
+  });
+
+  it('RC-2 permits new Date(Date.UTC(2026, 0, 1))', async () => {
+    const results = await eslint.lintText(
+      'new Date(Date.UTC(2026, 0, 1));',
       { filePath: 'src/lint-fixture.ts' },
     );
     expect(results.flatMap((result) => result.messages)).toEqual([]);
