@@ -283,7 +283,7 @@ header, the pet profile header and every empty state.
 The most repeated interaction in the app. A task is a star waiting to be lit.
 
 ```
-resting    28 dp ring in `border`, hollow
+resting    28 dp ring in `textMuted`, hollow     -- `border` on `surface` is 1.4:1, invisible
 press-in   scale 1 → 0.92 (spring.stiff)                         -- feedback only
 release    commit (R3.18), then, all at once:
              ring fills with accentSoft (duration.quick)
