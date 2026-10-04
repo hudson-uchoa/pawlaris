@@ -422,7 +422,10 @@ characters, and pnpm's default package directories reach that inside a native
 build ("`build.ninja` still dirty after 100 tries"). So the workspace keeps
 pnpm's virtual store at `.p/` in the repository root, git-ignored, with
 `virtualStoreDirMaxLength: 20` *(Q-4)*. Do not move the repository deeper
-than it is.
+than it is. The release variant's paths are longer still, so on Windows the
+config plugin `apps/mobile/plugins/withShortNativePaths.cjs` moves Reanimated's
+CMake staging directory to `android/.native/` *(P0-10)*. A native module added
+later that fails the same way gets the same treatment in that plugin.
 
 **The dev shell is Windows PowerShell 5.1**, which has no `&&`. Commands in this
 spec are written one per line; run them one at a time and stop at the first

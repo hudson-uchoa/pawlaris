@@ -257,6 +257,10 @@ always arguments. Nothing here returns Portuguese text *(AGENTS.md rule 13)*.
   - `package.json` — first, pin `typescript` in `packages/shared` to the exact
     version `apps/mobile` uses, so one compiler checks the shared source from
     both sides; update `docs/versions.md`.
+  - `src/index.test.ts` — give the lint fixtures a `beforeAll` that lints one
+    line first, so no test carries ESLint's start-up. The first fixture took
+    9 s on a busy machine and failed Vitest's 5 s limit (P0-10). Assertions
+    stay as they are.
   - `eslint.config.mjs` — before any date code, extend the purity rule of P0-3
     to the rest of RC-2: `Date()` called as a function, `new Date(…)` with two
     or more arguments, and `toLocaleString`, `toLocaleDateString`,
@@ -1153,7 +1157,9 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   **Build:** signing config through `app.config.ts`/Gradle properties read from
   the environment (the keystore stays outside the repo), `arm64-v8a` only, the
   release build command in `docs/build.md`, `EXPO_PUBLIC_API_URL` pointing at
-  the box.
+  the box. Code shrinking (R8) and resource shrinking are on for the release
+  variant: the bare scaffold already weighs 40.1 MB unshrunk, 38 MB of it
+  unminified `classes*.dex` (P0-10), against a 60 MB budget.
   **Gate:** `pnpm verify --only lint:mobile,typecheck:mobile,test:mobile`
   **Device:** [ ] With the outbox empty, uninstall the dev client and install
   the signed APK on both phones; it logs in against the box and syncs;
