@@ -414,7 +414,7 @@ tests cover them for its routes.
   **Gate:** `uv run --directory services/api pytest tests/db -q`
   **Not here:** routes.
 
-- [~] **P2-2 — Passwords, tokens, bootstrap**
+- [x] **P2-2 — Passwords, tokens, bootstrap** — accepted 2026-10-04
   **Depends:** P2-1 · **Read:** `02` §1.1, §1.2 · `03` §2 · `04` §3 (token formats, hashing) · `05` §2.1, §5
   **Build:** `app/security/passwords.py` (`hash_password`, `verify_password` —
   Argon2id with the fixed parameters, run through `asyncio.to_thread` behind a
