@@ -9,7 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.clock import FrozenClock
 from app.idempotency import ENTITY_REGISTRY
-from app.models import FamilyRevision, Pet, ServerMeta
+from app.models import (
+    Base,
+    FamilyRevision,
+    Pet,
+    ServerMeta,
+    TaskCompletion,
+    TaskTemplate,
+    TaskTimer,
+)
 from app.schemas.sync import SyncPage, SyncResponse
 from app.services.sync import collect_changes
 from tests.conftest import ClientFor
@@ -32,6 +40,24 @@ async def revision(session: AsyncSession, family: TestFamily) -> int:
     )
     assert value is not None
     return value
+
+
+async def snapshot_rows(session: AsyncSession, family: TestFamily) -> dict[str, Base]:
+    rows = await family.make_rows(session)
+    completion, timer = rows["task_completion"], rows["task_timer"]
+    assert isinstance(completion, TaskCompletion)
+    assert isinstance(timer, TaskTimer)
+    # The completion and timer factories each persist their own template.
+    templates = (
+        await session.scalars(
+            select(TaskTemplate).where(
+                TaskTemplate.id.in_([completion.task_id, timer.task_id])
+            )
+        )
+    ).all()
+    assert len(templates) == 2
+    rows.update({str(template.id): template for template in templates})
+    return rows
 
 
 async def pull(
@@ -101,8 +127,8 @@ async def test_sy5_other_family_never_appears(
     make_family: MakeFamily, client_for: ClientFor, session: AsyncSession, since: int
 ) -> None:
     family, other = await make_family(), await make_family()
-    own_rows = await family.make_rows(session)
-    other_rows = await other.make_rows(session)
+    own_rows = await snapshot_rows(session, family)
+    other_rows = await snapshot_rows(session, other)
     await session.commit()
     own_ids = {row.id for row in own_rows.values()} | {u.id for u in family.users}
     other_ids = {row.id for row in other_rows.values()} | {u.id for u in other.users}
@@ -179,7 +205,7 @@ async def test_sy_snapshot_includes_all_ten_entities_and_exact_row_shapes(
     make_family: MakeFamily, client_for: ClientFor, session: AsyncSession
 ) -> None:
     family = await make_family()
-    rows = await family.make_rows(session)
+    rows = await snapshot_rows(session, family)
     await session.commit()
     page = await pull(client_for(family.users[0]))
     assert {change.entity for change in page.changes} == set(ENTITY_REGISTRY)
