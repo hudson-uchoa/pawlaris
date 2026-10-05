@@ -35,6 +35,10 @@ async def read_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/me")
 
 
+async def read_sync(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(url="/api/v1/sync?since=0")
+
+
 async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/me", json={"display_name": "Matrix member"})
 
@@ -69,6 +73,7 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
 )
 
 PERMISSION_MATRIX: list[PermissionCase] = [
+    PermissionCase(1, "GET", "/api/v1/sync", read_sync, {"member": 200, "leader": 200}),
     PermissionCase(2, "GET", "/api/v1/me", read_me, {"member": 200, "leader": 200}),
     PermissionCase(2, "PATCH", "/api/v1/me", patch_me, {"member": 200, "leader": 200}),
     PermissionCase(
