@@ -1,3 +1,4 @@
+from dataclasses import replace
 from typing import Annotated, cast
 
 import pytest
@@ -8,7 +9,7 @@ from starlette.routing import Route, WebSocketRoute
 
 from app.deps import current_user
 from app.models import AppUser
-from tests.security.matrix import PERMISSION_MATRIX, PUBLIC_ROUTES, PermissionCase
+from tests.security.matrix import PERMISSION_MATRIX, PUBLIC_ROUTES
 
 
 def requires_authentication(dependency: Dependant) -> bool:
@@ -30,6 +31,7 @@ def assert_route_census(application: FastAPI) -> None:
         violations.append("documentation routes must be disabled")
     sockets: list[str] = []
     registered: set[tuple[str, str]] = set()
+    matrix_routes = {(case.method, case.template) for case in PERMISSION_MATRIX}
     # FastAPI keeps included routers lazy; contexts expose their effective
     # paths and dependencies, including router-level authentication.
     for context in iter_route_contexts(application.routes):
@@ -55,11 +57,11 @@ def assert_route_census(application: FastAPI) -> None:
             )
             if dependency is None or not requires_authentication(dependency):
                 violations.append(f"{label} requires authentication")
-            if key not in PERMISSION_MATRIX:
+            if key not in matrix_routes:
                 violations.append(f"{label} requires a permission matrix row")
     if len(sockets) > 1 or any(path != "/ws" for path in sockets):
         violations.append(f"WebSocket routes must be at most one /ws: {sockets}")
-    for key in PERMISSION_MATRIX.keys() - registered:
+    for key in matrix_routes - registered:
         violations.append(f"{key[0]} {key[1]} matrix row has no route")
     assert not violations, "\n".join(violations)
 
@@ -102,8 +104,10 @@ def test_census_rejects_listed_route_without_authentication(
         return {"status": "unsafe"}
 
     production_app.add_api_route("/unsafe", dummy, methods=["GET"])
-    existing = PERMISSION_MATRIX[("GET", "/api/v1/me")]
-    monkeypatch.setitem(PERMISSION_MATRIX, ("GET", "/unsafe"), existing)
+    monkeypatch.setattr(
+        "tests.security.test_route_census.PERMISSION_MATRIX",
+        [*PERMISSION_MATRIX, replace(PERMISSION_MATRIX[0], template="/unsafe")],
+    )
     with pytest.raises(AssertionError, match="GET /unsafe.*authentication"):
         assert_route_census(production_app)
 
@@ -129,11 +133,9 @@ def test_census_accepts_transitive_authentication_dependency(
         pass
 
     production_app.add_api_route("/nested", dummy, methods=["GET"])
-    existing = PERMISSION_MATRIX[("GET", "/api/v1/me")]
-    monkeypatch.setitem(
-        PERMISSION_MATRIX,
-        ("GET", "/nested"),
-        PermissionCase(existing.row, existing.request, existing.expected),
+    monkeypatch.setattr(
+        "tests.security.test_route_census.PERMISSION_MATRIX",
+        [*PERMISSION_MATRIX, replace(PERMISSION_MATRIX[0], template="/nested")],
     )
     assert_route_census(production_app)
 
@@ -150,10 +152,12 @@ def test_census_accepts_authentication_applied_when_including_router(
     production_app.include_router(
         router, prefix="/included", dependencies=[Depends(current_user)]
     )
-    monkeypatch.setitem(
-        PERMISSION_MATRIX,
-        ("GET", "/included/protected"),
-        PERMISSION_MATRIX[("GET", "/api/v1/me")],
+    monkeypatch.setattr(
+        "tests.security.test_route_census.PERMISSION_MATRIX",
+        [
+            *PERMISSION_MATRIX,
+            replace(PERMISSION_MATRIX[0], template="/included/protected"),
+        ],
     )
     assert_route_census(production_app)
 

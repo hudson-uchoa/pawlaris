@@ -14,6 +14,7 @@ from tests.factories import TestFamily
 
 @dataclass(frozen=True)
 class MatrixRequest:
+    url: str
     json: dict[str, object] | None = None
     headers: dict[str, str] = field(default_factory=dict)
 
@@ -24,16 +25,18 @@ type RequestBuilder = Callable[[TestFamily, AppUser], Awaitable[MatrixRequest]]
 @dataclass(frozen=True)
 class PermissionCase:
     row: int
+    method: str
+    template: str
     request: RequestBuilder
     expected: dict[str, int]
 
 
 async def read_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
-    return MatrixRequest()
+    return MatrixRequest(url="/api/v1/me")
 
 
 async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
-    return MatrixRequest(json={"display_name": "Matrix member"})
+    return MatrixRequest(url="/api/v1/me", json={"display_name": "Matrix member"})
 
 
 async def change_password(fam: TestFamily, actor: AppUser) -> MatrixRequest:
@@ -51,7 +54,8 @@ async def change_password(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     finally:
         await engine.dispose()
     return MatrixRequest(
-        json={"current_password": current, "new_password": replacement}
+        url="/api/v1/me/password",
+        json={"current_password": current, "new_password": replacement},
     )
 
 
@@ -64,15 +68,17 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
     }
 )
 
-PERMISSION_MATRIX: dict[tuple[str, str], PermissionCase] = {
-    ("GET", "/api/v1/me"): PermissionCase(2, read_me, {"member": 200, "leader": 200}),
-    ("PATCH", "/api/v1/me"): PermissionCase(
-        2, patch_me, {"member": 200, "leader": 200}
+PERMISSION_MATRIX: list[PermissionCase] = [
+    PermissionCase(2, "GET", "/api/v1/me", read_me, {"member": 200, "leader": 200}),
+    PermissionCase(2, "PATCH", "/api/v1/me", patch_me, {"member": 200, "leader": 200}),
+    PermissionCase(
+        2,
+        "POST",
+        "/api/v1/me/password",
+        change_password,
+        {"member": 204, "leader": 204},
     ),
-    ("POST", "/api/v1/me/password"): PermissionCase(
-        2, change_password, {"member": 204, "leader": 204}
-    ),
-}
+]
 
 # Test-only probe until production sync mutations arrive.
 PROBE_PERMISSION_MATRIX: dict[tuple[str, str], dict[str, int]] = {

@@ -74,7 +74,9 @@ def test_production_contract_contains_only_registered_routes(app: FastAPI) -> No
     paths = cast(dict[str, object], app.openapi()["paths"])
     assert "/probe/write" in paths
     production = create_production_app()
-    expected = PUBLIC_ROUTES | PERMISSION_MATRIX.keys()
+    expected = PUBLIC_ROUTES | {
+        (case.method, case.template) for case in PERMISSION_MATRIX
+    }
     assert set(production.openapi()["paths"]) == {path for _, path in expected}
 
 
