@@ -410,3 +410,29 @@ negative cases to prove that field additions, omissions and type drift
 still fail. Leave existing domain types and row schemas unchanged.
 **Blocking:** yes (task stopped pending the orchestrator's decision).
 The contract and red API tests are committed; P2-6 remains `[ ]`.
+
+**Answer:** orchestrator — 2026-10-04. As assumed. "Mutually assignable" was
+too strong: the hand-written types are refinements of the wire types in three
+places, on purpose, and none of the three is drift. The domain types and the
+row schemas stay as they are. `entities.contract.ts` checks, for each of the
+ten entities, with `L` the hand-written type and `W` the generated one:
+
+1. `L` and `W` have exactly the same keys.
+2. For every key not listed in 3, the two field types are mutually
+   assignable.
+3. Three refinements, each named in the file with its reason, are checked in
+   the direction that can be checked:
+   - `revision` on every entity — `L` is `number | null`, because a row
+     written on the phone has none until the server answers (`10` §3); `W`
+     is `number`. Compare `W` with `L` without `null`.
+   - `TaskTemplate.recurrence` — `L` is the validated `Recurrence` union;
+     `W` is an open JSON object. `L` must be assignable to `W`.
+   - `Walk.preview` — `L` is a list of `[lat, lon]` pairs; `W` is a list
+     of number lists. `L` must be assignable to `W`.
+4. The file proves that it can fail: compile-time negative cases, each with
+   `@ts-expect-error` and a reason, for a key added to one side, a key
+   missing from one side, a scalar field of another type, and a field made
+   nullable on one side only.
+
+A new refinement is a decision for a question here, not something to add to
+the list in passing. `08` P2-6 now states the rule.

@@ -496,9 +496,13 @@ tests cover them for its routes.
   `collect_changes(session, family_id, since, limit, hi)` implementing the
   bounded reference query of `04` §6, with `hi` read first by the router;
   `epoch` from `server_meta`. In `packages/shared`:
-  `src/entities.contract.ts` — a compile-time check that each hand-written type
-  of `entities.ts` and its generated counterpart in `api-types.ts` are mutually
-  assignable, so `typecheck:shared` fails on drift.
+  `src/entities.contract.ts` — a compile-time check of each hand-written type
+  of `entities.ts` against its generated counterpart in `api-types.ts`, so
+  `typecheck:shared` fails on drift: the same keys; every field mutually
+  assignable except three named refinements — `revision` (null on a pending
+  local row), `TaskTemplate.recurrence` (the validated union) and
+  `Walk.preview` (pairs) — each checked in one direction; and negative cases
+  proving the check fails *(Q-13)*.
   **Tests:** `tests/sync/test_sync.py` — SY-2, SY-4, SY-5, SY-6 and the extras
   listed in `07` §5.2; `since=0` returns the whole family; a soft-deleted row is
   included with `deleted_at`; `limit` out of range → 422.
