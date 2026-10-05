@@ -505,7 +505,9 @@ tests cover them for its routes.
   proving the check fails *(Q-13)*.
   **Tests:** `tests/sync/test_sync.py` — SY-2, SY-4, SY-5, SY-6 and the extras
   listed in `07` §5.2; `since=0` returns the whole family; a soft-deleted row is
-  included with `deleted_at`; `limit` out of range → 422.
+  included with `deleted_at`; `limit` out of range → 422; exactly `limit` rows
+  above the cursor → one page with `has_more` false, and `limit + 1` →
+  `has_more` true.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_sync.py -q` · `pnpm verify --only security,typecheck:shared,contract-check`
 
 - [ ] **P2-7 — Family, members, invites, redeem**
