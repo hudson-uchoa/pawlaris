@@ -107,14 +107,218 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync */
+        get: operations["sync_api_v1_sync_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Asset */
+        Asset: {
+            /** Bytes */
+            bytes: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Height */
+            height: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "pet_avatar" | "task_proof" | "health_attachment";
+            /** Mime */
+            mime: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Uploaded By
+             * Format: uuid
+             */
+            uploaded_by: string;
+            /** Width */
+            width: number;
+        };
+        /** AssetChange */
+        AssetChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "assets";
+            row: components["schemas"]["Asset"];
+        };
+        Change: components["schemas"]["FamilyChange"] | components["schemas"]["MemberChange"] | components["schemas"]["PetChange"] | components["schemas"]["WeightChange"] | components["schemas"]["HealthChange"] | components["schemas"]["TaskChange"] | components["schemas"]["CompletionChange"] | components["schemas"]["TimerChange"] | components["schemas"]["WalkChange"] | components["schemas"]["AssetChange"];
+        /** Completion */
+        Completion: {
+            /**
+             * Completed At
+             * Format: date-time
+             */
+            completed_at: string;
+            /**
+             * Completed By
+             * Format: uuid
+             */
+            completed_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Occurrence Key */
+            occurrence_key: string;
+            /** Pet Id */
+            pet_id: string | null;
+            /** Photo Asset Id */
+            photo_asset_id: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Task Id
+             * Format: uuid
+             */
+            task_id: string;
+            /** Title Snapshot */
+            title_snapshot: string;
+            /** Undone At */
+            undone_at: string | null;
+            /** Undone By */
+            undone_by: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** CompletionChange */
+        CompletionChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_completions";
+            row: components["schemas"]["Completion"];
+        };
+        /** Family */
+        Family: {
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Revision */
+            revision: number;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** FamilyChange */
+        FamilyChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "family";
+            row: components["schemas"]["Family"];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HealthChange */
+        HealthChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "health_events";
+            row: components["schemas"]["HealthEvent"];
+        };
+        /** HealthEvent */
+        HealthEvent: {
+            /** Attachment Asset Id */
+            attachment_asset_id: string | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Next Due On */
+            next_due_on: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Revision */
+            revision: number;
+            /** Title */
+            title: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "vaccine" | "medication" | "vet_visit" | "symptom" | "procedure" | "other";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
         };
         /** HealthResponse */
         HealthResponse: {
@@ -132,6 +336,7 @@ export interface components {
             /** Version */
             version: string;
         };
+        JsonValue: unknown;
         /** Login */
         Login: {
             /** Email */
@@ -171,6 +376,43 @@ export interface components {
             /** Display Name */
             display_name: string;
         };
+        /** Member */
+        Member: {
+            /** Color */
+            color: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Disabled At */
+            disabled_at: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "leader" | "member";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** MemberChange */
+        MemberChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "members";
+            row: components["schemas"]["Member"];
+        };
         /** PasswordChange */
         PasswordChange: {
             /**
@@ -183,6 +425,65 @@ export interface components {
              * Format: password
              */
             new_password: string;
+        };
+        /** Pet */
+        Pet: {
+            /** Archived At */
+            archived_at: string | null;
+            /** Avatar Asset Id */
+            avatar_asset_id: string | null;
+            /** Birthdate */
+            birthdate: string | null;
+            /** Breed */
+            breed: string | null;
+            /** Color */
+            color: string | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Microchip Id */
+            microchip_id: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Sex
+             * @enum {string}
+             */
+            sex: "female" | "male" | "unknown";
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Species
+             * @enum {string}
+             */
+            species: "cat" | "dog";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PetChange */
+        PetChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "pets";
+            row: components["schemas"]["Pet"];
         };
         /** Refresh */
         Refresh: {
@@ -205,6 +506,150 @@ export interface components {
             refresh_token: string;
             user: components["schemas"]["Me"];
         };
+        /** SyncResponse */
+        SyncResponse: {
+            /** Changes */
+            changes: components["schemas"]["Change"][];
+            /**
+             * Epoch
+             * Format: uuid
+             */
+            epoch: string;
+            /** Has More */
+            has_more: boolean;
+            /** Revision */
+            revision: number;
+            /**
+             * Server Time
+             * Format: date-time
+             */
+            server_time: string;
+        };
+        /** TaskChange */
+        TaskChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_templates";
+            row: components["schemas"]["TaskTemplate"];
+        };
+        /** TaskTemplate */
+        TaskTemplate: {
+            /** Assigned To */
+            assigned_to: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "feeding" | "medication" | "hygiene" | "litter" | "play" | "vet" | "other";
+            /**
+             * Completion Mode
+             * @enum {string}
+             */
+            completion_mode: "together" | "per_pet";
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Description */
+            description: string | null;
+            /** Ends On */
+            ends_on: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Pet Ids */
+            pet_ids: string[];
+            /** Recurrence */
+            recurrence: {
+                [key: string]: components["schemas"]["JsonValue"];
+            };
+            /**
+             * Reminder Class
+             * @enum {string}
+             */
+            reminder_class: "critical" | "routine";
+            /** Replaces Task Id */
+            replaces_task_id: string | null;
+            /** Requires Photo */
+            requires_photo: boolean;
+            /** Revision */
+            revision: number;
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Starts On
+             * Format: date
+             */
+            starts_on: string;
+            /** Timer Seconds */
+            timer_seconds: number | null;
+            /** Times Of Day */
+            times_of_day: string[];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** Timer */
+        Timer: {
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Occurrence Key */
+            occurrence_key: string;
+            /** Pet Id */
+            pet_id: string | null;
+            /** Revision */
+            revision: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Started By
+             * Format: uuid
+             */
+            started_by: string;
+            /**
+             * Task Id
+             * Format: uuid
+             */
+            task_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TimerChange */
+        TimerChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_timers";
+            row: components["schemas"]["Timer"];
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -217,6 +662,115 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** Walk */
+        Walk: {
+            /** Avg Pace S Per Km */
+            avg_pace_s_per_km: number | null;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Distance M */
+            distance_m: number;
+            /** Duration S */
+            duration_s: number;
+            /** Ended At */
+            ended_at: string | null;
+            /** Has Route */
+            has_route: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Paused Ms */
+            paused_ms: number;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Point Count */
+            point_count: number;
+            /** Preview */
+            preview: number[][];
+            /** Revision */
+            revision: number;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "finished" | "discarded";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** WalkChange */
+        WalkChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "walk_sessions";
+            row: components["schemas"]["Walk"];
+        };
+        /** WeightChange */
+        WeightChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "weight_entries";
+            row: components["schemas"]["WeightEntry"];
+        };
+        /** WeightEntry */
+        WeightEntry: {
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Revision */
+            revision: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weight Kg */
+            weight_kg: number;
         };
     };
     responses: never;
@@ -416,6 +970,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_api_v1_sync_get: {
+        parameters: {
+            query: {
+                since: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

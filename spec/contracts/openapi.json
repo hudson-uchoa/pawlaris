@@ -1,6 +1,360 @@
 {
   "components": {
     "schemas": {
+      "Asset": {
+        "additionalProperties": false,
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "height": {
+            "title": "Height",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "pet_avatar",
+              "task_proof",
+              "health_attachment"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "mime": {
+            "title": "Mime",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "uploaded_by": {
+            "format": "uuid",
+            "title": "Uploaded By",
+            "type": "string"
+          },
+          "width": {
+            "title": "Width",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "mime",
+          "bytes",
+          "width",
+          "height",
+          "uploaded_by",
+          "created_at",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "Asset",
+        "type": "object"
+      },
+      "AssetChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "assets",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Asset"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "AssetChange",
+        "type": "object"
+      },
+      "Change": {
+        "discriminator": {
+          "mapping": {
+            "assets": "#/components/schemas/AssetChange",
+            "family": "#/components/schemas/FamilyChange",
+            "health_events": "#/components/schemas/HealthChange",
+            "members": "#/components/schemas/MemberChange",
+            "pets": "#/components/schemas/PetChange",
+            "task_completions": "#/components/schemas/CompletionChange",
+            "task_templates": "#/components/schemas/TaskChange",
+            "task_timers": "#/components/schemas/TimerChange",
+            "walk_sessions": "#/components/schemas/WalkChange",
+            "weight_entries": "#/components/schemas/WeightChange"
+          },
+          "propertyName": "entity"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/FamilyChange"
+          },
+          {
+            "$ref": "#/components/schemas/MemberChange"
+          },
+          {
+            "$ref": "#/components/schemas/PetChange"
+          },
+          {
+            "$ref": "#/components/schemas/WeightChange"
+          },
+          {
+            "$ref": "#/components/schemas/HealthChange"
+          },
+          {
+            "$ref": "#/components/schemas/TaskChange"
+          },
+          {
+            "$ref": "#/components/schemas/CompletionChange"
+          },
+          {
+            "$ref": "#/components/schemas/TimerChange"
+          },
+          {
+            "$ref": "#/components/schemas/WalkChange"
+          },
+          {
+            "$ref": "#/components/schemas/AssetChange"
+          }
+        ]
+      },
+      "Completion": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "completed_by": {
+            "format": "uuid",
+            "title": "Completed By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "occurrence_key": {
+            "title": "Occurrence Key",
+            "type": "string"
+          },
+          "pet_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pet Id"
+          },
+          "photo_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Asset Id"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "title_snapshot": {
+            "title": "Title Snapshot",
+            "type": "string"
+          },
+          "undone_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undone At"
+          },
+          "undone_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undone By"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "occurrence_key",
+          "pet_id",
+          "completed_by",
+          "completed_at",
+          "title_snapshot",
+          "photo_asset_id",
+          "note",
+          "undone_at",
+          "undone_by",
+          "revision",
+          "updated_at"
+        ],
+        "title": "Completion",
+        "type": "object"
+      },
+      "CompletionChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "task_completions",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Completion"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "CompletionChange",
+        "type": "object"
+      },
+      "Family": {
+        "additionalProperties": false,
+        "properties": {
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "timezone": {
+            "title": "Timezone",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "timezone",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "Family",
+        "type": "object"
+      },
+      "FamilyChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "family",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Family"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "FamilyChange",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -12,6 +366,138 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "health_events",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/HealthEvent"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "HealthChange",
+        "type": "object"
+      },
+      "HealthEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "attachment_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachment Asset Id"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "next_due_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Due On"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "pet_id": {
+            "format": "uuid",
+            "title": "Pet Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "vaccine",
+              "medication",
+              "vet_visit",
+              "symptom",
+              "procedure",
+              "other"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pet_id",
+          "type",
+          "title",
+          "notes",
+          "occurred_at",
+          "next_due_on",
+          "attachment_asset_id",
+          "created_by",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "HealthEvent",
         "type": "object"
       },
       "HealthResponse": {
@@ -54,6 +540,7 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "JsonValue": {},
       "Login": {
         "additionalProperties": false,
         "properties": {
@@ -136,6 +623,96 @@
         "title": "MePatch",
         "type": "object"
       },
+      "Member": {
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "title": "Color",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "disabled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Disabled At"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "role": {
+            "enum": [
+              "leader",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "display_name",
+          "role",
+          "color",
+          "disabled_at",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "Member",
+        "type": "object"
+      },
+      "MemberChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "members",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Member"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "MemberChange",
+        "type": "object"
+      },
       "PasswordChange": {
         "additionalProperties": false,
         "properties": {
@@ -159,6 +736,186 @@
           "new_password"
         ],
         "title": "PasswordChange",
+        "type": "object"
+      },
+      "Pet": {
+        "additionalProperties": false,
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Archived At"
+          },
+          "avatar_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Asset Id"
+          },
+          "birthdate": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birthdate"
+          },
+          "breed": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Breed"
+          },
+          "color": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Color"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "microchip_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Microchip Id"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sex": {
+            "enum": [
+              "female",
+              "male",
+              "unknown"
+            ],
+            "title": "Sex",
+            "type": "string"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "species": {
+            "enum": [
+              "cat",
+              "dog"
+            ],
+            "title": "Species",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "species",
+          "sex",
+          "breed",
+          "color",
+          "birthdate",
+          "microchip_id",
+          "avatar_asset_id",
+          "notes",
+          "sort_order",
+          "archived_at",
+          "created_by",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "Pet",
+        "type": "object"
+      },
+      "PetChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "pets",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Pet"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "PetChange",
         "type": "object"
       },
       "Refresh": {
@@ -205,6 +962,350 @@
         "title": "Session",
         "type": "object"
       },
+      "SyncResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "epoch": {
+            "format": "uuid",
+            "title": "Epoch",
+            "type": "string"
+          },
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "has_more",
+          "changes",
+          "epoch",
+          "server_time"
+        ],
+        "title": "SyncResponse",
+        "type": "object"
+      },
+      "TaskChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "task_templates",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/TaskTemplate"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "TaskChange",
+        "type": "object"
+      },
+      "TaskTemplate": {
+        "additionalProperties": false,
+        "properties": {
+          "assigned_to": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To"
+          },
+          "category": {
+            "enum": [
+              "feeding",
+              "medication",
+              "hygiene",
+              "litter",
+              "play",
+              "vet",
+              "other"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "completion_mode": {
+            "enum": [
+              "together",
+              "per_pet"
+            ],
+            "title": "Completion Mode",
+            "type": "string"
+          },
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "ends_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ends On"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "pet_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Pet Ids",
+            "type": "array"
+          },
+          "recurrence": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "title": "Recurrence",
+            "type": "object"
+          },
+          "reminder_class": {
+            "enum": [
+              "critical",
+              "routine"
+            ],
+            "title": "Reminder Class",
+            "type": "string"
+          },
+          "replaces_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replaces Task Id"
+          },
+          "requires_photo": {
+            "title": "Requires Photo",
+            "type": "boolean"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "sort_order": {
+            "title": "Sort Order",
+            "type": "integer"
+          },
+          "starts_on": {
+            "format": "date",
+            "title": "Starts On",
+            "type": "string"
+          },
+          "timer_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timer Seconds"
+          },
+          "times_of_day": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Times Of Day",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "description",
+          "category",
+          "assigned_to",
+          "requires_photo",
+          "timer_seconds",
+          "reminder_class",
+          "sort_order",
+          "recurrence",
+          "times_of_day",
+          "starts_on",
+          "pet_ids",
+          "completion_mode",
+          "ends_on",
+          "replaces_task_id",
+          "created_by",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "TaskTemplate",
+        "type": "object"
+      },
+      "Timer": {
+        "additionalProperties": false,
+        "properties": {
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "title": "Ends At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "occurrence_key": {
+            "title": "Occurrence Key",
+            "type": "string"
+          },
+          "pet_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pet Id"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by": {
+            "format": "uuid",
+            "title": "Started By",
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "task_id",
+          "occurrence_key",
+          "pet_id",
+          "started_by",
+          "started_at",
+          "ends_at",
+          "cancelled_at",
+          "revision",
+          "updated_at"
+        ],
+        "title": "Timer",
+        "type": "object"
+      },
+      "TimerChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "task_timers",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Timer"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "TimerChange",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -243,6 +1344,258 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "Walk": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_pace_s_per_km": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Pace S Per Km"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "distance_m": {
+            "title": "Distance M",
+            "type": "number"
+          },
+          "duration_s": {
+            "title": "Duration S",
+            "type": "integer"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "has_route": {
+            "title": "Has Route",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "paused_ms": {
+            "title": "Paused Ms",
+            "type": "integer"
+          },
+          "pet_id": {
+            "format": "uuid",
+            "title": "Pet Id",
+            "type": "string"
+          },
+          "point_count": {
+            "title": "Point Count",
+            "type": "integer"
+          },
+          "preview": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "title": "Preview",
+            "type": "array"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "finished",
+              "discarded"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pet_id",
+          "user_id",
+          "status",
+          "started_at",
+          "ended_at",
+          "paused_ms",
+          "distance_m",
+          "duration_s",
+          "avg_pace_s_per_km",
+          "point_count",
+          "has_route",
+          "preview",
+          "note",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "Walk",
+        "type": "object"
+      },
+      "WalkChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "walk_sessions",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/Walk"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "WalkChange",
+        "type": "object"
+      },
+      "WeightChange": {
+        "additionalProperties": false,
+        "properties": {
+          "entity": {
+            "const": "weight_entries",
+            "title": "Entity",
+            "type": "string"
+          },
+          "row": {
+            "$ref": "#/components/schemas/WeightEntry"
+          }
+        },
+        "required": [
+          "entity",
+          "row"
+        ],
+        "title": "WeightChange",
+        "type": "object"
+      },
+      "WeightEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "created_by": {
+            "format": "uuid",
+            "title": "Created By",
+            "type": "string"
+          },
+          "deleted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deleted At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "title": "Measured At",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "pet_id": {
+            "format": "uuid",
+            "title": "Pet Id",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "weight_kg": {
+            "title": "Weight Kg",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "pet_id",
+          "weight_kg",
+          "measured_at",
+          "note",
+          "created_by",
+          "revision",
+          "updated_at",
+          "deleted_at"
+        ],
+        "title": "WeightEntry",
         "type": "object"
       }
     },
@@ -482,6 +1835,63 @@
           }
         ],
         "summary": "Change Password"
+      }
+    },
+    "/api/v1/sync": {
+      "get": {
+        "operationId": "sync_api_v1_sync_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "since",
+            "required": true,
+            "schema": {
+              "minimum": 0,
+              "title": "Since",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 1000,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sync"
       }
     }
   }
