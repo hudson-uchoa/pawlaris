@@ -473,7 +473,7 @@ tests cover them for its routes.
   family's can.
   **Gate:** `uv run --directory services/api pytest tests/api/test_idempotency.py -q`
 
-- [ ] **P2-5 — Security frame: census, matrix, leak scan**
+- [~] **P2-5 — Security frame: census, matrix, leak scan**
   **Depends:** P2-4 · **Read:** `04` §5 · `03` §2 (ID-1) · `07` §5.2
   **Build:** `tests/security/matrix.py` — `PERMISSION_MATRIX`: one entry per row
   of `04` §5 that already has a route, each with a `request(fam, actor)` builder
