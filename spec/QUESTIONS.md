@@ -384,3 +384,29 @@ length or a number outside its limit; lengths in code points; canonical
 UUIDs; UTC instants only; unknown form keys ignored. The password limit was
 asked of `03` and lives in `04` §3: the task's Read line now says so. `07`
 §4.6 states these shapes.
+
+## Q-13 — P2-6 — How should local entity refinements compare to wire types?
+**Asked:** 2026-10-04
+**Where:** spec/08-tasks.md P2-6 Build; packages/shared/src/entities.ts;
+services/api/app/schemas/rows.py; packages/shared/src/api-types.ts
+**Problem:** P2-6 requires every hand-written entity and its generated
+counterpart to be mutually assignable. A direct bidirectional conditional
+type assertion fails for all ten entities: local rows allow
+`revision: number | null`, while wire rows require `number`. Two additional
+differences prevent raw mutual assignment: local TaskTemplate.recurrence
+is the validated Recurrence union, while the generated schema is a record
+of JsonValue (generated as unknown); local Walk.preview is a list of
+two-number tuples, while the generated schema is number[][]. These are
+existing local representation choices, not changes made by P2-6. Making
+the raw types mutually assignable would require changing earlier-task
+types or row schemas, or weakening the local domain types. Normalizing
+the comparison instead would depart from the literal Build requirement.
+**I would assume:** compare serialized shapes in entities.contract.ts,
+narrowing the local revision to number and explicitly accounting for the
+validated recurrence and tuple preview refinements. Require identical
+keys, bidirectional compatibility of all other fields, and compatibility
+of the refined fields in the domain-to-wire direction. Add compile-time
+negative cases to prove that field additions, omissions and type drift
+still fail. Leave existing domain types and row schemas unchanged.
+**Blocking:** yes (task stopped pending the orchestrator's decision).
+The contract and red API tests are committed; P2-6 remains `[ ]`.
