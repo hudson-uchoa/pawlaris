@@ -1,3 +1,4 @@
+import re
 from typing import cast
 
 import pytest
@@ -7,7 +8,51 @@ type Json = None | bool | int | float | str | list[Json] | dict[str, Json]
 
 
 def response_secret_fields(document: dict[str, Json]) -> list[str]:
-    raise NotImplementedError("not implemented")
+    leaks: set[str] = set()
+    visited: set[str] = set()
+
+    def walk(node: Json, location: str) -> None:
+        if isinstance(node, list):
+            for index, item in enumerate(node):
+                walk(item, f"{location}[{index}]")
+        elif isinstance(node, dict):
+            reference = node.get("$ref")
+            if isinstance(reference, str) and reference not in visited:
+                assert reference.startswith("#/"), f"External response ref: {reference}"
+                visited.add(reference)
+                target: Json = document
+                for segment in reference[2:].split("/"):
+                    assert isinstance(target, dict), f"Invalid ref: {reference}"
+                    target = target[segment.replace("~1", "/").replace("~0", "~")]
+                walk(target, reference.rsplit("/", 1)[-1])
+            properties = node.get("properties")
+            if isinstance(properties, dict):
+                for name in properties:
+                    if re.search(r"hash|password|secret", name, re.IGNORECASE):
+                        leaks.add(f"{location}.{name}")
+            for name, child in node.items():
+                if name != "$ref":
+                    walk(child, f"{location}.{name}")
+
+    paths = document.get("paths", {})
+    assert isinstance(paths, dict)
+    for path, item in paths.items():
+        assert isinstance(item, dict)
+        for method, operation in item.items():
+            if method not in {
+                "get",
+                "put",
+                "post",
+                "delete",
+                "options",
+                "head",
+                "patch",
+                "trace",
+            }:
+                continue
+            assert isinstance(operation, dict)
+            walk(operation.get("responses"), f"{method.upper()} {path}")
+    return sorted(leaks)
 
 
 def test_id1_no_secret_field_is_reachable_from_any_openapi_response(
