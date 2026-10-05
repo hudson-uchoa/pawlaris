@@ -475,15 +475,19 @@ tests cover them for its routes.
 
 - [~] **P2-5 — Security frame: census, matrix, leak scan**
   **Depends:** P2-4 · **Read:** `04` §5 · `03` §2 (ID-1) · `07` §5.2
-  **Build:** `tests/security/matrix.py` — `PERMISSION_MATRIX`: one entry per row
-  of `04` §5 that already has a route, each with a `request(fam, actor)` builder
-  and the expected status per role. `test_role_matrix.py` (RB-1, RB-2);
+  **Build:** `tests/security/matrix.py` — `PERMISSION_MATRIX`: a **list** of
+  cases covering every row of `04` §5 that already has a route. A case has the
+  row number, the method, the route template as registered
+  (`/api/v1/pets/{id}`), the expected status per role, and a
+  `request(fam, actor)` builder returning the concrete URL with the body and
+  headers. Several cases may name one route (rows 11 and 12; 13, 14 and 15). `test_role_matrix.py` (RB-1, RB-2);
   `test_route_census.py` (allowlist; every other HTTP route requires auth
   **and** appears in the matrix; no documentation routes; at most one WebSocket
   route, `/ws`); `test_no_secret_leak.py` (ID-1, walking the OpenAPI components).
   **Tests:** the three files above, green for the routes that exist; plus a
   self-test that a dummy unauthenticated route added to a copy of the app makes
-  the census fail.
+  the census fail, and one that two cases for one route, one of them with a
+  path parameter, are both run by RB-1.
   **Gate:** `pnpm verify --only security`
 
 - [ ] **P2-6 — `GET /sync`**
