@@ -490,7 +490,7 @@ tests cover them for its routes.
   path parameter, are both run by RB-1.
   **Gate:** `pnpm verify --only security`
 
-- [~] **P2-6 — `GET /sync`**
+- [x] **P2-6 — `GET /sync`** — accepted 2026-10-04
   **Depends:** P2-5 · **Read:** `04` §2, §6 · `03` §1, §1.3
   **Build:** `routers/sync.py`; `services/sync.py` —
   `collect_changes(session, family_id, since, limit, hi)` implementing the
