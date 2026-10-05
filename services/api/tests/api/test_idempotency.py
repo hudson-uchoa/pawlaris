@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from uuid import UUID, uuid1, uuid4
 
 import pytest
@@ -10,6 +10,7 @@ from sqlalchemy.exc import DBAPIError
 from app.idempotency import ENTITY_REGISTRY, IdempotentMutation, SyncModel
 from app.locks import lock_family
 from app.models import AppliedMutation, FamilyRevision, Pet
+from app.schemas.rows import Row
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily
 from tests.security.matrix import IDEMPOTENT_ROUTES
@@ -288,3 +289,56 @@ async def test_family_lock_serializes_same_family_without_blocking_another(
         await contender.rollback()
         await holder.commit()
         await asyncio.wait_for(lock_family(contender, first.id), timeout=5)
+
+
+async def test_id2_wrapper_holds_family_lock_before_handler_writes(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    first, second = await make_family(), await make_family()
+    entered, release = asyncio.Event(), asyncio.Event()
+    original = IdempotentMutation.__call__
+
+    async def held_call(
+        mutation: IdempotentMutation,
+        handler: Callable[[], Awaitable[SyncModel]],
+    ) -> Row:
+        async def held_handler() -> SyncModel:
+            entered.set()
+            await asyncio.wait_for(release.wait(), timeout=10)
+            return await handler()
+
+        return await original(mutation, held_handler)
+
+    monkeypatch.setattr(IdempotentMutation, "__call__", held_call)
+    request = asyncio.create_task(
+        client_for(first.users[0]).post(
+            "/probe/pet",
+            headers=idem(),
+            json={"id": str(uuid4()), "name": "Held probe pet"},
+        )
+    )
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=5)
+        async with app.state.session_factory() as contender:
+            # NOWAIT observes the wrapper's lock before a row trigger can take it.
+            await contender.execute(
+                select(FamilyRevision)
+                .where(FamilyRevision.family_id == second.id)
+                .with_for_update(nowait=True)
+            )
+            with pytest.raises(DBAPIError) as caught:
+                await contender.execute(
+                    select(FamilyRevision)
+                    .where(FamilyRevision.family_id == first.id)
+                    .with_for_update(nowait=True)
+                )
+            assert getattr(caught.value.orig, "sqlstate", None) == "55P03"
+            await contender.rollback()
+    finally:
+        release.set()
+        response = await asyncio.wait_for(request, timeout=10)
+    assert response.status_code == 200
