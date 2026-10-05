@@ -1,9 +1,14 @@
 """Implemented permission cases from the API contract, with valid requests."""
 
+import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
+from sqlalchemy import update
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+
 from app.models import AppUser
+from app.security.passwords import hash_password
 from tests.factories import TestFamily
 
 
@@ -24,15 +29,30 @@ class PermissionCase:
 
 
 async def read_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
-    raise NotImplementedError("not implemented")
+    return MatrixRequest()
 
 
 async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
-    raise NotImplementedError("not implemented")
+    return MatrixRequest(json={"display_name": "Matrix member"})
 
 
 async def change_password(fam: TestFamily, actor: AppUser) -> MatrixRequest:
-    raise NotImplementedError("not implemented")
+    current, replacement = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
+    encoded = await hash_password(current)
+    engine = create_async_engine(fam.database_url)
+    try:
+        async with AsyncSession(engine) as session:
+            await session.execute(
+                update(AppUser)
+                .where(AppUser.id == actor.id, AppUser.family_id == fam.id)
+                .values(password_hash=encoded)
+            )
+            await session.commit()
+    finally:
+        await engine.dispose()
+    return MatrixRequest(
+        json={"current_password": current, "new_password": replacement}
+    )
 
 
 PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
@@ -41,7 +61,6 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/refresh"),
         ("POST", "/api/v1/auth/logout"),
-        ("POST", "/api/v1/auth/redeem"),
     }
 )
 
