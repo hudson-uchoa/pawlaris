@@ -75,6 +75,9 @@ Breaking one is a defect regardless of whether tests pass.
 10. **No GoPuppy assets, code, icons or copy.** Visuals are drawn in code or
     authored for this project; the only third-party assets are the embedded
     font and the icon set named in `spec/06`, with their licences recorded.
+    The Insurge mark of `spec/06` §4.12 is the one other brand in the app:
+    drawn from that section, shown only where `spec/09` places it, and not
+    Pawlaris's to relicense *(ADR-036)*.
     Assets that a library named in `spec/05` §1 ships for its own internals
     (the navigation runtime's icons, for example) are not the app's visuals:
     they may stay in the build, the app never selects them, and their
