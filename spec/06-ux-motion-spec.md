@@ -234,7 +234,7 @@ export const spring = {
 
 export const duration = { micro: 120, quick: 200, base: 280, hero: 320, sheet: 380, burst: 520 } as const;
 
-export const ambient = { twinkleA: 2800, twinkleB: 4100, twinkleC: 5300, orbit: 24000, syncOrbit: 1200 } as const;
+export const ambient = { twinkleA: 2800, twinkleB: 4100, twinkleC: 5300, orbit: 24000, syncOrbit: 1200, breath: 4000 } as const;
 ```
 
 All numbers live in this file. Components import a named token, never an inline
@@ -466,6 +466,73 @@ The icon's sky is a radial gradient from `#1B2157` to `#090B1A` with nine
 small stars; it exists only in these files. The splash shows the mark on
 `#090B1A` in both themes: the app always opens at night.
 
+### 4.12 The Insurge signature *(ADR-036)*
+
+Pawlaris is part of the Insurge ecosystem and says so with one line: the
+Insurge mark, then **powered by Insurge**. It is a signature, not a banner —
+small, quiet, and drawn with the same care as the rest of the sky.
+
+**The mark** is Insurge's black hole: a dark disc, a ring of light around it,
+and a tilted accretion disc that passes behind it and in front of it.
+Geometry, in a 48 × 48 box; `ui/cosmos/glyphs.ts` holds exactly this:
+
+```
+back     M3 24 A21 5 0 0 1 45 24      stroke 3.2, round caps, alpha 0.55
+ring     a circle, centre (24, 24), radius 12, stroke 3, no fill
+horizon  a circle, centre (24, 24), radius 10.5, filled
+front    M3 24 A21 5 0 0 0 45 24      stroke 3.2, round caps
+
+         back and front are the two halves of one ellipse (rx 21, ry 5),
+         both rotated −12° about (24, 24); drawn in the order listed
+```
+
+**Colour.** The mark keeps Insurge's colours in both themes: it is another
+brand's mark, not part of the Pawlaris palette. `ui/tokens/color.ts` exports
+them as `insurge`. The horizon is `void`, the ring is `glow`, and the two
+arcs take a horizontal gradient `deep` → `violet` → `lavender`.
+
+```ts
+export const insurge = {
+  void: '#030308', deep: '#4B0FCE', violet: '#7224FB',
+  lavender: '#B895FF', glow: '#D075EF',
+} as const;
+```
+
+**The line.** `PoweredBy` (`ui/cosmos/PoweredBy.tsx`) lays out, centred on
+one baseline: the mark at 18 dp, 8 dp of space, *powered by* in `caption`
+and `textMuted`, then *Insurge* in `label` and `text`. The two strings live
+in `strings.ts` as `brand.poweredBy` and `brand.insurge` and are not
+translated. To assistive technology the line is one element labelled
+"powered by Insurge". Given an `href`, it is a link with a 44 dp touch
+target; without one it is not pressable.
+
+**Motion.** One effect: the ring breathes, alpha 0.7 → 1 → 0.7 over
+`ambient.breath`, on the UI thread, only while its screen is focused. Under
+Reduce Motion the ring is still, at alpha 1 *(§5)*.
+
+**Rules.**
+
+- It appears where `09` places it and nowhere else: never on the splash, the
+  app icon or a notification.
+- It sits at the foot of a screen. The Pawlaris mark and the Insurge mark are
+  never side by side.
+- No other size, no other wording, no one-colour version.
+
+**Files and ownership.** The Insurge name and mark belong to Insurge and are
+used here by decision of the owner. The MIT licence of this repository does
+not cover them; `apps/mobile/assets/LICENSES.md` records that.
+
+| File | What it is |
+|---|---|
+| `spec/brand/insurge-mark.svg` | the mark as drawn above — the master |
+| `spec/brand/powered-by-insurge.svg` | the signature on a night-sky pill, for the README |
+
+**If Insurge supplies an official mark** — a vector, or an image with a
+transparent background — it replaces the master in `spec/brand/` and the
+drawing in the app, in one change. To keep that change small, `PoweredBy`
+takes its picture from one module, `ui/cosmos/insurgeMark.tsx`, and nothing
+else in the app draws the mark.
+
 ---
 
 ## 5. Reduce Motion *(P9)*
@@ -483,6 +550,7 @@ small stars; it exists only in these files. The splash shows the mark on
 | List stagger, skeleton sweep | all at once; static placeholder |
 | Comet tail, pulsar, rolling digits, route draw-on | static dot; digits snap; route shown |
 | Sheet spring | 150 ms fade |
+| The ring of the Insurge signature breathing | a still ring |
 
 Reduced mode is a different design, not a broken one: the sky is still there.
 
@@ -490,8 +558,8 @@ Reduced mode is a different design, not a broken one: the sky is still there.
 > a component test with the hook mocked true asserts the crossfade path runs.
 >
 > **MO-3** With reduce motion on, no `withRepeat` is started anywhere. Gate: a
-> test renders `Starfield`, `Orbit`, `SyncIndicator` and `Skeleton` with the hook
-> mocked true and asserts `withRepeat` was never called.
+> test renders `Starfield`, `Orbit`, `SyncIndicator`, `Skeleton` and `PoweredBy`
+> with the hook mocked true and asserts `withRepeat` was never called.
 
 ---
 
@@ -521,7 +589,7 @@ with unit tests; the component only draws it.
 Primitives  PressableScale · Card · Avatar · Chip · Skeleton · Sheet · Toast
             EmptyState · Button · TextField · Switch · SegmentedControl · Icon
 Cosmos      Starfield · StarCheck · Sparks · ConstellationLine · Orbit
-            ShootingStars · illustrations/* · glyphs
+            ShootingStars · illustrations/* · glyphs · PoweredBy
 Domain      TaskCard · PetToggle · PetCard · WeightChart · HealthTimelineItem
             WalkMetrics · RouteThumbnail · SyncIndicator · PermissionGate
             CountdownRing · AssetImage · DayHeader · ScopeFilter

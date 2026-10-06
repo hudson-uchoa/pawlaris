@@ -757,10 +757,10 @@ for identity and motion. Every screen renders from the store with no network
 await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 - [ ] **P4-1 — Tokens, theme, type, icons, primitives**
-  **Depends:** P0-5, P1-7 · **Read:** `06` §2, §3, §4.7 (Sheet), §4.8 (Skeleton), §5, §7 · `09` §5.2, §10
+  **Depends:** P0-5, P1-7 · **Read:** `06` §2, §3, §4.7 (Sheet), §4.8 (Skeleton), §4.12 (the `insurge` colours), §5, §7 · `09` §5.2, §10
   **Build:** install `react-native-reanimated`, `react-native-gesture-handler`,
   `react-native-svg`, `lucide-react-native`, `expo-font`, `expo-haptics`.
-  `ui/tokens/` (color light/dark, identity palette, spacing, radius, type,
+  `ui/tokens/` (color light/dark, identity palette, the `insurge` colours, spacing, radius, type,
   elevation, `pairs.ts`); Space Grotesk 500/700 embedded through the `expo-font`
   config plugin, with `assets/fonts/LICENSES.md`; `ui/theme.tsx` (`useTheme()`
   following the system scheme); `ui/motion/tokens.ts`;
@@ -777,7 +777,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Gate:** `pnpm -C apps/mobile exec jest src/ui src/i18n`
 
 - [ ] **P4-2 — The cosmos kit**
-  **Depends:** P4-1 · **Read:** `06` §1.3, §4.1–§4.5, §4.10, §4.11, §5
+  **Depends:** P4-1 · **Read:** `06` §1.3, §4.1–§4.5, §4.10, §4.11, §4.12, §5
   **Build:** install `@shopify/react-native-skia`. In `ui/cosmos/`:
   `stars.ts` (`generateStars`, pure, seeded mulberry32); `glyphs.ts` (the
   5-point star, the 4-point sparkle, the crescent, and the paw-star mark with
@@ -785,8 +785,12 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   twinkle and parallax from shared values; stops when unfocused, backgrounded
   or under Reduce Motion); `StarCheck` and `Sparks`; `ConstellationLine`;
   `Orbit` (avatar ring with satellite); `ShootingStars`;
-  `illustrations/` (the four scenes of `06` §4.10).
+  `illustrations/` (the four scenes of `06` §4.10); the Insurge signature of
+  `06` §4.12 — its mark in `glyphs.ts`, `insurgeMark.tsx`, `PoweredBy`, the two
+  `brand.*` strings, and the mark's row in `assets/LICENSES.md`.
   **Tests:** the `StarCheck` and `Starfield` cases of `07` §7; MO-3;
+  `PoweredBy` — the mark and both words in both themes, one accessibility
+  label, a link only when given an `href`;
   `stars.test.ts` (deterministic for a seed; counts split 50/30/20 across
   layers; all inside the bounds); each illustration renders in both themes.
   **Gate:** `pnpm -C apps/mobile exec jest src/ui/cosmos`
@@ -813,8 +817,10 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 - [ ] **P4-4 — Login and redeem**
   **Depends:** P4-3, P2-7 · **Read:** `09` §2 · `10` §8.1
   **Build:** the two screens in `features/auth/`, wired to `auth/session` and
-  `auth/lifecycle`, over a full-screen `Starfield`.
-  **Tests:** each error message of `09` §2 with a fake `Http`; success stores the
+  `auth/lifecycle`, over a full-screen `Starfield`, with the Insurge signature
+  at the foot of login.
+  **Tests:** each error message of `09` §2 with a fake `Http`; the signature is
+  on the login screen and is not pressable; success stores the
   session and kicks the engine; the pending-outbox note appears when the outbox
   is non-empty; the different-user confirmation.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/auth`
@@ -869,14 +875,16 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 - [ ] **P4-9 — Settings and diagnostics**
   **Depends:** P4-4, P1-2 · **Read:** `09` §7 · `02` §7 · `04` §4
-  **Build:** install `expo-sharing`, `expo-clipboard`. `(tabs)/settings`,
+  **Build:** install `expo-sharing`, `expo-clipboard`. `(tabs)/settings` (with
+  the author line and the Insurge signature at its foot, `09` §7),
   `settings/family` (the online-only actions of `10` §3, including the
   timezone), `settings/password`, `settings/diagnostics` (every value of R7.2
   available so far; Sincronizar agora; Autoteste running both fixture files,
   bundled into the app from `spec/fixtures/`; Reconstruir dados locais; Exportar
   registros with secrets redacted), `settings/permissions` as a list shell
   (rows are filled in by P5-7 and P6-1).
-  **Tests:** a member sees no invite/role/remove/timezone controls; controls
+  **Tests:** the author line shows; pressing the signature opens the Insurge
+  address through a fake `Linking`; a member sees no invite/role/remove/timezone controls; controls
   disabled offline with the note; Autoteste reports `n/n ok` and names a failing
   vector when the engine is stubbed wrong; the export contains no `Bearer`, no
   refresh token, no password.
@@ -1120,10 +1128,11 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   theme at 130% font scale.
 
 - [ ] **P7-3 — Copy, empty states, icon and splash**
-  **Depends:** P7-2 · **Read:** `09` §10 · `06` §4.10, §4.11
+  **Depends:** P7-2 · **Read:** `09` §10 · `06` §4.10, §4.11, §4.12
   **Build:** a full pass of `strings.ts` against `09`; every empty state of `09`
   with its scene; the app icon and the splash, built in P0-9, checked against
-  `06` §4.11 on a release build.
+  `06` §4.11 on a release build; the Insurge signature on login and in Ajustes
+  checked against `06` §4.12, in both themes.
   `scripts/guard-strings.mjs` fails on a JSX text literal containing letters
   outside `i18n/`.
   **Gate:** `node scripts/guard-strings.mjs` · `pnpm verify --only test:mobile`

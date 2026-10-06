@@ -78,6 +78,9 @@ layout of the dashboard.
   render skeletons *(R6.1)*.
 - When the session expired with a non-empty outbox, a note sits above the
   form: "Você tem N alterações esperando para sincronizar. Entre para enviá-las."
+- At the foot of the screen, centred, 24 dp above the bottom inset: the Insurge
+  signature `powered-by` *(`06` §4.12, R7.7)*. It is not pressable here, and
+  the keyboard covers it rather than pushing it into the form.
 
 ### 2.2 Redeem — `(auth)/redeem`
 
@@ -358,6 +361,11 @@ show. **Descartar** `walk-discard` for the walker or a leader.
 Rows: **Família** → `settings/family` · **Trocar senha** → `settings/password` ·
 **Permissões** → `settings/permissions` · **Diagnóstico** →
 `settings/diagnostics` · **Sair** `logout`.
+
+Below the rows, centred, 32 dp under **Sair**: **Pawlaris · criado por Hudson
+Uchoa** `settings-author` in `caption` and `textMuted`, and under it the
+Insurge signature `powered-by` *(`06` §4.12, R7.7)*, which here is a link:
+it opens `https://insurge.pages.dev` in the browser.
 
 - **Família:** family name and timezone (both editable by leaders; the
   timezone from a short list headed by `America/Sao_Paulo`, with a search over

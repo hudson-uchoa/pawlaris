@@ -719,3 +719,20 @@ notification and does not appear in Próximos cuidados. Unarchiving brings
 both back. The events themselves are untouched.
 **Consequence:** the reminder planner and the dashboard read the pet's
 `archived_at`. Nothing is written on archive: it is a filter.
+
+### ADR-036 — Pawlaris is powered by Insurge *(2026-10-05)*
+**Context:** Pawlaris began as the owner's own project, for one home. The
+owner is starting Insurge, a software studio whose products form one
+ecosystem, and wants Pawlaris in it without it ceasing to be his.
+**Decision (the owner):** Pawlaris stays the owner's project and joins the
+Insurge ecosystem. The app carries the signature *powered by Insurge* on the
+login screen and at the foot of Ajustes — discreet, and as well made as the
+rest — and Ajustes names the author. The README carries both too. The
+Insurge mark is drawn in code; an official file replaces the drawing if
+Insurge supplies one.
+**Consequence:** R7.7; `06` §4.12 defines the signature and its mark, and
+`09` §2.1 and §7 place it. The Insurge name and mark are Insurge's and are
+not covered by the repository's MIT licence: the README and
+`apps/mobile/assets/LICENSES.md` say so, and `AGENTS.md` rule 10 names the
+mark as the one brand in the app that is not Pawlaris's own. No route, table
+or dependency changes.

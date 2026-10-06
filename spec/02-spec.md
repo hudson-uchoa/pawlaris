@@ -468,6 +468,9 @@ Vocabulary used everywhere:
   task is a lit star; a pet is a star with an orbit; a finished day is a
   complete sky. Every effect is drawn in code, respects Reduce Motion, and stops
   when its screen is out of focus.
+- **R7.7** The app is signed *powered by Insurge* on the login screen and at
+  the foot of Settings, where it also names its author *(ADR-036, `06` §4.12)*.
+  The signature is a brand line: it reads the same in every language.
 
 ---
 
