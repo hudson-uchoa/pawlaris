@@ -470,7 +470,7 @@ describe('ScopeFilter', () => {                                 // P5-2
 
 describe('motion', () => {
   it('MO-1: reduce motion takes the crossfade path on a hero navigation', …)                              // P4-8
-  it('MO-3: reduce motion starts no repeating animation in Starfield, Orbit, SyncIndicator, Skeleton', …) // P4-2
+  it('MO-3: reduce motion starts no repeating animation in Starfield, Orbit, SyncIndicator, Skeleton, PoweredBy', …) // P4-2
 });
 ```
 
