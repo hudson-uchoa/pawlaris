@@ -14,6 +14,11 @@ a home with: who was fed, who got their medicine, who has been walked, and
 who did it. It was made for one home with two people and five pets, and it is
 built so that any home can run its own, with no subscription to anybody.
 
+Made by [Hudson Uchoa](https://github.com/hudson-uchoa), and part of the
+[Insurge](https://insurge.pages.dev/) ecosystem.
+
+<a href="https://insurge.pages.dev/"><img src="spec/brand/powered-by-insurge.svg" height="32" alt="powered by Insurge"></a>
+
 ![status](https://img.shields.io/badge/status-in%20development-orange)
 ![platform](https://img.shields.io/badge/platform-Android-3ddc84)
 ![Expo SDK](https://img.shields.io/badge/Expo%20SDK-57-000020)
@@ -277,6 +282,17 @@ state of every task is its checkbox in [`spec/08-tasks.md`](spec/08-tasks.md).
 Everything in the repository is in English. The app itself speaks Brazilian
 Portuguese, because that is what the household it was first made for reads.
 
+## Who Is Behind It
+
+Pawlaris is made by [Hudson Uchoa](https://github.com/hudson-uchoa), first for
+his own home: two people, four cats and a dog. It is his project, and it is
+part of the ecosystem of [Insurge](https://insurge.pages.dev/), the software
+studio he is helping start. That is why the app and this page are signed
+*powered by Insurge*.
+
 ## License
 
 [MIT](LICENSE). Use it, change it, build your own from it.
+
+The Insurge name and mark belong to Insurge and are not part of that licence.
+If you ship a build of your own, take the signature out.
