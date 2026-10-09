@@ -79,7 +79,6 @@ async def test_rb2_member_is_forbidden_on_every_implemented_leader_only_case(
     make_family: MakeFamily,
     client_for: ClientFor,
 ) -> None:
-    # No leader-only routes exist in P2-5; future entries join this check.
     for case in PERMISSION_MATRIX:
         assert set(case.expected) == {"member", "leader"}
         if case.expected["member"] != 403:

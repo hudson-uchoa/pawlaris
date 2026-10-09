@@ -83,6 +83,10 @@ async def test_id2_concurrent_duplicate_has_one_write(
     family = await make_family()
     client, headers = client_for(family.users[0]), idem()
     requests = [await route_request(family, route) for _ in range(2)]
+    if route == ("POST", "/probe/pet"):
+        for request, name in zip(requests, ("First pet", "Second pet"), strict=True):
+            assert request.json is not None
+            request.json["name"] = name
     before = await revision(app, family.id)
     responses = await asyncio.wait_for(
         asyncio.gather(
@@ -150,6 +154,8 @@ async def test_id3_cross_family_replay_reveals_nothing(
         and response.json()["code"] == "idempotency_key_reused"
     )
     assert original.json()["id"] not in response.text
+    if "name" in original.json():
+        assert original.json()["name"] not in response.text
     assert await revision(app, second.id) == before
 
 
@@ -260,9 +266,14 @@ async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
 
         return await original(mutation, faulty)
 
-    monkeypatch.setattr(IdempotentMutation, "__call__", fault_call)
+    failed_body = request.json
+    if entry.model is Pet:
+        assert request.json is not None
+        failed_body = {**request.json, fault: True}
+    else:
+        monkeypatch.setattr(IdempotentMutation, "__call__", fault_call)
     response = await client_for(family.users[0]).request(
-        route[0], request.url, headers=headers, json=request.json
+        route[0], request.url, headers=headers, json=failed_body
     )
     assert response.status_code == status
     async with app.state.session_factory() as session:
