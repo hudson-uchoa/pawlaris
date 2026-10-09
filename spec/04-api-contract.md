@@ -192,13 +192,19 @@ DELETE /me/push-token {token}                                  -> 204
 - **`/auth/logout`:** revokes the chain of the presented token. Always `204`,
   even for an unknown token. It does not touch push devices; the client calls
   `DELETE /me/push-token` first.
-- **`/auth/redeem`:** consumes an invite *(R1.3)*. The claim is one atomic
-  statement — `UPDATE invite_code SET used_at = :now, used_by = :new_user WHERE
-  code = :code AND used_at IS NULL AND expires_at > :now RETURNING …` — and no
-  row back means `410 invite_invalid`, so two simultaneous redeems of one code
-  cannot both succeed. Then, under the family lock, it creates the user in the
-  invite's family with the invite's role and returns a session. Password rules:
-  8–128 characters, no other constraint.
+- **`/auth/redeem`:** consumes an invite *(R1.3)*, in one transaction. The
+  claim is one atomic statement — `UPDATE invite_code SET used_at = :now WHERE
+  code = :code AND used_at IS NULL AND expires_at > :now RETURNING family_id,
+  role` — and no row back means `410 invite_invalid`, so two simultaneous
+  redeems of one code cannot both succeed. Then, under the family lock, it
+  creates the user in the invite's family with the invite's role, sets the
+  invite's `used_by` to that user, and returns a session. `used_by` is
+  written last because it references the user row, which does not exist at the
+  claim *(Q-14)*. If anything after the claim fails — `409 email_taken`, for
+  one — the transaction rolls back and the invite is unused again. The
+  password is hashed after the claim and before the family lock: an invalid
+  code costs no hash, and the family is never locked while one runs. Password
+  rules: 8–128 characters, no other constraint.
 - Password hashing and verification run off the event loop
   (`asyncio.to_thread`) behind a semaphore of 2, so a burst of logins can
   neither freeze the single worker nor exhaust its memory. The rate limiter's
