@@ -122,6 +122,26 @@ async def test_sy4_twelve_rows_paginate_five_five_two_without_loss(
     assert cursor == await revision(session, family)
 
 
+@pytest.mark.parametrize("row_count", [5, 6])
+async def test_sy4_exact_limit_is_final_and_one_extra_requires_another_page(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    session: AsyncSession,
+    row_count: int,
+) -> None:
+    family = await make_family(pets=row_count)
+    before = min(pet.revision for pet in family.pets) - 1
+    page = await pull(client_for(family.users[0]), since=before, limit=5)
+    expected = sorted(family.pets, key=lambda pet: pet.revision)[:5]
+    assert [change.row.id for change in page.changes] == [pet.id for pet in expected]
+    assert page.has_more is (row_count > 5)
+    if row_count == 5:
+        assert page.revision == await revision(session, family)
+    else:
+        assert page.revision == expected[-1].revision
+        assert page.revision < await revision(session, family)
+
+
 @pytest.mark.parametrize("since", [0, 2, 10000])
 async def test_sy5_other_family_never_appears(
     make_family: MakeFamily, client_for: ClientFor, session: AsyncSession, since: int
