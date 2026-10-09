@@ -7,13 +7,14 @@ from fastapi import FastAPI
 from sqlalchemy import func, select, text, update
 from sqlalchemy.exc import DBAPIError
 
+from app.errors import ApiError
 from app.idempotency import ENTITY_REGISTRY, IdempotentMutation, SyncModel
 from app.locks import lock_family
-from app.models import AppliedMutation, FamilyRevision, Pet
+from app.models import AppliedMutation, Family, FamilyRevision, Pet
 from app.schemas.rows import Row
 from tests.conftest import ClientFor
-from tests.factories import MakeFamily
-from tests.security.matrix import IDEMPOTENT_ROUTES
+from tests.factories import MakeFamily, TestFamily
+from tests.security.matrix import IDEMPOTENT_ROUTES, PERMISSION_MATRIX, MatrixRequest
 
 type Idem = Callable[[], dict[str, str]]
 
@@ -29,6 +30,15 @@ async def revision(app: FastAPI, family_id: UUID) -> int:
         ).scalar_one()
 
 
+async def route_request(family: TestFamily, route: tuple[str, str]) -> MatrixRequest:
+    if route == ("POST", "/probe/pet"):
+        return MatrixRequest("/probe/pet", {"id": str(uuid4()), "name": "Probe pet"})
+    case = next(
+        case for case in PERMISSION_MATRIX if (case.method, case.template) == route
+    )
+    return await case.request(family, family.users[0])
+
+
 @pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
 async def test_id2_replay_preserves_row_and_family_revision(
     app: FastAPI,
@@ -38,24 +48,27 @@ async def test_id2_replay_preserves_row_and_family_revision(
     route: tuple[str, str],
 ) -> None:
     family = await make_family()
-    client = client_for(family.users[0])
-    headers = idem()
-    body = {"id": str(uuid4()), "name": "Probe pet"}
-    first = await client.request(*route, json=body, headers=headers)
+    client, headers = client_for(family.users[0]), idem()
+    request = await route_request(family, route)
+    first = await client.request(
+        route[0], request.url, json=request.json, headers=headers
+    )
     assert first.status_code == 200
     before = await revision(app, family.id)
-    second = await client.request(
-        *route, json={**body, "name": "Changed intent"}, headers=headers
-    )
-    assert second.status_code == 200
-    assert second.json() == first.json()
+    changed = dict(request.json) if request.json is not None else None
+    if changed is not None:
+        if "name" in changed:
+            changed["name"] = "Changed intent"
+        if "role" in changed:
+            changed["role"] = "member"
+    second = await client.request(route[0], request.url, json=changed, headers=headers)
+    assert second.status_code == 200 and second.json() == first.json()
     assert await revision(app, family.id) == before
     async with app.state.session_factory() as session:
         stored = await session.get(AppliedMutation, UUID(headers["Idempotency-Key"]))
         assert stored is not None
         assert stored.entity_id == UUID(first.json()["id"])
-        assert stored.family_id == family.id
-        assert stored.user_id == family.users[0].id
+        assert stored.family_id == family.id and stored.user_id == family.users[0].id
         assert stored.entity == IDEMPOTENT_ROUTES[route]
 
 
@@ -68,31 +81,48 @@ async def test_id2_concurrent_duplicate_has_one_write(
     route: tuple[str, str],
 ) -> None:
     family = await make_family()
-    client = client_for(family.users[0])
-    headers = idem()
+    client, headers = client_for(family.users[0]), idem()
+    requests = [await route_request(family, route) for _ in range(2)]
     before = await revision(app, family.id)
-    bodies = [
-        {"id": str(uuid4()), "name": name} for name in ("First pet", "Second pet")
-    ]
     responses = await asyncio.wait_for(
         asyncio.gather(
-            *(client.request(*route, json=body, headers=headers) for body in bodies)
+            *[
+                client.request(
+                    route[0], request.url, json=request.json, headers=headers
+                )
+                for request in requests
+            ]
         ),
         timeout=10,
     )
-    assert [response.status_code for response in responses] == [200, 200]
+    assert [r.status_code for r in responses] == [200, 200]
     assert responses[0].json() == responses[1].json()
-    assert responses[0].json()["id"] in [body["id"] for body in bodies]
     assert await revision(app, family.id) == before + 1
     async with app.state.session_factory() as session:
         assert (
             await session.scalar(
                 select(func.count())
-                .select_from(Pet)
-                .where(Pet.id.in_([UUID(body["id"]) for body in bodies]))
+                .select_from(AppliedMutation)
+                .where(
+                    AppliedMutation.client_mutation_id
+                    == UUID(headers["Idempotency-Key"])
+                )
             )
             == 1
         )
+        if route == ("POST", "/probe/pet"):
+            ids = [
+                UUID(str(request.json["id"]))
+                for request in requests
+                if request.json is not None
+            ]
+            assert UUID(responses[0].json()["id"]) in ids
+            assert (
+                await session.scalar(
+                    select(func.count()).select_from(Pet).where(Pet.id.in_(ids))
+                )
+                == 1
+            )
 
 
 @pytest.mark.parametrize("route", IDEMPOTENT_ROUTES)
@@ -105,17 +135,21 @@ async def test_id3_cross_family_replay_reveals_nothing(
 ) -> None:
     first, second = await make_family(), await make_family()
     headers = idem()
-    body = {"id": str(uuid4()), "name": "Private pet"}
-    assert (
-        await client_for(first.users[0]).request(*route, json=body, headers=headers)
-    ).status_code == 200
-    before = await revision(app, second.id)
-    response = await client_for(second.users[0]).request(
-        *route, json=body, headers=headers
+    request = await route_request(first, route)
+    original = await client_for(first.users[0]).request(
+        route[0], request.url, json=request.json, headers=headers
     )
-    assert response.status_code == 422
-    assert response.json()["code"] == "idempotency_key_reused"
-    assert body["id"] not in response.text and body["name"] not in response.text
+    assert original.status_code == 200
+    before = await revision(app, second.id)
+    request = await route_request(second, route)
+    response = await client_for(second.users[0]).request(
+        route[0], request.url, json=request.json, headers=headers
+    )
+    assert (
+        response.status_code == 422
+        and response.json()["code"] == "idempotency_key_reused"
+    )
+    assert original.json()["id"] not in response.text
     assert await revision(app, second.id) == before
 
 
@@ -141,11 +175,14 @@ async def test_id3_cross_entity_replay_reveals_nothing(
         )
         await session.commit()
     before = await revision(app, family.id)
+    request = await route_request(family, route)
     response = await client_for(family.users[0]).request(
-        *route, headers=headers, json={"id": str(uuid4()), "name": "Probe pet"}
+        route[0], request.url, json=request.json, headers=headers
     )
-    assert response.status_code == 422
-    assert response.json()["code"] == "idempotency_key_reused"
+    assert (
+        response.status_code == 422
+        and response.json()["code"] == "idempotency_key_reused"
+    )
     assert await revision(app, family.id) == before
 
 
@@ -162,12 +199,17 @@ async def test_id2_missing_or_malformed_key_is_400_without_write(
 ) -> None:
     family = await make_family()
     before = await revision(app, family.id)
-    headers = {} if key is None else {"Idempotency-Key": key}
+    request = await route_request(family, route)
     response = await client_for(family.users[0]).request(
-        *route, headers=headers, json={"id": str(uuid4()), "name": "Probe pet"}
+        route[0],
+        request.url,
+        json=request.json,
+        headers={} if key is None else {"Idempotency-Key": key},
     )
-    assert response.status_code == 400
-    assert response.json()["code"] == "idempotency_key_required"
+    assert (
+        response.status_code == 400
+        and response.json()["code"] == "idempotency_key_required"
+    )
     assert await revision(app, family.id) == before
 
 
@@ -181,28 +223,66 @@ async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
     route: tuple[str, str],
     fault: str,
     status: int,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     family = await make_family()
-    headers, row_id = idem(), uuid4()
+    headers = idem()
+    request = await route_request(family, route)
     before = await revision(app, family.id)
+    original = IdempotentMutation.__call__
+    entry = ENTITY_REGISTRY[IDEMPOTENT_ROUTES[route]]
+    row_id = family.id if entry.model is Family else family.users[1].id
+    if entry.model is Pet:
+        assert request.json is not None
+        row_id = UUID(str(request.json["id"]))
+    async with app.state.session_factory() as session:
+        row = await session.get(entry.model, row_id)
+        previous = (
+            None
+            if row is None
+            else entry.schema.model_validate(row).model_dump(mode="json")
+        )
+
+    async def fault_call(
+        mutation: IdempotentMutation, handler: Callable[[], Awaitable[SyncModel]]
+    ) -> Row:
+        async def faulty() -> SyncModel:
+            row = await handler()
+            if fault == "fail_handler":
+                raise ApiError(409, "last_leader", "Injected handler failure.")
+            marker = uuid4().hex
+            for _ in range(2):
+                await mutation.session.execute(
+                    text("INSERT INTO probe_commit (id, marker) VALUES (:id, :marker)"),
+                    {"id": uuid4(), "marker": marker},
+                )
+            return row
+
+        return await original(mutation, faulty)
+
+    monkeypatch.setattr(IdempotentMutation, "__call__", fault_call)
     response = await client_for(family.users[0]).request(
-        *route,
-        headers=headers,
-        json={"id": str(row_id), "name": "Probe pet", fault: True},
+        route[0], request.url, headers=headers, json=request.json
     )
     assert response.status_code == status
     async with app.state.session_factory() as session:
         assert (
             await session.get(AppliedMutation, UUID(headers["Idempotency-Key"])) is None
         )
-        assert await session.get(Pet, row_id) is None
+        row = await session.get(entry.model, row_id)
+        assert (
+            None
+            if row is None
+            else entry.schema.model_validate(row).model_dump(mode="json")
+        ) == previous
     assert await revision(app, family.id) == before
     assert app.state.probe.events == []
+    monkeypatch.setattr(IdempotentMutation, "__call__", original)
     retry = await client_for(family.users[0]).request(
-        *route, headers=headers, json={"id": str(row_id), "name": "Probe pet"}
+        route[0], request.url, headers=headers, json=request.json
     )
     assert retry.status_code == 200
-    assert app.state.probe.events == ["pet visible"]
+    assert app.state.probe.events == (["pet visible"] if entry.model is Pet else [])
 
 
 async def test_id2_replay_returns_current_row_including_tombstone(
