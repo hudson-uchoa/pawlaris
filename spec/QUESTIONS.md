@@ -436,3 +436,32 @@ ten entities, with `L` the hand-written type and `W` the generated one:
 
 A new refinement is a decision for a question here, not something to add to
 the list in passing. `08` P2-6 now states the rule.
+
+## Q-14 — P2-7 — How can the invite claim reference a user not yet created?
+**Asked:** 2026-10-09
+**Where:** spec/04-api-contract.md §3 (`/auth/redeem`);
+spec/03-data-model.md §2 (`invite_code.used_by`);
+spec/08-tasks.md P2-7 Build;
+services/api/migrations/versions/0002_domain_schema.py;
+services/api/app/models/identity.py
+**Problem:** The required atomic claim sets `used_by = :new_user` before
+creating that user under the family lock. However, `used_by` references
+`app_user(id)` through an immediate, non-deferrable foreign key in both the
+spec and the existing schema. On a freshly migrated private PostgreSQL
+database, `pg_constraint` confirms `condeferrable = false` and
+`condeferred = false`; executing the specified claim for an unused,
+unexpired invite and a new user id raises SQLSTATE `23503` before user
+creation can run. The probe had a 30-second timeout, rolled back its writes,
+and dropped its private database. Changing the order or the constraint
+would depart from the spec or alter a previous task's schema.
+**I would assume:** Claim atomically by setting only `used_at`, keeping the
+specified unused/unexpired predicate and `RETURNING` the invite. Then take
+the family lock, create the user, and set `used_by` to that user in the same
+transaction before issuing the session. Roll back the whole transaction on
+failure, so a failed user creation never consumes the invite. The atomic
+claim still allows exactly one concurrent redeem to succeed, and the
+foreign key remains immediate. Please confirm that sequence, or authorize
+a migration making the foreign key deferred so the specified claim can
+remain unchanged.
+**Blocking:** yes (P2-7 stopped before contract or implementation changes;
+its checkbox remains `[ ]`, pending the orchestrator's decision).
