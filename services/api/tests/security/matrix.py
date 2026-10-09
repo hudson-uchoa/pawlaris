@@ -100,6 +100,16 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
 )
 
 PERMISSION_MATRIX: list[PermissionCase] = [
+    PermissionCase(1, "GET", "/api/v1/sync", read_sync, {"member": 200, "leader": 200}),
+    PermissionCase(2, "GET", "/api/v1/me", read_me, {"member": 200, "leader": 200}),
+    PermissionCase(2, "PATCH", "/api/v1/me", patch_me, {"member": 200, "leader": 200}),
+    PermissionCase(
+        2,
+        "POST",
+        "/api/v1/me/password",
+        change_password,
+        {"member": 204, "leader": 204},
+    ),
     PermissionCase(
         3, "PATCH", "/api/v1/family", patch_family, {"member": 403, "leader": 200}
     ),
@@ -119,16 +129,6 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         "/api/v1/family/members/{user_id}",
         remove_member,
         {"member": 403, "leader": 200},
-    ),
-    PermissionCase(1, "GET", "/api/v1/sync", read_sync, {"member": 200, "leader": 200}),
-    PermissionCase(2, "GET", "/api/v1/me", read_me, {"member": 200, "leader": 200}),
-    PermissionCase(2, "PATCH", "/api/v1/me", patch_me, {"member": 200, "leader": 200}),
-    PermissionCase(
-        2,
-        "POST",
-        "/api/v1/me/password",
-        change_password,
-        {"member": 204, "leader": 204},
     ),
 ]
 

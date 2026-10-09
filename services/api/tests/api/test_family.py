@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import idempotency
 from app.clock import FrozenClock
+from app.errors import ApiError
+from app.idempotency import IdempotentMutation, SyncModel
 from app.models import (
     AppUser,
     Family,
@@ -20,11 +22,111 @@ from app.models import (
     TaskCompletion,
     TaskTemplate,
 )
+from app.schemas.rows import Row
 from app.security.tokens import new_refresh_token
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily
 
 type Idem = Callable[[], dict[str, str]]
+
+
+@pytest.mark.parametrize("fault", ["after_write", "commit"])
+async def test_fm1_failed_removal_rolls_back_every_effect(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+    monkeypatch: pytest.MonkeyPatch,
+    fault: str,
+) -> None:
+    from collections.abc import Awaitable
+
+    family = await make_family()
+    leader, member = family.users
+    async with app.state.session_factory() as session:
+        task = TaskTemplate(**await family.row_values(session, "task_template"))
+        task.assigned_to = member.id
+        session.add(task)
+        session.add(PushDevice(token=secrets.token_urlsafe(24), user_id=member.id))
+        _, digest = new_refresh_token()
+        session.add(
+            RefreshToken(
+                id=uuid4(),
+                user_id=member.id,
+                chain_id=uuid4(),
+                token_hash=digest,
+                expires_at=frozen_clock.now() + timedelta(days=30),
+            )
+        )
+        await session.commit()
+        task_revision = task.revision
+        revision = await session.scalar(
+            select(FamilyRevision.value).where(FamilyRevision.family_id == family.id)
+        )
+    original_call, original_commit = IdempotentMutation.__call__, AsyncSession.commit
+
+    async def fail_after_write(
+        mutation: IdempotentMutation, handler: Callable[[], Awaitable[SyncModel]]
+    ) -> Row:
+        async def failed() -> SyncModel:
+            await handler()
+            raise ApiError(409, "last_leader", "Injected failure after removal writes.")
+
+        return await original_call(mutation, failed)
+
+    async def fail_commit(session: AsyncSession) -> None:
+        raise RuntimeError("Injected removal commit failure")
+
+    if fault == "after_write":
+        monkeypatch.setattr(IdempotentMutation, "__call__", fail_after_write)
+    else:
+        monkeypatch.setattr(AsyncSession, "commit", fail_commit)
+    headers = idem()
+    response = await client_for(leader).delete(
+        f"/api/v1/family/members/{member.id}", headers=headers
+    )
+    assert response.status_code == (409 if fault == "after_write" else 500)
+    async with app.state.session_factory() as session:
+        saved = await session.get(AppUser, member.id)
+        assert saved is not None
+        assert saved.disabled_at is None and saved.email == member.email
+        assert saved.revision == member.revision
+        saved_task = await session.get(TaskTemplate, task.id)
+        assert (
+            saved_task is not None
+            and saved_task.assigned_to == member.id
+            and saved_task.revision == task_revision
+        )
+        assert (
+            await session.scalar(
+                select(RefreshToken.revoked_at).where(RefreshToken.user_id == member.id)
+            )
+            is None
+        )
+        assert (
+            await session.scalar(
+                select(func.count())
+                .select_from(PushDevice)
+                .where(PushDevice.user_id == member.id)
+            )
+            == 1
+        )
+        assert (
+            await session.scalar(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family.id
+                )
+            )
+            == revision
+        )
+    monkeypatch.setattr(IdempotentMutation, "__call__", original_call)
+    monkeypatch.setattr(AsyncSession, "commit", original_commit)
+    assert (
+        await client_for(leader).delete(
+            f"/api/v1/family/members/{member.id}", headers=headers
+        )
+    ).status_code == 200
 
 
 @pytest.mark.parametrize("method", ["PATCH", "DELETE"])
@@ -244,7 +346,7 @@ async def test_fm1_removal_is_atomic_and_preserves_history(
         )
     ).status_code == 404
     sync = (await client_for(leader).get("/api/v1/sync?since=0")).json()
-    assert response.json() in sync["changes"]["members"]
+    assert {"entity": "members", "row": response.json()} in sync["changes"]
     invite = await client_for(leader).post("/api/v1/invites", json={"role": "member"})
     joined = await client_for(leader).post(
         "/api/v1/auth/redeem",

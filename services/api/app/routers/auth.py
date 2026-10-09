@@ -17,7 +17,7 @@ from app.schemas.auth import (
     Session,
 )
 from app.security.ratelimit import LoginRateLimiter
-from app.services import auth
+from app.services import auth, family
 from app.settings import Settings
 
 router = APIRouter()
@@ -31,7 +31,7 @@ Configuration = Annotated[Settings, Depends(get_settings)]
 async def redeem(
     body: Redeem, session: Database, clock: RequestClock, settings: Configuration
 ) -> Session:
-    raise NotImplementedError
+    return await family.redeem(session, body, clock, settings)
 
 
 def get_limiter(request: Request) -> LoginRateLimiter:
