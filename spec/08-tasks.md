@@ -510,7 +510,7 @@ tests cover them for its routes.
   `has_more` true.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_sync.py -q` · `pnpm verify --only security,typecheck:shared,contract-check`
 
-- [ ] **P2-7 — Family, members, invites, redeem**
+- [~] **P2-7 — Family, members, invites, redeem**
   **Depends:** P2-6 · **Read:** `02` §1.3 · `03` §2 · `04` §3 (redeem), §4, §5 rows 3–6
   **Build:** `routers/family.py`; `POST /auth/redeem` (the atomic claim of
   `04` §3, then the user under the family lock, with the next identity key);
