@@ -7,7 +7,15 @@ from app.clock import Clock
 from app.db import get_session
 from app.deps import current_user, get_clock, get_settings
 from app.models import AppUser
-from app.schemas.auth import Login, Me, MePatch, PasswordChange, Refresh, Session
+from app.schemas.auth import (
+    Login,
+    Me,
+    MePatch,
+    PasswordChange,
+    Redeem,
+    Refresh,
+    Session,
+)
 from app.security.ratelimit import LoginRateLimiter
 from app.services import auth
 from app.settings import Settings
@@ -17,6 +25,13 @@ Database = Annotated[AsyncSession, Depends(get_session)]
 User = Annotated[AppUser, Depends(current_user)]
 RequestClock = Annotated[Clock, Depends(get_clock)]
 Configuration = Annotated[Settings, Depends(get_settings)]
+
+
+@router.post("/auth/redeem", response_model=Session)
+async def redeem(
+    body: Redeem, session: Database, clock: RequestClock, settings: Configuration
+) -> Session:
+    raise NotImplementedError
 
 
 def get_limiter(request: Request) -> LoginRateLimiter:

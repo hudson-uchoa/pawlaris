@@ -3,6 +3,7 @@
 import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -43,6 +44,31 @@ async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/me", json={"display_name": "Matrix member"})
 
 
+async def patch_family(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        "/api/v1/family", {"name": "Renamed family"}, {"Idempotency-Key": str(uuid4())}
+    )
+
+
+async def invite(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest("/api/v1/invites", {"role": "member"})
+
+
+async def patch_member(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        f"/api/v1/family/members/{fam.users[1].id}",
+        {"role": "leader"},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def remove_member(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        f"/api/v1/family/members/{fam.users[1].id}",
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+
+
 async def change_password(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     current, replacement = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
     encoded = await hash_password(current)
@@ -69,10 +95,31 @@ PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
         ("POST", "/api/v1/auth/login"),
         ("POST", "/api/v1/auth/refresh"),
         ("POST", "/api/v1/auth/logout"),
+        ("POST", "/api/v1/auth/redeem"),
     }
 )
 
 PERMISSION_MATRIX: list[PermissionCase] = [
+    PermissionCase(
+        3, "PATCH", "/api/v1/family", patch_family, {"member": 403, "leader": 200}
+    ),
+    PermissionCase(
+        4, "POST", "/api/v1/invites", invite, {"member": 403, "leader": 200}
+    ),
+    PermissionCase(
+        5,
+        "PATCH",
+        "/api/v1/family/members/{user_id}",
+        patch_member,
+        {"member": 403, "leader": 200},
+    ),
+    PermissionCase(
+        6,
+        "DELETE",
+        "/api/v1/family/members/{user_id}",
+        remove_member,
+        {"member": 403, "leader": 200},
+    ),
     PermissionCase(1, "GET", "/api/v1/sync", read_sync, {"member": 200, "leader": 200}),
     PermissionCase(2, "GET", "/api/v1/me", read_me, {"member": 200, "leader": 200}),
     PermissionCase(2, "PATCH", "/api/v1/me", patch_me, {"member": 200, "leader": 200}),
@@ -89,4 +136,9 @@ PERMISSION_MATRIX: list[PermissionCase] = [
 PROBE_PERMISSION_MATRIX: dict[tuple[str, str], dict[str, int]] = {
     ("POST", "/probe/pet"): {"member": 200, "leader": 200},
 }
-IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {("POST", "/probe/pet"): "pets"}
+IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {
+    ("POST", "/probe/pet"): "pets",
+    ("PATCH", "/api/v1/family"): "family",
+    ("PATCH", "/api/v1/family/members/{user_id}"): "members",
+    ("DELETE", "/api/v1/family/members/{user_id}"): "members",
+}

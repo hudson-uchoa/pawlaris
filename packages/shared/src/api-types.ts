@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem */
+        post: operations["redeem_api_v1_auth_redeem_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/refresh": {
         parameters: {
             query?: never;
@@ -55,6 +72,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/family": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Family */
+        patch: operations["patch_family_api_v1_family_patch"];
+        trace?: never;
+    };
+    "/api/v1/family/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Member */
+        delete: operations["remove_member_api_v1_family_members__user_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Member */
+        patch: operations["patch_member_api_v1_family_members__user_id__patch"];
+        trace?: never;
+    };
     "/api/v1/health": {
         parameters: {
             query?: never;
@@ -66,6 +118,23 @@ export interface paths {
         get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Invite */
+        post: operations["invite_api_v1_invites_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -261,6 +330,13 @@ export interface components {
             entity: "family";
             row: components["schemas"]["Family"];
         };
+        /** FamilyPatch */
+        FamilyPatch: {
+            /** Name */
+            name?: string;
+            /** Timezone */
+            timezone?: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -335,6 +411,21 @@ export interface components {
             uptime_s: number;
             /** Version */
             version: string;
+        };
+        /** Invite */
+        Invite: {
+            /** Code */
+            code: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "leader" | "member";
         };
         JsonValue: unknown;
         /** Login */
@@ -485,6 +576,20 @@ export interface components {
             entity: "pets";
             row: components["schemas"]["Pet"];
         };
+        /** Redeem */
+        Redeem: {
+            /** Code */
+            code: string;
+            /** Display Name */
+            display_name: string;
+            /** Email */
+            email: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+        };
         /** Refresh */
         Refresh: {
             /**
@@ -492,6 +597,14 @@ export interface components {
              * Format: password
              */
             refresh_token: string;
+        };
+        /** RoleChange */
+        RoleChange: {
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "leader" | "member";
         };
         /** Session */
         Session: {
@@ -845,6 +958,39 @@ export interface operations {
             };
         };
     };
+    redeem_api_v1_auth_redeem_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Redeem"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     refresh_api_v1_auth_refresh_post: {
         parameters: {
             query?: never;
@@ -878,6 +1024,111 @@ export interface operations {
             };
         };
     };
+    patch_family_api_v1_family_patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FamilyPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Family"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_member_api_v1_family_members__user_id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_member_api_v1_family_members__user_id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Member"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     health_api_v1_health_get: {
         parameters: {
             query?: never;
@@ -894,6 +1145,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    invite_api_v1_invites_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoleChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Invite"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

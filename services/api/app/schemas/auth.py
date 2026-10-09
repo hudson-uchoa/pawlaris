@@ -14,6 +14,13 @@ class Login(AuthBody):
     password: SecretStr
 
 
+class Redeem(AuthBody):
+    code: str
+    email: str
+    password: SecretStr = Field(min_length=8, max_length=128)
+    display_name: str = Field(min_length=1, max_length=40)
+
+
 class Refresh(AuthBody):
     refresh_token: SecretStr
 
