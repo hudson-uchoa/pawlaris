@@ -518,7 +518,8 @@ tests cover them for its routes.
   member-removal transaction of `04` §4; invite codes: 10 characters of
   Crockford base32 from `secrets`.
   **Tests:** `tests/api/test_family.py` and `tests/auth/test_invites.py` per
-  `07` §5.2 (FM-1 including the concurrent case; a sole leader cannot demote
+  `07` §5.2 (a redeem that fails with `409 email_taken` leaves the invite
+  usable; FM-1 including the concurrent case; a sole leader cannot demote
   themselves; removal disables, rewrites the email, revokes chains, deletes
   push devices, unassigns their tasks, keeps their completions; the freed email
   can be invited again; valid and invalid timezones).

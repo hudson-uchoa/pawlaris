@@ -465,3 +465,29 @@ a migration making the foreign key deferred so the specified claim can
 remain unchanged.
 **Blocking:** yes (P2-7 stopped before contract or implementation changes;
 its checkbox remains `[ ]`, pending the orchestrator's decision).
+**Answer:** orchestrator — 2026-10-09. As assumed; no migration. The defect
+was the spec's: `04` §3 wrote `used_by` in the claim, before the row it
+references exists. `04` §3 now reads:
+
+1. Begin one transaction. Claim with
+   `UPDATE invite_code SET used_at = :now WHERE code = :code AND used_at IS
+   NULL AND expires_at > :now RETURNING family_id, role`. No row → `410
+   invite_invalid`.
+2. Hash the password (off the event loop, behind the semaphore). It comes
+   after the claim so an invalid code costs no hash, and before the lock so
+   the family is never locked while a hash runs.
+3. Take the family lock, create the user with the invite's role and the next
+   identity key, set the invite's `used_by` to that user.
+4. Commit, then issue the session. Any failure after step 1 — `409
+   email_taken` included — rolls the whole transaction back, so the invite is
+   unused again.
+
+The claim before the lock is deliberate and safe: the family is not known
+until the invite is read, and no other route updates an `invite_code` row
+while holding a family lock, so the two locks cannot be taken in opposite
+orders. Two redeems of one code still serialise on the invite row: the
+second waits, re-checks `used_at IS NULL` and gets no row.
+
+Two cases join the tests (`07` §5.2 R1.3, `08` P2-7): a redeemed invite
+records `used_by`, and a redeem that fails with `409 email_taken` leaves the
+invite usable.
