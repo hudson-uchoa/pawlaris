@@ -7,8 +7,10 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncClient
 from sqlalchemy import func, select, update
+from sqlalchemy.engine import ScalarResult
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
 
 from app.cli import IDENTITY_KEYS
 from app.clock import FrozenClock
@@ -488,13 +490,38 @@ async def test_r1_3_family_lock_is_held_before_identity_selection(
 
 
 async def test_r1_3_two_invites_redeemed_together_get_different_keys(
+    app: FastAPI,
     make_family: MakeFamily,
     client_for: ClientFor,
     client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     family = await make_family()
     leader = client_for(family.users[0])
     invites = [await create_invite(leader), await create_invite(leader)]
+    original = AsyncSession.scalars
+    selections = 0
+
+    async def checked_selection(
+        session: AsyncSession,
+        statement: Select[tuple[str]],
+    ) -> ScalarResult[str]:
+        nonlocal selections
+        if str(statement).startswith("SELECT app_user.color"):
+            # Observe the lock at selection itself, even when scheduling
+            # happens to produce distinct keys without serialization.
+            async with app.state.session_factory() as observer:
+                with pytest.raises(DBAPIError) as caught:
+                    await observer.execute(
+                        select(FamilyRevision)
+                        .where(FamilyRevision.family_id == family.id)
+                        .with_for_update(nowait=True)
+                    )
+                assert getattr(caught.value.orig, "sqlstate", None) == "55P03"
+            selections += 1
+        return await original(session, statement)
+
+    monkeypatch.setattr(AsyncSession, "scalars", checked_selection)
     responses = await asyncio.gather(
         *[
             client.post("/api/v1/auth/redeem", json=redeem_body(invite["code"]))
@@ -503,3 +530,4 @@ async def test_r1_3_two_invites_redeemed_together_get_different_keys(
     )
     assert [response.status_code for response in responses] == [200, 200]
     assert len({response.json()["user"]["color"] for response in responses}) == 2
+    assert selections == 2
