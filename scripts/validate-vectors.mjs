@@ -178,6 +178,12 @@ const uniqueNames = (list, where) => {
     if (!ENTITIES.includes(entity)) return fail(at, `unknown entity ${entity}`);
     const id = entity === 'walk_routes' ? row?.walk_id : row?.id;
     if (!UUID.test(id ?? '')) fail(at, `${entity} row has no UUIDv4 id`);
+    if (entity === 'walk_routes') {
+      const fourNumbers = (p) => Array.isArray(p) && p.length === 4 && p.every(Number.isFinite);
+      if (!Array.isArray(row?.points) || !row.points.every(fourNumbers)) {
+        fail(at, 'walk_routes points must each be [lat, lon, t, acc] (04 §12)');
+      }
+    }
     if (instant && entity !== 'walk_routes' && !INSTANT.test(row?.updated_at ?? '')) {
       fail(at, `${entity} row needs updated_at as ISO UTC with seconds`);
     }
