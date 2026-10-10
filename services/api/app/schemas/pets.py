@@ -3,7 +3,9 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import UUID4, AwareDatetime, BaseModel, ConfigDict, Field
+from pydantic import UUID4, AwareDatetime, Field
+
+from app.schemas.body import RequestBody
 
 type Sex = Literal["female", "male", "unknown"]
 type EventType = Literal[
@@ -11,11 +13,7 @@ type EventType = Literal[
 ]
 
 
-class MutationBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class PetPatch(MutationBody):
+class PetPatch(RequestBody):
     name: str = Field(default_factory=str, min_length=1, max_length=40)
     sex: Sex = "unknown"
     breed: str | None = None
@@ -33,7 +31,7 @@ class PetCreate(PetPatch):
     species: Literal["cat", "dog"]
 
 
-class WeightCreate(MutationBody):
+class WeightCreate(RequestBody):
     id: UUID4
     pet_id: UUID
     weight_kg: Decimal = Field(
@@ -43,7 +41,7 @@ class WeightCreate(MutationBody):
     note: str | None = None
 
 
-class HealthEventPatch(MutationBody):
+class HealthEventPatch(RequestBody):
     type: EventType = "other"
     title: str = Field(default_factory=str, min_length=1, max_length=80)
     notes: str | None = None

@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, Field, field_validator
+
+from app.schemas.body import RequestBody
 
 
-class FamilyPatch(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class FamilyPatch(RequestBody):
     name: str = Field(default_factory=str, min_length=1, max_length=60)
     timezone: str = Field(default_factory=str)
 
@@ -21,9 +21,7 @@ class FamilyPatch(BaseModel):
         return value
 
 
-class RoleChange(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
+class RoleChange(RequestBody):
     role: Literal["leader", "member"]
 
 

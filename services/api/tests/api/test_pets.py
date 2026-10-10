@@ -5,10 +5,13 @@ from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI
+from httpx import AsyncClient
+from pydantic import ValidationError
 from sqlalchemy import func, select, update
 
 from app.clock import FrozenClock
 from app.models import FamilyRevision, HealthEvent, Pet, WeightEntry
+from app.schemas.body import RequestBody
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily, TestFamily
 
@@ -19,6 +22,71 @@ ENTITIES = {
     "weights": "weight_entries",
     "health-events": "health_events",
 }
+
+
+@pytest.mark.parametrize(
+    "method,path,field",
+    [
+        ("PATCH", "me", "display_name"),
+        ("PATCH", "family", "name"),
+        ("POST", "pets", "name"),
+        ("POST", "weights", "note"),
+        ("POST", "health-events", "notes"),
+        ("POST", "auth/login", "email"),
+        ("POST", "auth/login", "password"),
+        ("POST", "auth/redeem", "display_name"),
+        ("POST", "auth/redeem", "password"),
+        ("POST", "auth/refresh", "refresh_token"),
+        ("POST", "auth/logout", "refresh_token"),
+        ("POST", "me/password", "new_password"),
+    ],
+)
+async def test_r2_all_body_routers_reject_null_character(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+    idem: Idem,
+    method: str,
+    path: str,
+    field: str,
+) -> None:
+    family = await make_family()
+    if path in MODELS:
+        body = body_for(path, family)
+    elif path == "auth/login":
+        body = {"email": "nobody@example.invalid", "password": "test-password"}
+    elif path == "auth/redeem":
+        body = {
+            "code": "UNKNOWN123",
+            "email": "nobody@example.invalid",
+            "password": "test-password",
+            "display_name": "Test member",
+        }
+    elif path == "me/password":
+        body = {"current_password": "test-password", "new_password": "new-password"}
+    else:
+        body = {}
+    body[field] = "before\x00after"
+    http = client if path.startswith("auth/") else client_for(family.users[0])
+    response = await http.request(method, f"/api/v1/{path}", json=body, headers=idem())
+    assert response.status_code == 422
+    assert response.json()["code"] == "validation_error"
+    assert response.json()["errors"]
+    assert "before" not in response.text
+
+
+@pytest.mark.parametrize(
+    "value", [{"items": ["ok", "bad\x00value"]}, {"bad\x00key": 1}]
+)
+def test_r2_shared_body_checks_nested_strings_and_keys(
+    value: dict[str, object],
+) -> None:
+    class NestedBody(RequestBody):
+        payload: dict[str, object]
+
+    with pytest.raises(ValidationError, match="U\\+0000"):
+        NestedBody(payload=value)
+    assert NestedBody(payload={"items": ["ok"]}).payload == {"items": ["ok"]}
 
 
 @pytest.mark.parametrize("method", ["POST", "PATCH"])

@@ -4,17 +4,15 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
-
-class AuthBody(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+from app.schemas.body import RequestBody
 
 
-class Login(AuthBody):
+class Login(RequestBody):
     email: str
     password: SecretStr
 
 
-class Redeem(AuthBody):
+class Redeem(RequestBody):
     code: str
     email: str = Field(min_length=3, max_length=254)
     password: SecretStr = Field(min_length=8, max_length=128)
@@ -34,7 +32,7 @@ class Redeem(AuthBody):
         return value
 
 
-class Refresh(AuthBody):
+class Refresh(RequestBody):
     refresh_token: SecretStr
 
 
@@ -56,10 +54,10 @@ class Session(BaseModel):
     user: Me
 
 
-class MePatch(AuthBody):
+class MePatch(RequestBody):
     display_name: str = Field(min_length=1, max_length=40)
 
 
-class PasswordChange(AuthBody):
+class PasswordChange(RequestBody):
     current_password: SecretStr
     new_password: SecretStr = Field(min_length=8, max_length=128)
