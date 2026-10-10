@@ -28,5 +28,5 @@ async def read_health(
         disk_free_mb=free_mb,
         version=settings.app_version,
         uptime_s=max(0, int(clock.monotonic() - started_at)),
-        role="primary",
+        role=settings.server_role,
     )

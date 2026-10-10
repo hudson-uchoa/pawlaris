@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from app.deps import current_user, require_primary
 from app.errors import RESERVE_READ_ONLY_RESPONSE
 from app.idempotency import IdempotentMutation, idempotent
 from app.routers.auth import Database, RequestClock, User
@@ -27,7 +28,10 @@ async def patch_family(body: FamilyPatch, mutation: FamilyMutation) -> Family:
 
 
 @router.post(
-    "/invites", response_model=Invite, responses={409: RESERVE_READ_ONLY_RESPONSE}
+    "/invites",
+    response_model=Invite,
+    dependencies=[Depends(current_user), Depends(require_primary)],
+    responses={409: RESERVE_READ_ONLY_RESPONSE},
 )
 async def invite(
     body: RoleChange, user: User, session: Database, clock: RequestClock
@@ -39,6 +43,7 @@ async def invite(
 @router.patch(
     "/family/members/{user_id}",
     response_model=Member,
+    dependencies=[Depends(current_user), Depends(require_primary)],
     responses={409: RESERVE_READ_ONLY_RESPONSE},
 )
 async def patch_member(
@@ -56,6 +61,7 @@ async def patch_member(
 @router.delete(
     "/family/members/{user_id}",
     response_model=Member,
+    dependencies=[Depends(current_user), Depends(require_primary)],
     responses={409: RESERVE_READ_ONLY_RESPONSE},
 )
 async def remove_member(

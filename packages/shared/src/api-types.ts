@@ -626,7 +626,7 @@ export interface components {
              */
             completed_by: string;
             /** Duplicate Of */
-            duplicate_of?: string | null;
+            duplicate_of: string | null;
             /**
              * Id
              * Format: uuid

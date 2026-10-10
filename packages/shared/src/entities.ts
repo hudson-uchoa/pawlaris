@@ -84,7 +84,7 @@ export type Completion = SyncRow & {
   note: string | null;
   undone_at: string | null;
   undone_by: string | null;
-  duplicate_of?: string | null;
+  duplicate_of: string | null;
 };
 
 export type Timer = SyncRow & {
