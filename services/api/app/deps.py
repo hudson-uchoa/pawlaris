@@ -1,4 +1,5 @@
 from typing import Annotated, cast
+from uuid import UUID
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -9,6 +10,7 @@ from app.clock import Clock
 from app.db import CommitCallback, get_session
 from app.errors import ApiError
 from app.models import AppUser
+from app.realtime import Hub, PokeAfterCommit, family_revision
 from app.security.tokens import decode_access
 from app.settings import Settings
 
@@ -49,3 +51,22 @@ def after_commit(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[CommitCallback]:
     return cast(list[CommitCallback], session.info.setdefault("after_commit", []))
+
+
+def poke_after_commit(
+    request: Request,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    callbacks: Annotated[list[CommitCallback], Depends(after_commit)],
+) -> PokeAfterCommit:
+    hub = cast(Hub, request.app.state.hub)
+
+    async def register(family_id: UUID) -> None:
+        # Capture the final revision while this transaction holds the family lock.
+        revision = await family_revision(session, family_id)
+
+        async def poke() -> None:
+            await hub.poke(family_id, revision)
+
+        callbacks.append(poke)
+
+    return register

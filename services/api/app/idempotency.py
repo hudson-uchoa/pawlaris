@@ -10,10 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import models
 from app.db import get_session, transactional
-from app.deps import current_user
+from app.deps import current_user, poke_after_commit
 from app.errors import ApiError
 from app.locks import lock_family
 from app.models import AppUser
+from app.realtime import PokeAfterCommit
 from app.schemas import rows
 from app.schemas.rows import Row
 
@@ -57,6 +58,7 @@ class IdempotentMutation:
     user: AppUser
     key: str | None
     entity: str
+    poke: PokeAfterCommit | None = None
 
     async def __call__(self, handler: Callable[[], Awaitable[SyncModel]]) -> Row:
         key = _parse_key(self.key)
@@ -127,6 +129,8 @@ class IdempotentMutation:
                 .where(models.AppliedMutation.client_mutation_id == key)
                 .values(entity_id=row.id)
             )
+            if self.poke is not None:
+                await self.poke(self.user.family_id)
             return entry.schema.model_validate(row)
 
         return await transactional(self.session, operation)
@@ -150,8 +154,9 @@ def idempotent(entity: str) -> Callable[..., Awaitable[IdempotentMutation]]:
     async def dependency(
         session: Annotated[AsyncSession, Depends(get_session)],
         user: Annotated[AppUser, Depends(current_user)],
+        poke: Annotated[PokeAfterCommit, Depends(poke_after_commit)],
         key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     ) -> IdempotentMutation:
-        return IdempotentMutation(session, user, key, entity)
+        return IdempotentMutation(session, user, key, entity, poke)
 
     return dependency

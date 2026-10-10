@@ -1,9 +1,10 @@
+import asyncio
 import json
 import logging
 import sys
 import traceback
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from typing import cast
 from uuid import uuid4
 
@@ -120,9 +121,15 @@ class TimingMiddleware:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    hub = cast(Hub, app.state.hub)
+    settings = cast(Settings, app.state.settings)
+    sweep = asyncio.create_task(hub.sweep(settings.ws_sweep_seconds))
     try:
         yield
     finally:
+        sweep.cancel()
+        with suppress(asyncio.CancelledError):
+            await sweep
         await cast(AsyncEngine, app.state.engine).dispose()
 
 
@@ -133,7 +140,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
     app.state.settings = settings
     app.state.clock = clock
-    app.state.hub = Hub()
+    app.state.hub = Hub(clock)
     app.state.login_limiter = LoginRateLimiter(clock)
     app.state.started_at = clock.monotonic()
     app.state.engine = make_engine(settings)

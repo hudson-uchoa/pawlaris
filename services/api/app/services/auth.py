@@ -11,6 +11,7 @@ from app.db import transactional
 from app.errors import ApiError
 from app.locks import lock_family
 from app.models import AppUser, RefreshToken
+from app.realtime import PokeAfterCommit
 from app.schemas.auth import Login, Me, MePatch, PasswordChange, Refresh, Session
 from app.security.passwords import hash_password, verify_password
 from app.security.ratelimit import LoginRateLimiter
@@ -160,11 +161,14 @@ async def logout(session: AsyncSession, body: Refresh, clock: Clock) -> None:
     await transactional(session, write)
 
 
-async def patch_me(session: AsyncSession, user: AppUser, body: MePatch) -> Me:
+async def patch_me(
+    session: AsyncSession, user: AppUser, body: MePatch, poke: PokeAfterCommit
+) -> Me:
     async def write() -> Me:
         enabled = await _locked_user(session, user)
         enabled.display_name = body.display_name
         await session.flush()
+        await poke(enabled.family_id)
         return Me.model_validate(enabled)
 
     return await transactional(session, write)

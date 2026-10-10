@@ -20,6 +20,7 @@ from app.errors import ApiError
 from app.locks import lock_family
 from app.models import AppUser
 from app.models import Asset as AssetModel
+from app.realtime import PokeAfterCommit
 from app.schemas.assets import AssetKind
 from app.schemas.rows import Asset
 from app.services.common import get_owned
@@ -65,6 +66,7 @@ async def upload_asset(
     request: Request,
     clock: Clock,
     storage: StorageAdapter,
+    poke: PokeAfterCommit,
 ) -> tuple[Asset, bool]:
     temporary: Path | None = None
     storage_key: str | None = None
@@ -114,6 +116,7 @@ async def upload_asset(
             # The scoped lookup hides a globally occupied id in another family.
             await get_owned(session, AssetModel, id, actor)
             raise ApiError(409, "asset_conflict", "Asset id has different content.")
+        await poke(actor.family_id)
         return Asset.model_validate(row), True
 
     try:
