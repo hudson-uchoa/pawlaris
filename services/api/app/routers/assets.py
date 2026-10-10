@@ -1,4 +1,5 @@
-from typing import Annotated
+from collections.abc import Iterator
+from typing import Annotated, BinaryIO
 from uuid import UUID
 
 from fastapi import APIRouter, Query, Request, Response
@@ -8,6 +9,8 @@ from starlette.responses import StreamingResponse
 from app.routers.auth import Configuration, Database, RequestClock, User
 from app.schemas.assets import AssetKind
 from app.schemas.rows import Asset
+from app.services import assets
+from app.storage.local import LocalStorage
 
 router = APIRouter()
 
@@ -56,7 +59,11 @@ async def upload_asset(
     settings: Configuration,
     kind: Annotated[AssetKind, Query()],
 ) -> Asset:
-    raise NotImplementedError
+    row, created = await assets.upload_asset(
+        session, user, id, kind, request, clock, LocalStorage(settings.blob_dir)
+    )
+    response.status_code = 201 if created else 200
+    return row
 
 
 @router.get(
@@ -83,4 +90,15 @@ async def upload_asset(
 async def download_asset(
     id: UUID, user: User, session: Database, settings: Configuration
 ) -> StreamingResponse:
+    file, mime = await assets.download_asset(
+        session, user, id, LocalStorage(settings.blob_dir)
+    )
+    return StreamingResponse(
+        file_chunks(file),
+        media_type=mime,
+        headers={"Cache-Control": "private, max-age=31536000, immutable"},
+    )
+
+
+def file_chunks(file: BinaryIO) -> Iterator[bytes]:
     raise NotImplementedError

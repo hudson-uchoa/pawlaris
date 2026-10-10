@@ -12,7 +12,7 @@ from app import idempotency
 from app.clock import FrozenClock
 from app.locks import lock_family
 from app.models import AppUser, Base
-from app.services import auth
+from app.services import assets, auth
 from app.services import family as family_service
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily
@@ -61,6 +61,7 @@ async def test_rb3_waiting_mutation_uses_locked_actor_and_writes_nothing(
     monkeypatch.setattr(idempotency, "lock_family", observed_lock)
     monkeypatch.setattr(family_service, "lock_family", observed_lock)
     monkeypatch.setattr(auth, "lock_family", observed_lock)
+    monkeypatch.setattr(assets, "lock_family", observed_lock)
     async with app.state.session_factory() as blocker:
         await lock_family(blocker, family.id)
         pending = asyncio.create_task(
