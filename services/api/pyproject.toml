@@ -15,6 +15,7 @@ dependencies = [
   "pillow",
   "tzdata",
   "httpx",
+  "websockets",
 ]
 
 [dependency-groups]
