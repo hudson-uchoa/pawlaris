@@ -3,8 +3,16 @@ from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import UUID4, AwareDatetime, BaseModel, Field, model_validator
+from pydantic import (
+    UUID4,
+    AwareDatetime,
+    BaseModel,
+    Field,
+    field_validator,
+    model_validator,
+)
 
+from app.cli import IDENTITY_KEYS
 from app.schemas.auth import MePatch
 from app.schemas.body import RequestBody
 from app.schemas.completions import CompletionCreate
@@ -34,8 +42,15 @@ class ReseedDeletedRow(ReseedRow):
 
 class ReseedMember(MePatch, RoleChange, ReseedDeletedRow):
     id: UUID4
-    color: str
+    color: str = Field(json_schema_extra={"enum": list(IDENTITY_KEYS)})
     disabled_at: AwareDatetime | None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, value: str) -> str:
+        if value not in IDENTITY_KEYS:
+            raise ValueError("Color must be an identity key.")
+        return value
 
 
 class ReseedFamily(FamilyPatch, ReseedDeletedRow):
