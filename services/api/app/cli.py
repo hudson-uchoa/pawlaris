@@ -17,7 +17,9 @@ from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.models import AppUser, Family, FamilyRevision
 from app.security.passwords import hash_password
+from app.services.maintenance import run_maintenance
 from app.settings import Settings
+from app.storage.local import LocalStorage
 
 IDENTITY_KEYS = (
     "#5B7DB1",
@@ -112,7 +114,12 @@ async def bootstrap(
 
 
 async def maintenance(settings: Settings, clock: Clock) -> None:
-    raise NotImplementedError
+    engine = make_engine(settings)
+    try:
+        async with AsyncSession(engine) as session:
+            await run_maintenance(session, clock, LocalStorage(settings.blob_dir))
+    finally:
+        await engine.dispose()
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -101,4 +101,6 @@ async def download_asset(
 
 
 def file_chunks(file: BinaryIO) -> Iterator[bytes]:
-    raise NotImplementedError
+    with file:
+        while chunk := file.read(64 * 1024):
+            yield chunk

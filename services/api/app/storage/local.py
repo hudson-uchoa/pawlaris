@@ -1,4 +1,5 @@
-from pathlib import Path
+import os
+from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 
 
@@ -7,13 +8,33 @@ class LocalStorage:
         self.directory = directory
 
     def put_file(self, key: str, path: Path) -> None:
-        raise NotImplementedError
+        target = self._path(key)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(path, target)
 
     def open(self, key: str) -> BinaryIO:
-        raise NotImplementedError
+        return self._path(key).open("rb")
 
     def delete(self, key: str) -> None:
-        raise NotImplementedError
+        self._path(key).unlink(missing_ok=True)
 
     def exists(self, key: str) -> bool:
-        raise NotImplementedError
+        return self._path(key).is_file()
+
+    def _path(self, key: str) -> Path:
+        relative = PurePosixPath(key)
+        if (
+            not key
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or "\\" in key
+            or ":" in key
+        ):
+            raise ValueError(
+                "Storage keys must be relative paths inside the blob directory."
+            )
+        directory = self.directory.resolve()
+        target = (directory / relative).resolve()
+        if target == directory or not target.is_relative_to(directory):
+            raise ValueError("Storage keys must stay inside the blob directory.")
+        return target
