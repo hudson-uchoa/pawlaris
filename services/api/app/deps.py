@@ -10,6 +10,7 @@ from app.clock import Clock
 from app.db import CommitCallback, get_session
 from app.errors import ApiError
 from app.models import AppUser
+from app.push import PushSender
 from app.realtime import Hub, PokeAfterCommit, family_revision
 from app.security.tokens import decode_access
 from app.settings import Settings
@@ -23,6 +24,10 @@ def get_clock(request: Request) -> Clock:
 
 def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
+
+
+def get_push_sender(request: Request) -> PushSender:
+    return cast(PushSender, request.app.state.push_sender)
 
 
 async def current_user(

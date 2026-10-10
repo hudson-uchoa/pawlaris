@@ -607,3 +607,29 @@ there because the value is a primary key that comes from outside: an empty
 string is no device, and an unbounded one is a row of any size. `04` §3 now
 says it, and also what `DELETE` does with a token that is not the
 caller's: nothing, and still `204`.
+
+## Q-21 — P2-15 — Does finishing a missing walk send a start push?
+**Asked:** 2026-10-10
+**Where:** spec/02-spec.md §3.6 R3.42; spec/04-api-contract.md §12, §15
+**Problem:** Starting a walk queues walk_started. Finishing is an upsert
+that can create the walk when its start never arrived, but the spec does
+not explicitly say whether that creation also queues walk_started.
+**I would assume:** Only POST /walks queues walk_started. A finish upsert
+sends nothing because the walk is already over when the family learns
+about it; announcing that someone just left would be misleading.
+**Blocking:** no (the assumption is isolated in
+test_q21_finish_without_start_sends_nothing in tests/api/test_push.py).
+
+## Q-22 — P2-15 — What data identifies duplicate and walk pushes?
+**Asked:** 2026-10-10
+**Where:** spec/04-api-contract.md §15
+**Problem:** The completion example defines every data field. The table
+names completion_duplicate and walk_started but does not define their
+data fields, while both visible messages need event data.
+**I would assume:** completion_duplicate uses the completion data shape
+with type completion_duplicate and the winner's completion_id. A
+walk_started message carries exactly type, walk_id and pet_id. Neither
+visible message carries silent. Confine these shapes to the test helpers
+duplicate_data and walk_data; keep the common visible envelope unchanged.
+**Blocking:** no (the assumptions are isolated in those two helpers in
+tests/api/test_push.py).
