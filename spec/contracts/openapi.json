@@ -977,6 +977,8 @@
             "type": "string"
           },
           "email": {
+            "maxLength": 254,
+            "minLength": 3,
             "title": "Email",
             "type": "string"
           },

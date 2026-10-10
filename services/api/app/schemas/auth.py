@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
 
 
 class AuthBody(BaseModel):
@@ -16,9 +16,22 @@ class Login(AuthBody):
 
 class Redeem(AuthBody):
     code: str
-    email: str
+    email: str = Field(min_length=3, max_length=254)
     password: SecretStr = Field(min_length=8, max_length=128)
     display_name: str = Field(min_length=1, max_length=40)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if (
+            any(char.isspace() for char in value)
+            or "@" not in value[1:-1]
+            or value.startswith("@")
+            or value.endswith("@")
+            or value.rsplit("@", 1)[-1].lower() == "pawlaris.invalid"
+        ):
+            raise ValueError("Email must be a non-reserved address without whitespace.")
+        return value
 
 
 class Refresh(AuthBody):
