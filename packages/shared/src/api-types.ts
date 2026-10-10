@@ -1620,7 +1620,7 @@ export interface operations {
                 kind: components["schemas"]["AssetKind"];
             };
             header: {
-                /** @description Image byte count; missing or over 8 MB returns 413. */
+                /** @description Image byte count; missing or over 8 MiB (8 388 608 bytes) returns 413. */
                 "Content-Length": number;
                 /** @description SHA-256 of the raw image bytes, in hexadecimal. */
                 "X-Content-SHA256": string;

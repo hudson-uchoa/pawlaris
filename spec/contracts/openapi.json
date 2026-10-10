@@ -2830,7 +2830,7 @@
             }
           },
           {
-            "description": "Image byte count; missing or over 8 MB returns 413.",
+            "description": "Image byte count; missing or over 8 MiB (8 388 608 bytes) returns 413.",
             "in": "header",
             "name": "Content-Length",
             "required": true,
