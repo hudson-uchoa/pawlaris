@@ -387,6 +387,9 @@ housekeeping on a timer is fine.
   For `/auth/*` and `/me/password`, `exc` carries the exception's type and
   its stack frames — file, line, function — and never its message or local
   values, which can hold a credential or a statement's parameters *(§5)*.
+  On the socket, a phone that goes away is not an error: its socket is
+  unregistered with no log line. Any other failure in the hub is one `ERROR`
+  line in the same JSON shape, with `exc` and no `request_id`.
 - Docker `json-file` driver with `max-size=10m, max-file=3`.
 - On the phone: a rotating log file (256 KB) and the Diagnostics screen.
 - No SaaS. Nothing here costs money or ships data off the box.
