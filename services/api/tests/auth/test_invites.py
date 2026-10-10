@@ -28,6 +28,40 @@ def redeem_body(code: str) -> dict[str, str]:
     }
 
 
+@pytest.mark.parametrize(
+    "email",
+    [
+        "",
+        " ",
+        "no-at-sign",
+        "@example.invalid",
+        "name@",
+        "a b@example.invalid",
+        "a\t@example.invalid",
+        "a\n@example.invalid",
+        "x" * 243 + "@example.org",
+        "removed+member@pawlaris.invalid",
+        "name@PAWLARIS.INVALID",
+    ],
+)
+async def test_r1_3_invalid_email_leaves_invite_unused(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+    email: str,
+) -> None:
+    family = await make_family()
+    invite = await create_invite(client_for(family.users[0]))
+    body = redeem_body(invite["code"])
+    body["email"] = email
+    response = await client.post("/api/v1/auth/redeem", json=body)
+    assert response.status_code == 422
+    async with app.state.session_factory() as session:
+        row = await session.get(InviteCode, invite["code"])
+        assert row is not None and row.used_at is None and row.used_by is None
+
+
 async def create_invite(client: AsyncClient) -> dict[str, str]:
     response = await client.post("/api/v1/invites", json={"role": "member"})
     assert response.status_code == 200
