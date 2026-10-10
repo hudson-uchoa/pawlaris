@@ -365,6 +365,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reseed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reseed */
+        post: operations["reseed_api_v1_reseed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync": {
         parameters: {
             query?: never;
@@ -1142,6 +1159,478 @@ export interface components {
              * Format: password
              */
             refresh_token: string;
+        };
+        ReseedChange: components["schemas"]["ReseedMemberChange"] | components["schemas"]["ReseedFamilyChange"] | components["schemas"]["ReseedPetChange"] | components["schemas"]["ReseedWeightEntryChange"] | components["schemas"]["ReseedHealthEventChange"] | components["schemas"]["ReseedTaskTemplateChange"] | components["schemas"]["ReseedCompletionChange"] | components["schemas"]["ReseedTimerChange"] | components["schemas"]["ReseedWalkChange"] | components["schemas"]["ReseedWalkRouteChange"];
+        /** ReseedCompletion */
+        ReseedCompletion: {
+            /**
+             * Completed At
+             * Format: date-time
+             */
+            completed_at: string;
+            /**
+             * Completed By
+             * Format: uuid
+             */
+            completed_by: string;
+            /** Duplicate Of */
+            duplicate_of: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Occurrence Key */
+            occurrence_key: string;
+            /** Pet Id */
+            pet_id: string | null;
+            /** Photo Asset Id */
+            photo_asset_id: string | null;
+            /**
+             * Task Id
+             * Format: uuid
+             */
+            task_id: string;
+            /** Title Snapshot */
+            title_snapshot: string;
+            /** Undone At */
+            undone_at: string | null;
+            /** Undone By */
+            undone_by: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedCompletionChange */
+        ReseedCompletionChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_completions";
+            row: components["schemas"]["ReseedCompletion"];
+        };
+        /** ReseedFamily */
+        ReseedFamily: {
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Timezone */
+            timezone: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedFamilyChange */
+        ReseedFamilyChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "family";
+            row: components["schemas"]["ReseedFamily"];
+        };
+        /** ReseedHealthEvent */
+        ReseedHealthEvent: {
+            /** Attachment Asset Id */
+            attachment_asset_id: string | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Next Due On */
+            next_due_on: string | null;
+            /** Notes */
+            notes: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Title */
+            title: string;
+            type: components["schemas"]["EventType"];
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedHealthEventChange */
+        ReseedHealthEventChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "health_events";
+            row: components["schemas"]["ReseedHealthEvent"];
+        };
+        /** ReseedMember */
+        ReseedMember: {
+            /** Color */
+            color: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Disabled At */
+            disabled_at: string | null;
+            /** Display Name */
+            display_name: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "leader" | "member";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedMemberChange */
+        ReseedMemberChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "members";
+            row: components["schemas"]["ReseedMember"];
+        };
+        /** ReseedPet */
+        ReseedPet: {
+            /** Archived At */
+            archived_at: string | null;
+            /** Avatar Asset Id */
+            avatar_asset_id: string | null;
+            /** Birthdate */
+            birthdate: string | null;
+            /** Breed */
+            breed: string | null;
+            /** Color */
+            color: string | null;
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Microchip Id */
+            microchip_id: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes: string | null;
+            sex: components["schemas"]["Sex"];
+            /** Sort Order */
+            sort_order: number;
+            /**
+             * Species
+             * @enum {string}
+             */
+            species: "cat" | "dog";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedPetChange */
+        ReseedPetChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "pets";
+            row: components["schemas"]["ReseedPet"];
+        };
+        /** ReseedRequest */
+        ReseedRequest: {
+            /** Rows */
+            rows: components["schemas"]["ReseedChange"][];
+        };
+        /** ReseedResult */
+        ReseedResult: {
+            /** Duplicates */
+            duplicates: number;
+            /** Inserted */
+            inserted: number;
+            /** Refused */
+            refused: number;
+            /** Unchanged */
+            unchanged: number;
+            /** Updated */
+            updated: number;
+        };
+        /** ReseedTaskTemplate */
+        ReseedTaskTemplate: {
+            /** Assigned To */
+            assigned_to: string | null;
+            category: components["schemas"]["Category"];
+            /**
+             * Completion Mode
+             * @enum {string}
+             */
+            completion_mode: "together" | "per_pet";
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Description */
+            description: string | null;
+            ends_on: components["schemas"]["CalendarDate"] | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Pet Ids */
+            pet_ids: string[];
+            recurrence: components["schemas"]["Recurrence"];
+            /**
+             * Reminder Class
+             * @enum {string}
+             */
+            reminder_class: "critical" | "routine";
+            /** Replaces Task Id */
+            replaces_task_id: string | null;
+            /** Requires Photo */
+            requires_photo: boolean;
+            /** Sort Order */
+            sort_order: number;
+            starts_on: components["schemas"]["CalendarDate"];
+            /** Timer Seconds */
+            timer_seconds: number | null;
+            /** Times Of Day */
+            times_of_day: components["schemas"]["TimeOfDay"][];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedTaskTemplateChange */
+        ReseedTaskTemplateChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_templates";
+            row: components["schemas"]["ReseedTaskTemplate"];
+        };
+        /** ReseedTimer */
+        ReseedTimer: {
+            /** Cancelled At */
+            cancelled_at: string | null;
+            /**
+             * Ends At
+             * Format: date-time
+             */
+            ends_at: string;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Occurrence Key */
+            occurrence_key: string;
+            /** Pet Id */
+            pet_id: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Started By
+             * Format: uuid
+             */
+            started_by: string;
+            /**
+             * Task Id
+             * Format: uuid
+             */
+            task_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ReseedTimerChange */
+        ReseedTimerChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "task_timers";
+            row: components["schemas"]["ReseedTimer"];
+        };
+        /** ReseedWalk */
+        ReseedWalk: {
+            /** Avg Pace S Per Km */
+            avg_pace_s_per_km: number | null;
+            /** Deleted At */
+            deleted_at: string | null;
+            /** Distance M */
+            distance_m: number | string;
+            /** Duration S */
+            duration_s: number;
+            /** Ended At */
+            ended_at: string | null;
+            /** Has Route */
+            has_route: boolean;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Note */
+            note: string | null;
+            /** Paused Ms */
+            paused_ms: number;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Point Count */
+            point_count: number;
+            /** Preview */
+            preview: [
+                number,
+                number
+            ][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "finished" | "discarded";
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** ReseedWalkChange */
+        ReseedWalkChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "walk_sessions";
+            row: components["schemas"]["ReseedWalk"];
+        };
+        /** ReseedWalkRoute */
+        ReseedWalkRoute: {
+            /** Points */
+            points: components["schemas"]["RoutePoint"][];
+            /**
+             * Walk Id
+             * Format: uuid
+             */
+            walk_id: string;
+        };
+        /** ReseedWalkRouteChange */
+        ReseedWalkRouteChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "walk_routes";
+            row: components["schemas"]["ReseedWalkRoute"];
+        };
+        /** ReseedWeightEntry */
+        ReseedWeightEntry: {
+            /**
+             * Created By
+             * Format: uuid
+             */
+            created_by: string;
+            /** Deleted At */
+            deleted_at: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Note */
+            note: string | null;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Weight Kg */
+            weight_kg: number | string;
+        };
+        /** ReseedWeightEntryChange */
+        ReseedWeightEntryChange: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            entity: "weight_entries";
+            row: components["schemas"]["ReseedWeightEntry"];
         };
         /** RoleChange */
         RoleChange: {
@@ -2569,6 +3058,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reseed_api_v1_reseed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReseedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReseedResult"];
                 };
             };
             /** @description Validation Error */
