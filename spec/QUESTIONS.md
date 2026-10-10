@@ -747,3 +747,30 @@ row assert its owning walk appears there, and read the stored route via
 GET /walks/{id}/route. A replacement attempt may leave the existing route.
 **Blocking:** no for Red; confined to assert_rs1 in
 tests/sync/test_reseed.py and needs review before the merge lands.
+
+**Answers (2026-10-10), Q-25 to Q-28:**
+
+- **Q-25 — as assumed.** Inside one call the order of the rows never
+  matters: the server applies the entities in its own order. From one call
+  to the next a row must follow what it names, which is how a phone sends
+  its batches (`11` §4.3). "One row per call" means those calls in the
+  entity order of `11` §3, winners before the rows that name them. RS-2 and
+  `07` §3 say so now; they promised more than the design gives.
+- **Q-26 — the fixture was wrong.** A walk that is not finished has zero
+  metrics, never null: the columns are `NOT NULL DEFAULT 0` (`03` §7). The
+  two vectors send `0` now. Remove the stand-in from `complete_vector_row`
+  and send the rows as the fixture gives them.
+- **Q-27 — as assumed.** A completion that a person undid is not a
+  duplicate and competes with nobody. RS-4 is reworded to say which rows it
+  speaks of: those that were live when a merge met them.
+- **Q-28 — as assumed.** A route never travels in `/sync`; its walk does,
+  and the route is read through `GET /walks/{id}/route`. The task's Tests
+  line says so.
+
+One thing the questions did not ask and the review of the tests found:
+`test_rs4_duplicate_push_targets_both_people_after_commit_once_per_loser`
+sends every device the same message, under the loser's name. R5.13 says each
+person is told that **the other** also marked it. `04` §15 and `11` §3.1
+now spell it out: the author of the completion that stays hears the other
+author's name, the author of the duplicate hears the first one's, and
+nobody hears anything when one person made both. The test follows that.

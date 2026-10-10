@@ -758,7 +758,7 @@ target device:
 | `data.type` | Targets | Title / body |
 |---|---|---|
 | `completion` | every enabled member except the author | `<Autor>` / `concluiu "<título>" às HH:mm` — for `per_pet`, `concluiu "<título>" (<pet>) às HH:mm` |
-| `completion_duplicate` | the winner only | `<Perdedor>` / `também marcou "<título>"` |
+| `completion_duplicate` | the winner only; after a reseed, each of the two authors | `<Perdedor>` / `também marcou "<título>"` — after a reseed, the other author's name |
 | `walk_started` | every enabled member except the walker | `<Autor>` / `saiu para passear com <pet>` |
 
 The exact templates are in `09-screens.md` §10.
@@ -773,7 +773,13 @@ Their `data` *(Q-22)*:
 ```
 
 When the winner and the loser of a race are the same person nothing is sent
-*(R3.39: nobody is told about their own action)*. Only `POST /walks` sends
+*(R3.39: nobody is told about their own action)*. A reseed that turns a
+completion into a duplicate *(`11` §3.1, R5.13)* had no race for anyone to
+see, so it tells both: the author of the completion that stays gets the
+message under the other author's name, and the author of the one that became
+the duplicate gets it under the first one's name. Both carry the completion
+that stays in `completion_id`. One message pair per completion turned into
+a duplicate, and none when one person made both. Only `POST /walks` sends
 `walk_started`: a `finish` that creates the walk, because its start never
 arrived, sends nothing *(Q-21)*. An undo and a finished or discarded walk
 send nothing. Neither does a request that arrives again — with the same
