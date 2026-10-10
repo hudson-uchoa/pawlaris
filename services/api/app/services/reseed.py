@@ -184,7 +184,7 @@ def merged_values(entity: str, server: SyncModel, incoming: Values) -> Values:
             server.updated_at, cast(datetime, incoming["updated_at"])
         ),
     }
-    if "deleted_at" in incoming:
+    if entity != "family" and "deleted_at" in incoming:
         values.update(tombstone(stored, incoming, "deleted_at"))
     elif "undone_at" in incoming:
         values.update(
