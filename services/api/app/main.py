@@ -16,7 +16,17 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.errors import problem_response, register_handlers
-from app.routers import auth, completions, family, health, pets, sync, tasks, timers
+from app.routers import (
+    auth,
+    completions,
+    family,
+    health,
+    pets,
+    sync,
+    tasks,
+    timers,
+    walks,
+)
 from app.security.ratelimit import LoginRateLimiter
 from app.settings import Settings
 
@@ -133,6 +143,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(tasks.router, prefix="/api/v1")
     app.include_router(completions.router, prefix="/api/v1")
     app.include_router(timers.router, prefix="/api/v1")
+    app.include_router(walks.router, prefix="/api/v1")
     app.include_router(sync.router, prefix="/api/v1")
     register_handlers(app)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
