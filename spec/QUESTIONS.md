@@ -506,3 +506,7 @@ unchanged tombstone and no new revision. Confine this behavior to
 services/common.py's soft_delete helper. Please correct ?8's conflicting
 sentence when reviewing the task.
 **Blocking:** no; the owner's instruction settles the implementation.
+
+**Reference clarification:** PowerShell replaced the section symbols in
+this entry with question marks. The cited sections of `04` are 1.2 and 8;
+the requested correction concerns the last sentence of section 8.
