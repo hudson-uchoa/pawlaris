@@ -554,7 +554,8 @@ tests cover them for its routes.
   (a member's fork of their own template keeps another assignee → 200; the same
   request without `replaces_task_id` → 403); an `assigned_to` naming a removed
   member is stored as null *(ADR-037)*; `ends_on` earlier than `starts_on`
-  accepted; no route path contains `occurrence`, `today` or `schedule`.
+  accepted; no route path contains `occurrence`, `today` or `schedule`. From
+  the review of 2026-10-10: RB-3, in `tests/security/test_role_matrix.py`.
   **Gate:** `uv run --directory services/api pytest tests/api/test_tasks.py -q` · `pnpm verify --only security`
 
 - [ ] **P2-10 — Completions and undo**

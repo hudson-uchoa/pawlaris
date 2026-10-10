@@ -304,6 +304,15 @@ person — would end the old template and fail to create its successor.
 > **RB-2** A member calling each leader-only route gets `403` — not `200`, and
 > not an accidental `404`. Includes row 15.
 >
+> **RB-3** The role and the enabled state that decide a mutation are the ones
+> read after the family lock is taken, not the ones the request arrived with
+> *(`03` §1.2)*. The idempotency wrapper reads the actor again once it holds
+> the lock and hands that row to the handler; the few writers that do not use
+> the wrapper do the same themselves. Gate: one test walks the matrix — in
+> every case where a member is `403`, a leader demoted while their request
+> waits for the lock gets `403`; in every mutation case, an actor removed
+> while their request waits gets `401`; neither writes anything.
+>
 > **Route census.** A test enumerates the app's routes at runtime. Each HTTP
 > route must be on the public allowlist (`/health`, `/auth/login`,
 > `/auth/refresh`, `/auth/logout`, `/auth/redeem`) **or** require
