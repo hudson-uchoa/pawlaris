@@ -121,6 +121,7 @@ row has `revision` and `updated_at`; soft-deletable rows have `deleted_at`.
 // Completion
 { "id", "task_id", "occurrence_key", "pet_id", "completed_by", "completed_at",
   "title_snapshot", "photo_asset_id", "note", "undone_at", "undone_by",
+  "duplicate_of",                       // null unless a reseed made it one (11 §2.3)
   "revision", "updated_at" }
 
 // Timer

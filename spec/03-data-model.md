@@ -475,6 +475,7 @@ CREATE TABLE task_completion (
 
   undone_at      timestamptz,               -- R3.22: tombstone, never a delete
   undone_by      uuid REFERENCES app_user(id),
+  duplicate_of   uuid REFERENCES task_completion(id),  -- set only by a reseed (11 §2.3)
 
   revision       bigint NOT NULL,
   updated_at     timestamptz NOT NULL
