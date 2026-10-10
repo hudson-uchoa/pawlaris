@@ -156,6 +156,34 @@ async def test_r1_3_identity_uses_first_available_key_then_wraps(
     assert response.status_code == 200 and response.json()["user"]["color"] == expected
 
 
+async def test_r1_3_ninth_and_tenth_users_spread_identity_keys(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+    frozen_clock: FrozenClock,
+) -> None:
+    family = await make_family(members=8)
+    async with app.state.session_factory() as session:
+        for index, user in enumerate(family.users):
+            await session.execute(
+                update(AppUser)
+                .where(AppUser.id == user.id)
+                .values(
+                    color=IDENTITY_KEYS[index],
+                    disabled_at=None if index == 0 else frozen_clock.now(),
+                )
+            )
+        await session.commit()
+    for expected in IDENTITY_KEYS[:2]:
+        invite = await create_invite(client_for(family.users[0]))
+        response = await client.post(
+            "/api/v1/auth/redeem", json=redeem_body(invite["code"])
+        )
+        assert response.status_code == 200
+        assert response.json()["user"]["color"] == expected
+
+
 @pytest.mark.parametrize("role", ["member", "leader"])
 async def test_r1_3_invite_redeem_records_role_identity_and_used_by(
     app: FastAPI,
