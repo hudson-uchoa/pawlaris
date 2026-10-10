@@ -659,3 +659,11 @@ Keep the exact contract check and all existing tests unchanged. A later
 stage can make the field required when its schema and builders change.
 **Blocking:** no; the transitional declaration is confined to Completion
 in packages/shared/src/entities.ts.
+**Answer (2026-10-10):** As assumed, for the contract and Red commits only.
+The row always carries `duplicate_of`: `04` §2 now lists it and `03` §5 has
+the column — both were missing, and that was the spec's gap. At the task's
+last code commit the Pydantic field has no default, the generated type is
+required, the shared `Completion` declares `duplicate_of: string | null`,
+and the builders in the shared tests set it. The shared type changes in the
+same commit as the schema, because the exact-agreement check makes the two
+one change. An optional field left after P2-16 would be a finding.
