@@ -736,3 +736,19 @@ not covered by the repository's MIT licence: the README and
 `apps/mobile/assets/LICENSES.md` say so, and `AGENTS.md` rule 10 names the
 mark as the one brand in the app that is not Pawlaris's own. No route, table
 or dependency changes.
+
+### ADR-037 — A task for a removed member is kept, for anyone *(2026-10-09)*
+**Context:** `04` §9 asked for an enabled member as `assigned_to` and did not
+say what a removed one is. It matters offline: a phone creates a task for
+someone, that person is removed from the family, and then the phone syncs.
+Refusing the request drops a task the user made. Found by the implementer in
+P2-9 (Q-16).
+**Decision (the owner):** the task is stored, assigned to nobody. It is what
+removal already does to the tasks the person had *(R1.20)*, and no tap is
+lost — the first pillar, Stable.
+**Consequence:** on `POST /tasks` and `PATCH /tasks/{id}` an `assigned_to`
+naming a removed member is read as null and stored as null. The reading comes
+before the assignment rules, which is what keeps the fork exception to
+permission row 12 working for a member whose old template lost its assignee
+to the removal. An unknown member is still `404`. The phone learns the
+outcome from the row in the response, like any other mutation.

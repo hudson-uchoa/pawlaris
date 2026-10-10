@@ -365,7 +365,7 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 | ID-2, ID-3 | `tests/api/test_idempotency.py` | `03` §9, parametrized over every ⟳ route; missing key → 400 |
 | SY-2, SY-4, SY-5, SY-6 | `tests/sync/test_sync.py` | `04` §6; plus: `revision` equals the family revision on a final page; `epoch` is present and changes when `server_meta` is updated |
 | FM-1 | `tests/api/test_family.py` | last leader, including the concurrent case and a family whose other leader is disabled; on each leader-only route, a leader demoted while their request waits for the lock → 403 and one removed meanwhile → 401, nothing written; removal leaves the assignments of other members alone, and repeated at a later instant changes nothing; a family name of 0 or 61 characters → 422; member removal side effects (R1.20); a removed member's email can be invited again; a valid timezone → 200, an invalid one → 422 |
-| TK-1 | `tests/api/test_tasks.py` | schedule fields rejected on PATCH; `pet_ids` validation; assignment rules, including the fork exception |
+| TK-1 | `tests/api/test_tasks.py` | schedule fields rejected on PATCH; `pet_ids` validation; assignment rules, including the fork exception; an `assigned_to` naming a removed member is stored as null on POST and on PATCH, for a leader and for a member, and a member's fork of a template whose assignee was removed is 200 *(ADR-037)* |
 | CP-1 … CP-5 | `tests/sync/test_completions.py` | `03` §5 |
 | TM-1 (server half) | `tests/api/test_timers.py` | stores, syncs, cancels idempotently |
 | — | `tests/api/test_walks.py` | finish as upsert; discard; route fetch; preview stored and synced; limits; two active walks accepted |

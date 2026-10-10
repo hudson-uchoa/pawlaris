@@ -139,7 +139,10 @@ Vocabulary used everywhere:
 - **R3.1** A template applies to **one or more pets**. Creating one with zero
   pets is rejected.
 - **R3.2** A template has `assigned_to`: a family member, or nobody. Nobody means
-  anyone in the family may do it.
+  anyone in the family may do it. A task assigned to someone who has been
+  removed from the family is kept, assigned to nobody — whether they were
+  removed after it was saved *(R1.20)* or before it reached the server
+  *(ADR-037)*.
 - **R3.3** A member may set `assigned_to` only to themselves or nobody, and only
   on templates they created. A leader may set it to anyone on any template.
 - **R3.4** A template has a `completion_mode`:

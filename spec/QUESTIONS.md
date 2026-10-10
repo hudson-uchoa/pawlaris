@@ -528,3 +528,9 @@ body error for an existing disabled family member. Return 404 for an
 unknown or foreign-family member. Apply this to create and PATCH in one
 `services/tasks.py` assignee-validation helper.
 **Blocking:** no; the distinction is confined to that helper and its test.
+**Answer:** the owner — 2026-10-09 (ADR-037). Neither `422` nor `404`: an
+`assigned_to` naming a removed member is read as null and stored as null, on
+`POST` and on `PATCH`, before the assignment rules of `04` §5 are applied.
+The task is kept, for anyone. An `assigned_to` that names no member of the
+family stays `404`. The owner gave this to the running session the same
+day, and `04` §9 now states it.
