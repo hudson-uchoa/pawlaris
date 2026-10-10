@@ -149,9 +149,84 @@ const uniqueNames = (list, where) => {
   }
 }
 
+// ---- reseed-vectors.json ---------------------------------------------------
+{
+  const f = load('reseed-vectors.json');
+  const where = 'reseed-vectors.json';
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  const ENTITIES = [
+    'members', 'family', 'pets', 'task_templates', 'weight_entries', 'health_events',
+    'task_completions', 'task_timers', 'walk_sessions', 'walk_routes',
+  ];
+  const RESEED_TAGS = [
+    'insert', 'older', 'newer', 'order', 'clamp', 'archive', 'tombstone', 'completion',
+    'duplicate', 'timer', 'walk', 'walk-route', 'refused', 'members', 'family',
+  ];
+  const COUNTS = ['inserted', 'updated', 'unchanged', 'duplicates', 'refused'];
+  const MIN_RESEED_VECTORS = 20;
+
+  if (!INSTANT.test(f.now ?? '')) fail(where, '`now` must be ISO UTC with seconds');
+  if (typeof f.base !== 'object' || f.base === null) fail(where, '`base` must be an object');
+  if (!Array.isArray(f.vectors)) fail(where, '`vectors` must be an array');
+  const vectors = f.vectors ?? [];
+  if (vectors.length < MIN_RESEED_VECTORS) {
+    fail(where, `needs at least ${MIN_RESEED_VECTORS} vectors, has ${vectors.length}`);
+  }
+  uniqueNames(vectors, where);
+
+  const checkRow = (at, entity, row, { instant }) => {
+    if (!ENTITIES.includes(entity)) return fail(at, `unknown entity ${entity}`);
+    const id = entity === 'walk_routes' ? row?.walk_id : row?.id;
+    if (!UUID.test(id ?? '')) fail(at, `${entity} row has no UUIDv4 id`);
+    if (instant && entity !== 'walk_routes' && !INSTANT.test(row?.updated_at ?? '')) {
+      fail(at, `${entity} row needs updated_at as ISO UTC with seconds`);
+    }
+  };
+  const checkGroup = (at, group, opts) => {
+    for (const [entity, rows] of Object.entries(group ?? {})) {
+      if (!Array.isArray(rows)) fail(at, `${entity} must be an array`);
+      else for (const row of rows) checkRow(at, entity, row, opts);
+    }
+  };
+
+  const tags = new Set();
+  for (const v of vectors) {
+    const at = `${where} "${v.name}"`;
+    if (!Array.isArray(v.tags) || v.tags.length === 0) fail(at, 'needs at least one tag');
+    for (const t of v.tags ?? []) {
+      if (!RESEED_TAGS.includes(t)) fail(at, `unknown tag ${t}`);
+      tags.add(t);
+    }
+    checkGroup(`${at} server`, v.server, { instant: true });
+    checkGroup(`${at} other_family`, v.other_family, { instant: true });
+    if (!Array.isArray(v.incoming) || v.incoming.length === 0) {
+      fail(at, '`incoming` must be a non-empty array');
+      continue;
+    }
+    for (const item of v.incoming) checkRow(`${at} incoming`, item.entity, item.row, { instant: true });
+
+    const e = v.expect ?? {};
+    if (!e.rows && !e.absent) fail(at, 'expect needs `rows` or `absent`');
+    checkGroup(`${at} expect.rows`, e.rows, { instant: false });
+    checkGroup(`${at} expect.other_family`, e.other_family, { instant: false });
+    for (const [entity, ids] of Object.entries(e.absent ?? {})) {
+      if (!ENTITIES.includes(entity)) fail(at, `absent names unknown entity ${entity}`);
+      if (!Array.isArray(ids) || !ids.every((id) => UUID.test(id))) fail(at, `absent.${entity} must list ids`);
+    }
+    const r = e.result ?? {};
+    for (const c of COUNTS) {
+      if (!Number.isInteger(r[c]) || r[c] < 0) fail(at, `result.${c} must be a non-negative integer`);
+    }
+    if (r.inserted + r.updated + r.unchanged + r.refused !== v.incoming.length) {
+      fail(at, 'inserted + updated + unchanged + refused must equal the number of incoming rows');
+    }
+  }
+  for (const t of RESEED_TAGS) if (!tags.has(t)) fail(where, `no vector tagged ${t}`);
+}
+
 if (errors.length) {
   console.error(`Fixture validation failed (${errors.length}):`);
   for (const e of errors) console.error('  - ' + e);
   process.exit(1);
 }
-console.log('Fixtures valid: recurrence-vectors.json, time-vectors.json');
+console.log('Fixtures valid: recurrence-vectors.json, time-vectors.json, reseed-vectors.json');
