@@ -56,6 +56,10 @@ async def read_sync(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/sync?since=0")
 
 
+async def reseed(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(url="/api/v1/reseed", json={"rows": []})
+
+
 async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/me", json={"display_name": "Matrix member"})
 
@@ -769,6 +773,9 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         "/api/v1/assets/{id}/file",
         download_asset,
         {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        23, "POST", "/api/v1/reseed", reseed, {"member": 200, "leader": 200}
     ),
 ]
 

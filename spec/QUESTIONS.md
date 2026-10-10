@@ -668,3 +668,19 @@ required, the shared `Completion` declares `duplicate_of: string | null`,
 and the builders in the shared tests set it. The shared type changes in the
 same commit as the schema, because the exact-agreement check makes the two
 one change. An optional field left after P2-16 would be a finding.
+
+## Q-24 — P2-17 — How many values does a reseeded route point carry?
+**Asked:** 2026-10-10
+**Where:** spec/11-reserve-server.md §3; spec/04-api-contract.md §12;
+spec/fixtures/reseed-vectors.json, walk-route vectors
+**Problem:** Reseed must reuse the bounds and models of the entity's
+routes. WalkFinish and WalkRoute use points with four values: latitude,
+longitude, timestamp and accuracy. Both walk-route vectors instead send
+points with only latitude and longitude. The fixture's partial-row rule
+does not define how the factory fills missing values inside a point.
+**I would assume:** Reseed uses the existing four-value RoutePoint and
+WalkFinish's route length bound. The fixture should carry four-value
+points, or the harness should explicitly expand their missing values.
+**Blocking:** no for the contract; the assumption is confined to the
+points declaration of ReseedWalkRoute in app/schemas/reseed.py. The vector
+tests will need the answer before they can send these incoming routes.
