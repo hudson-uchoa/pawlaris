@@ -558,7 +558,7 @@ tests cover them for its routes.
   the review of 2026-10-10: RB-3, in `tests/security/test_role_matrix.py`.
   **Gate:** `uv run --directory services/api pytest tests/api/test_tasks.py -q` · `pnpm verify --only security`
 
-- [~] **P2-10 — Completions and undo**
+- [x] **P2-10 — Completions and undo** — accepted 2026-10-10
   **Depends:** P2-9 · **Read:** `02` §3.3 · `03` §5 · `04` §10 · `07` §5.2 (CP-1 code)
   **Build:** `routers/completions.py`; `services/completions.py` implementing the
   write path of `03` §5 **verbatim**, returning `(row, outcome)` with
