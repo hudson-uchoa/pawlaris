@@ -575,7 +575,7 @@ tests cover them for its routes.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_completions.py -q` · `pnpm verify --only security`
   **Not here:** push (P2-15).
 
-- [ ] **P2-11 — Timers**
+- [~] **P2-11 — Timers**
   **Depends:** P2-10 · **Read:** `02` §3.4 · `03` §6 · `04` §11
   **Build:** `routers/timers.py`.
   **Tests:** `tests/api/test_timers.py` — create; `ends_at ≤ started_at` → 422;
