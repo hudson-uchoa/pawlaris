@@ -59,14 +59,13 @@ EDITABLE_FIELDS: dict[str, tuple[str, ...]] = {
     "pets": (*PetPatch.model_fields, "archived_at"),
     "task_templates": tuple(TaskPatch.model_fields),
     "health_events": tuple(HealthEventPatch.model_fields),
-    "walk_sessions": ("note",),
 }
 WALK_METRICS = (
     "status",
     *(
         field
         for field in WalkFinish.model_fields
-        if field not in {"pet_id", "started_at", "note", "route"}
+        if field not in {"pet_id", "started_at", "route"}
     ),
 )
 REFERENCES: tuple[tuple[str, type[FamilyOwnedModel]], ...] = (
