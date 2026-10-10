@@ -811,3 +811,30 @@ request that connects after the first read is never seen. Call
 observes and relaxes nothing: the real lock, the five-second limit, the
 removal, the `401` and the table comparison stay as written. It is a
 commit of its own, `test(api)`, before the merge lands.
+
+## Q-30 — P2-17 — Should the RB-3 observer include the reseed service?
+**Asked:** 2026-10-10
+**Where:** tests/security/test_role_matrix.py,
+test_rb3_waiting_mutation_uses_locked_actor_and_writes_nothing;
+spec/04-api-contract.md §5, RB-3
+**Problem:** The candidate merge passes all 183 reseed tests, including
+the repaired real-lock removal test. The security gate reports one
+failure and 179 passes: the reseed case times out awaiting arrived,
+before its PostgreSQL wait poll or actor removal.
+
+The security test patches lock_family in idempotency, family, auth and
+assets, but not the new reseed service. Reseed imports the real lock from
+app.locks, like those services, so its request waits for the family lock
+without setting the observer's event. The recorded 500 follows request
+cancellation in the test's cleanup, not a merge exception.
+
+Routing the call through idempotency.lock_family would let that observer
+see it, but strict mypy rejects this implicit re-export. That experiment
+was removed; the candidate retains its direct app.locks import.
+**I would assume:** Add the reseed service to this test's observed_lock
+patches. Keep the real lock, both five-second limits, actor removal,
+401 response and whole-database comparison exactly as written. No test
+has been changed and no assertion needs relaxing.
+**Blocking:** yes (task stopped before changing a test). The candidate
+is saved outside the repository, and app/ is the committed stub. The
+security gate failed; contract-check and full verify were not run.
