@@ -24,7 +24,7 @@ class PetPatch(MutationBody):
     microchip_id: str | None = None
     avatar_asset_id: UUID | None = None
     notes: str | None = None
-    sort_order: int = 0
+    sort_order: int = Field(default=0, ge=-(2**31), le=2**31 - 1)
 
 
 class PetCreate(PetPatch):

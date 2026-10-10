@@ -21,6 +21,31 @@ ENTITIES = {
 }
 
 
+@pytest.mark.parametrize("method", ["POST", "PATCH"])
+@pytest.mark.parametrize(
+    "value,expected",
+    [(-(2**31) - 1, 422), (-(2**31), 200), (2**31 - 1, 200), (2**31, 422)],
+)
+async def test_r2_1_sort_order_fits_database_integer(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    method: str,
+    value: int,
+    expected: int,
+) -> None:
+    family = await make_family()
+    body = body_for("pets", family) if method == "POST" else {}
+    body["sort_order"] = value
+    path = "/api/v1/pets" + (f"/{family.pets[0].id}" if method == "PATCH" else "")
+    response = await client_for(family.users[0]).request(
+        method, path, json=body, headers=idem()
+    )
+    assert response.status_code == expected
+    if expected == 200:
+        assert response.json()["sort_order"] == value
+
+
 def body_for(resource: str, family: TestFamily) -> dict[str, object]:
     body: dict[str, object] = {"id": str(uuid4())}
     if resource == "pets":
