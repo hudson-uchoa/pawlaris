@@ -30,7 +30,7 @@ async def archive_pet(
     session: AsyncSession, user: AppUser, id: UUID, clock: Clock
 ) -> Pet:
     row = await common.get_owned(session, Pet, id, user, include_deleted=False)
-    await family._locked_leader(session, user)
+    family.require_leader(user)
     if row.archived_at is None:
         row.archived_at = clock.now()
     return row
@@ -38,7 +38,7 @@ async def archive_pet(
 
 async def unarchive_pet(session: AsyncSession, user: AppUser, id: UUID) -> Pet:
     row = await common.get_owned(session, Pet, id, user, include_deleted=False)
-    await family._locked_leader(session, user)
+    family.require_leader(user)
     row.archived_at = None
     return row
 

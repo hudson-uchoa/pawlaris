@@ -109,6 +109,17 @@ class IdempotentMutation:
                 return entry.schema.model_validate(row)
 
             await lock_family(self.session, self.user.family_id)
+            current = await self.session.scalar(
+                select(AppUser)
+                .where(
+                    AppUser.id == self.user.id,
+                    AppUser.family_id == self.user.family_id,
+                )
+                .execution_options(populate_existing=True)
+            )
+            if current is None or current.disabled_at is not None:
+                raise ApiError(401, "token_invalid", "Invalid or expired access token.")
+            self.user = current
             row = await handler()
             await self.session.flush()
             await self.session.execute(
