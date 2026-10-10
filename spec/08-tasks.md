@@ -598,7 +598,7 @@ tests cover them for its routes.
   other router.
   **Gate:** `uv run --directory services/api pytest tests/api/test_walks.py -q` · `pnpm verify --only security`
 
-- [ ] **P2-13 — Assets, storage, maintenance**
+- [~] **P2-13 — Assets, storage, maintenance**
   **Depends:** P2-12 · **Read:** `03` §8 · `04` §13 · `05` §2.1, §4.6
   **Build:** `storage/base.py` (`StorageAdapter` protocol: `put_file(key,
   path)`, `open(key)`, `delete(key)`, `exists(key)`), `storage/local.py` (under
