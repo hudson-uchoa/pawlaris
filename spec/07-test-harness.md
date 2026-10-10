@@ -374,7 +374,7 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 | — | `tests/api/test_push.py` | with a fake sender: completion → message to the other member only; lost race → duplicate push to the winner; author never targeted; sender failure does not fail the request |
 | R5.9 | `tests/api/test_timing.py` | every response has `Server-Timing: app;dur=<number>`; a `/sync` response over 1 KB is gzip-encoded when asked |
 | — | `tests/api/test_commit_order.py` | a handler whose commit fails returns 500, and its after-commit callback never runs; a successful one runs its callback after the row is visible to a second connection |
-| RB-1, RB-2 | `tests/security/test_role_matrix.py` | `04` §5 |
+| RB-1, RB-2, RB-3 | `tests/security/test_role_matrix.py` | `04` §5 |
 | census | `tests/security/test_route_census.py` | `04` §5 |
 | — | `tests/security/test_no_naive_time.py` | no `datetime.now` / `utcnow` in `app/` outside `clock.py` |
 
