@@ -9,9 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Clock
 from app.errors import ApiError
-from app.models import AppUser, HealthEvent, Pet, TaskTemplate, WeightEntry
+from app.models import AppUser, HealthEvent, Pet, TaskTemplate, TaskTimer, WeightEntry
 
-type OwnedModel = AppUser | Pet | WeightEntry | HealthEvent | TaskTemplate
+type SoftDeletableModel = AppUser | Pet | WeightEntry | HealthEvent | TaskTemplate
+type OwnedModel = SoftDeletableModel | TaskTimer
 
 
 async def get_owned[Model: OwnedModel](
@@ -23,7 +24,11 @@ async def get_owned[Model: OwnedModel](
     include_deleted: bool = True,
 ) -> Model:
     row = await _find_owned(session, model, id, user)
-    if row is None or (not include_deleted and row.deleted_at is not None):
+    if row is None or (
+        not include_deleted
+        and not isinstance(row, TaskTimer)
+        and row.deleted_at is not None
+    ):
         raise ApiError(404, "not_found", "Row not found.")
     return row
 
@@ -45,9 +50,10 @@ async def create_owned[Model: OwnedModel](
         await get_owned(session, reference_model, reference_id, user)
     if validate is not None:
         await validate()
+    actor_column = "started_by" if model is TaskTimer else "created_by"
     row = await session.scalar(
         insert(model)
-        .values(**values, family_id=user.family_id, created_by=user.id)
+        .values(**values, family_id=user.family_id, **{actor_column: user.id})
         .on_conflict_do_nothing(index_elements=[model.id])
         .returning(model)
     )
@@ -56,7 +62,7 @@ async def create_owned[Model: OwnedModel](
     return row if row is not None else await get_owned(session, model, id, user)
 
 
-async def patch_owned[Model: OwnedModel](
+async def patch_owned[Model: SoftDeletableModel](
     session: AsyncSession,
     model: type[Model],
     id: UUID,
@@ -73,7 +79,7 @@ async def patch_owned[Model: OwnedModel](
     return row
 
 
-async def soft_delete[Model: OwnedModel](
+async def soft_delete[Model: SoftDeletableModel](
     session: AsyncSession,
     model: type[Model],
     id: UUID,
