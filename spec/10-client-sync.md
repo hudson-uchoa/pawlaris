@@ -25,7 +25,9 @@ dependencies injected, so it runs under Jest with no device.
 | `replica/store.ts` | the in-memory store (Zustand vanilla) |
 | `replica/apply.ts` | the one module that writes rows into SQLite **and** the store |
 | `replica/selectors.ts` | pure functions from store state to view data |
-| `api/client.ts` | `fetch` wrapper: base URL, auth header, timeouts, error mapping |
+| `api/client.ts` | `fetch` wrapper: base URL of the active server, auth header, timeouts, error mapping |
+| `sync/serverSelect.ts` | which server is active, and when to move *(`11` §4.2)* |
+| `sync/arrive.ts` | reseed, full pull, sweep, on arriving at a server *(`11` §4.3)* |
 | `auth/session.ts` | tokens, single-flight refresh, login/logout |
 | `sync/mutations.ts` | the catalogue of mutations (§3) |
 | `sync/outbox.ts` | drain loop and error taxonomy (§4) |
@@ -98,7 +100,9 @@ type ReplicaState = {
   every `replica` row except `task_completions` with
   `sort_key < (today − 120 days)`. Older completions stay on disk and are read
   on demand by history screens through `replicaRepo.range()`.
-- Soft-deleted rows (`deleted_at` set) are removed from memory and from disk.
+- Soft-deleted rows (`deleted_at` set) are removed from memory and **kept on
+  disk as tombstones** (`deleted = 1`): never hydrated, never returned by a
+  selector or by `range()`, and sent in a reseed *(`11` §2.2)*.
 - The store exposes no setters to the UI. The only writers are `apply.ts`
   functions.
 
@@ -122,10 +126,10 @@ and never sees a state that was rolled back.
 if the outbox holds an entry for (entity, id):
        skip                      -- local intent wins until the server answers it
 else if row.deleted_at is set:
-       delete (entity, id)
+       upsert as a tombstone (deleted = 1); remove it from the store
 else:
        upsert with pending = 0, revision = row.revision
-if opts.cursor is given: kv.last_revision = opts.cursor      -- same transaction
+if opts.cursor is given: kv.last_revision.<server> = opts.cursor   -- same transaction
 ```
 
 The skip test looks at the **outbox**, not at the replica row, so it also
@@ -299,13 +303,12 @@ tombstone, so the replica converges on the server without wiping anything.
 ```
 pull():
   loop:
+    -- every kv key below is the active server's: kv.last_revision.<server>, … (11 §4.1)
     since = kv.last_revision ?? 0
     res = GET /sync?since=<since>&limit=500
     if not ok: return classify(res)                       -- transient / auth
-    if kv.sync_epoch exists and res.epoch != kv.sync_epoch:
-        ONE transaction: replicaRepo.clearSynced()        -- every row with no outbox entry
-                         kv.last_revision = 0; kv.sync_epoch = res.epoch
-        continue                                          -- pull again, from zero
+    if res.epoch != kv.reseeded_epoch:
+        return arrive(server)                             -- reseed, full pull, sweep: 11 §4.3
     if kv.sync_epoch is absent: kv.sync_epoch = res.epoch
     applyServerRows(res.changes, { cursor: res.revision })   -- rows + cursor, one transaction
     if not res.has_more: return 'ok'
@@ -320,9 +323,10 @@ notification layer to reconcile reminders (`09` §9).
 > **PL-2** The cursor and the rows of a page commit together: a crash injected
 > inside `applyServerRows` leaves both at their previous values.
 >
-> **PL-3** A changed `epoch` drops every synced row, keeps every row protected
-> by the outbox and the outbox itself, and ends with the replica equal to the
-> server *(SY-7)*.
+> **PL-3** A changed `epoch` starts `arrive` *(`11` §4.3)*: the phone reseeds
+> the server, pulls from zero, and only then removes the synced rows the server
+> did not return. Every row protected by the outbox, and the outbox itself, is
+> kept, and the replica ends equal to the server *(SY-7, RS-7)*.
 >
 > **PL-4** After a rejection (OB-2), the next pull makes the replica equal to
 > the server: a rejected optimistic edit shows the server's value again, and a
@@ -437,7 +441,9 @@ kick(reason):  if a cycle is running: rerun = true; return
                run cycle
 
 cycle:
-  if kv.signed_out or no session: state = 'signed_out'; return
+  server = serverSelect.current()                       -- may have moved: 11 §4.2
+  if server changed since the last cycle: arrive(server) -- 11 §4.3; it ends in this same cycle
+  if kv.signed_out or no session for this server: state = 'signed_out'; return
   if network unreachable: state = 'offline'; return
   state = 'syncing'
   r1 = drain()          -- outbox first, so acknowledgements land before the pull
@@ -459,8 +465,8 @@ pull-to-refresh; the scheduled retry; the 60-second fallback of §6.
 
 | State | Shown as | When |
 |---|---|---|
-| `synced` | `sincronizado` | online, outbox empty, last cycle clean |
-| `syncing` | `sincronizando (n)` — `n` = outbox length, omitted when 0 | a cycle is running or the outbox is non-empty |
+| `synced` | `sincronizado` — on the reserve, `sincronizado · reserva` | online, outbox empty, last cycle clean |
+| `syncing` | `sincronizando (n)` — `n` = outbox length, omitted when 0; on the reserve, ending with `· reserva` | a cycle is running, the outbox is non-empty, or `arrive` has not ended |
 | `offline` | `offline` | no network, or the last request failed at the network level |
 | `signed_out` | (login screen) | refresh is no longer possible |
 
@@ -470,10 +476,10 @@ pull-to-refresh; the scheduled retry; the 60-second fallback of §6.
 
 | What | Where |
 |---|---|
-| refresh token | `SecretBox` |
-| access token and its expiry | `SecretBox` — so a cold start does not spend a refresh rotation it does not need |
+| refresh token | `SecretBox` — one per server *(`11` §4.1, RS-9)* |
+| access token and its expiry | `SecretBox`, one per server — so a cold start does not spend a refresh rotation it does not need |
 | `session_user` (the `/me` JSON) | `kv` — kept across a session expiry, so "same user?" can be answered |
-| `signed_out` (`'1'` when the session can no longer be refreshed) | `kv` |
+| `signed_out` (`'1'` when the session can no longer be refreshed) | `kv`, one per server |
 
 - **Startup:** `kv.session_user` absent → login screen. Present and
   `kv.signed_out` set → login screen, with the replica and outbox untouched.

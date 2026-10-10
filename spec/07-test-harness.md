@@ -93,7 +93,7 @@ injected seams, so it is tested fast and with no device.
 
 ## 3. Fixtures
 
-Both files are authored by the orchestrator and are **read-only for the
+The files are authored by the orchestrator and are **read-only for the
 implementer**. A failing vector means the code is wrong.
 
 ### `spec/fixtures/recurrence-vectors.json`
@@ -122,9 +122,40 @@ with `expect` using deep equality. It contains no expectations of its own.
                      "expect": "2026-03-08T07:30:00Z" } ] }
 ```
 
-`node scripts/validate-vectors.mjs` checks both files' shape, unique names,
+### `spec/fixtures/reseed-vectors.json` *(`11` §3)*
+
+```jsonc
+{ "version": 1,
+  "now": "2026-10-10T12:00:00Z",          // the injected Clock, frozen
+  "base": { "family", "members": [ … ], "pets": [ … ], "task_templates": [ … ] },
+  "vectors": [
+    { "name": "…unique…", "tags": ["tombstone"],
+      "server":       { "<entity>": [ row, … ] },      // added to the base, in the caller's family
+      "other_family": { "<entity>": [ row, … ] },      // optional: rows of a second family
+      "incoming":     [ { "entity": "<entity>", "row": { … } }, … ],
+      "expect": { "rows":   { "<entity>": [ row, … ] },
+                  "absent": { "<entity>": [ id, … ] },
+                  "other_family": { "<entity>": [ row, … ] },
+                  "stubs":  [ user id, … ],
+                  "result": { "inserted", "updated", "unchanged", "duplicates", "refused" } } } ] }
+```
+
+Rows are partial. In `base`, `server` and `other_family` a field that is not
+given takes the test factory's value; in `incoming` it takes a valid value of
+the factory's; in `expect.rows` only the fields given are compared. `"@now"`
+in an expected instant means the frozen clock.
+
+The test builds the base and the vector's `server` rows, then sends
+`incoming` four ways, each against a fresh database: in one call; the same
+call twice; in reverse order; one row per call. After each, the database
+must hold `expect.rows`, hold nothing listed in `absent`, leave
+`other_family` as it was, and have exactly the users of `stubs` as stubs when
+the key is present. `result` is compared for the first way only: the counts
+of the others differ by construction.
+
+`node scripts/validate-vectors.mjs` checks the files' shape, unique names,
 sorted `expect` arrays and the required coverage tags. It does not run the
-engine; `test:shared` does.
+engine or the merge; `test:shared` and `test:api` do.
 
 ---
 
@@ -373,6 +404,8 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 | TM-1 (server half) | `tests/api/test_timers.py` | stores, syncs, cancels idempotently |
 | — | `tests/api/test_walks.py` | finish as upsert; discard; route fetch; preview stored and synced; limits; two active walks accepted |
 | AS-1, AS-2 | `tests/api/test_assets.py` | plus: PNG bytes sent as `image/jpeg` stored as PNG; non-image → 422; `Content-Length` over 8 MiB → 413 before any byte is read; a body that exceeds 8 MiB despite a smaller `Content-Length` → 413; the family lock is free while the body is being read, and an actor removed meanwhile gets 401 with no file left; no `Content-Length` → 413; wrong hash → 422; the right hash in upper case → 201; 5000×5000 image → 422; same id other bytes → 409; unauthenticated → 401 with the body unread; the sweep waits for a write that holds the family lock, and keeps the asset that write references |
+| RS-1 … RS-5, RS-10 | `tests/sync/test_reseed.py` | `11` §3: every vector of `reseed-vectors.json`, four ways; the trigger keeps a supplied `updated_at` only inside a reseed; 501 rows → 422; a row that breaks its entity's bounds → 422 and nothing written; the duplicate push goes to both people after the commit; an actor removed while the call waits for the lock → 401 |
+| RS-6 | `tests/api/test_reserve_role.py` | with `SERVER_ROLE=reserve`: each of the six routes → `409 reserve_read_only`, database unchanged; login, refresh, logout, the push-token routes and `PATCH /family` work; `/health` reports the role on both |
 | WS-1, WS-2 | `tests/sync/test_socket.py` | `04` §7; plus: a first frame that is not `auth` closes 4401 even when it carries a valid token; an expired token closes on an inbound frame that asks for no answer; whichever socket of a family fails first during a poke, the others still get it, and the failed one is gone from the hub; after a socket closes the hub holds nothing for it; a hub failure is logged as one JSON `ERROR` line and a vanished socket as none; Uvicorn finds a WebSocket implementation (`uvicorn.protocols.websockets.auto.AutoWebSocketsProtocol` is not `None`) — the socket tests run without a server, so nothing else would notice its absence until a phone tried to connect |
 | — | `tests/api/test_push.py` | a completion or a walk start sent again under a new `Idempotency-Key` pushes nothing; a ticket with another error (`MessageRateExceeded`) keeps the token and writes one `ERROR` JSON line; an Expo failure (HTTP error, timeout, a body that is not tickets) writes exactly one, with no token, title or body in it; the HTTP client's own log line is not emitted; with a fake sender: completion → message to the other member only; lost race → duplicate push to the winner; author never targeted; sender failure does not fail the request |
 | R5.9 | `tests/api/test_timing.py` | every response has `Server-Timing: app;dur=<number>`; a `/sync` response over 1 KB is gzip-encoded when asked |
@@ -412,12 +445,14 @@ factories (P3-1); `fakeHttp`, `fakeRandom`, `fakeSecretBox` (P3-3);
 | — | `db/__tests__/driver.test.ts` | `transaction` is re-entrant; an inner throw rolls back the outer |
 | RP-1, RP-2, RP-3 | `replica/__tests__/apply.test.ts` | `10` §2 |
 | OB-1 … OB-6 | `sync/__tests__/outbox.test.ts` | `10` §4 |
-| PL-1 … PL-4 | `sync/__tests__/pull.test.ts` | `10` §5 |
+| PL-1, PL-2, PL-4 | `sync/__tests__/pull.test.ts` | `10` §5; a changed epoch hands over to `arrive` and the pull itself writes nothing |
 | WS-1 (client half) | `sync/__tests__/socket.test.ts` | `ready`, `poke` and `pong` with a newer revision kick; older ones do not; 4401 refreshes then reconnects; missed pong reconnects |
 | SE-1 … SE-4 | `auth/__tests__/session.test.ts`, `auth/__tests__/lifecycle.test.ts` | `10` §8.1 |
 | AF-1 … AF-4 | `assets/__tests__/files.test.ts` | `10` §7 |
 | WK-1 | `walks/__tests__/pointStore.test.ts` | `03` §7 |
 | TM-1 (client half) | `replica/__tests__/timers.test.ts` | remaining time correct after re-hydrating with an advanced clock |
+| RS-1, RS-7, PL-3 | `sync/__tests__/arrive.test.ts` | `11` §4.3: reseed sends every row with no outbox entry, tombstones and old completions included, in the entity order, 500 a call; a crash injected between two batches, between two pull pages and before the sweep each leave the replica holding everything, and a second run completes; the sweep removes only unmarked rows with no outbox entry; files the server lacks go back to `to_upload`; a batch answered 422 is sent again row by row and the bad row alone is left out; an empty replica makes no `/reseed` call |
+| RS-8, RS-9 | `sync/__tests__/serverSelect.test.ts` | `11` §4.2: the scripted sequences of RS-8 with the fake clock; no reserve address → never probes; a token, cursor or epoch of one server is never sent to the other |
 | — | `sync/__tests__/engine.test.ts` | drain runs before pull; a kick during a cycle causes exactly one re-run; states of `10` §8; a failed pull schedules a retry |
 | — | `notifications/__tests__/reconcile.test.ts` | cancels extras, schedules missing, re-schedules changed `fp`; running twice changes nothing |
 

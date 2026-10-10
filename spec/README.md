@@ -10,12 +10,13 @@ This directory is the source of truth. `AGENTS.md` (for the implementer) and
 | `02-spec.md` | **What the app does.** Every requirement is `Rn.n` and testable |
 | `03-data-model.md` | PostgreSQL schema, the phone's SQLite schema, and the invariants |
 | `04-api-contract.md` | Every route, row shape, status code and permission |
-| `05-architecture.md` | Stack, code layout, infrastructure, security, backup, ADR-001…037 |
+| `05-architecture.md` | Stack, code layout, infrastructure, security, backup, ADR-001…038 |
 | `06-ux-motion-spec.md` | **The identity** (night sky, light and dark), tokens, the motion kit, and the budgets for speed and weight |
 | `07-test-harness.md` | The gates — the executable definition of done |
 | `08-tasks.md` | **The backlog.** Ordered tasks, each with what to read, build, test and run |
 | `09-screens.md` | **What the finished app looks like**, screen by screen, with copy and test ids |
 | `10-client-sync.md` | The phone's replica, outbox, pull, socket and engine, as algorithms |
+| `11-reserve-server.md` | The second server: how the app moves between two, and how a phone brings a server up to date *(ADR-038)* |
 | `QUESTIONS.md` | Where the implementer asks and the orchestrator answers |
 | `contracts/openapi.json` | Generated from the API, committed, drift-gated |
 | `fixtures/*.json` | Golden vectors — read-only for the implementer |
@@ -46,6 +47,7 @@ implement anything; where it and another file disagree, the other file wins.
 | `RB` `WS` | permission and socket gates | `04` |
 | `MO` | motion gates | `06` |
 | `RP` `OB` `PL` `SE` `AF` | client-sync invariants | `10` |
+| `RS` | reserve-server and reseed invariants | `11` |
 | `DV` `FK` `RM` | named pure-domain test cases | `07` §4 |
 
 Each invariant has a named test. **Those tests are the real definition of

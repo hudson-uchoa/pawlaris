@@ -382,9 +382,12 @@ Vocabulary used everywhere:
 - **R5.5** The socket only says "something changed". The app is fully correct
   with the socket permanently down *(WS-1)*.
 - **R5.6** A status indicator shows `sincronizado`, `sincronizando (n)` or
-  `offline`. Offline is a supported mode and is not styled as an error.
+  `offline`. Offline is a supported mode and is not styled as an error. On the
+  reserve server *(R5.11)* the first two end with `· reserva`.
 - **R5.7** Concurrent edits to the same row resolve last-writer-wins by arrival at
   the server, field by field. Completions resolve by R3.20. Neither shows a dialog.
+  Between two servers *(R5.12)* a row resolves by the time of the change, not
+  of arrival.
 - **R5.8** A change made on one phone appears on the other within 3 seconds when
   both are online with the app open — typically under one.
 - **R5.9** The server answers any mutation and any incremental `/sync` in under
@@ -392,6 +395,21 @@ Vocabulary used everywhere:
 - **R5.10** The outbox starts draining the moment a mutation is queued, and a
   pull starts the moment a poke arrives. Nothing is debounced or batched on a
   timer.
+- **R5.11** The app knows a primary server and, optionally, a reserve
+  *(ADR-038, `11`)*. It uses the primary whenever it answers; it moves to the
+  reserve after the primary has failed three times over at least a minute and
+  the reserve answers; it returns after three healthy answers from the
+  primary. Nobody changes a setting *(RS-8)*.
+- **R5.12** A phone that arrives at a server lacking what the phone holds
+  gives it its rows before pulling. A server that was off, restored or new is
+  brought up to date by the phones, and nothing a phone held is lost on the
+  way *(RS-1, RS-7)*.
+- **R5.13** When one occurrence was completed on both servers, the earlier
+  completion stands, the other is kept as its duplicate, and each person is
+  told that the other also marked it, with the message of R3.41 *(RS-4)*.
+- **R5.14** Inviting, removing a member, and changing a role, a name, a
+  colour or a password happen on the primary only. On the reserve the app
+  shows them disabled, with a note *(RS-6)*.
 
 ---
 

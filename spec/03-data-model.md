@@ -88,7 +88,10 @@ consecutive. The cursor only ever asks for `revision > since`.
 > **SY-3** A hard `DELETE` on a syncable table raises. Gate: attempt one per table.
 
 The application never writes `revision` or `updated_at`. SQLAlchemy models mark
-both as server-generated and refresh them after flush.
+both as server-generated and refresh them after flush. The one exception is a
+reseed *(`11` §2.1)*: inside its transaction the trigger keeps the `updated_at`
+a row arrives with, so that the instant of a change survives the move from one
+server to another. `revision` is assigned by the trigger even then.
 
 ### 1.2 The family lock
 
@@ -118,11 +121,14 @@ CREATE TABLE server_meta (
 One row, created by the initial migration with a random `sync_epoch`. The epoch
 identifies *this history* of the database. `infra/restore.sh` replaces it with
 a new random value after restoring a backup. `/sync` returns it; a phone that
-sees it change discards its synced rows and pulls from zero *(04 §6)*, because
-its cursor refers to a history that no longer exists.
+sees it change knows its cursor refers to a history that no longer exists. It
+first gives that server the rows it holds, then pulls from zero, and only
+then lets go of what the server did not return *(`11` §4.3)*.
 
 > **SY-7** After the epoch changes, a phone ends up with exactly the server's
-> rows: nothing kept from the old history, nothing missed from the new one.
+> rows — and the server's rows by then include every row the phone held that
+> the merge of `11` §3 accepted. Nothing is missed from the new history, and
+> nothing the phone had is lost on the way.
 
 ---
 
@@ -721,6 +727,8 @@ CREATE TABLE replica (
   id       TEXT NOT NULL,
   revision INTEGER,            -- NULL while the row exists only locally
   pending  INTEGER NOT NULL DEFAULT 0,   -- 1 = has unacknowledged local changes
+  deleted  INTEGER NOT NULL DEFAULT 0,   -- 1 = a tombstone: kept on disk, never hydrated (11 §2.2)
+  pull_gen INTEGER NOT NULL DEFAULT 0,   -- the full pull that last wrote this row (11 §4.3)
   sort_key TEXT,               -- per-entity range key, see table below
   json     TEXT NOT NULL,
   PRIMARY KEY (entity, id)
@@ -802,10 +810,13 @@ CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 | `walk_sessions` | `started_at` (ISO) |
 | everything else | NULL |
 
-`kv` keys: `last_revision`, `sync_epoch`, `session_user` (JSON of `/me`), `scope_filter`,
-`celebrated_on`, `battery_prompt_done`, `device_id`, `signed_out`,
-`notif_rationale_dismissed`, `push_token_sent`, `suppressed_reminders` (JSON
-array of notification ids cancelled by a push, `09` §9.4),
+`kv` keys: one for each of `primary` and `reserve` — `last_revision.<server>`,
+`sync_epoch.<server>`, `reseeded_epoch.<server>`, `signed_out.<server>` and
+`push_token_sent.<server>` — then `active_server` and `pull_gen` *(all of
+these: `11` §4)*, `session_user` (JSON of `/me`), `scope_filter`,
+`celebrated_on`, `battery_prompt_done`, `device_id`,
+`notif_rationale_dismissed`, `suppressed_reminders` (JSON array of
+notification ids cancelled by a push, `09` §9.4),
 `needs_background_location`.
 
 > **OB-1** 20 mutations queued offline, the app restarted, then the network

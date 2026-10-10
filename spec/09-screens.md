@@ -78,6 +78,10 @@ layout of the dashboard.
   render skeletons *(R6.1)*.
 - When the session expired with a non-empty outbox, a note sits above the
   form: "Você tem N alterações esperando para sincronizar. Entre para enviá-las."
+- When the app moved to the reserve server and has no session there *(`11`
+  §4.5)*, the note is: "O servidor principal está fora do ar. Entre de novo
+  para usar o servidor reserva — nada foi perdido." `login-reserve-note`. It
+  replaces the note above; the email is filled in and not editable.
 - At the foot of the screen, centred, 24 dp above the bottom inset: the Insurge
   signature `powered-by` *(`06` §4.12, R7.7)*. It is not pressable here, and
   the keyboard covers it rather than pushing it into the form.
@@ -105,7 +109,8 @@ in `apps/mobile/src/replica/selectors.ts`, which wraps `buildDayView` from
    - Label: `Hoje`, `Ontem`, `Amanhã`, otherwise `qua., 14 de out.`
    - `day-prev` / `day-next` chevrons move one day; limits −90 / +30 *(R6.2)*.
      Tapping the label when it is not today returns to today (`day-today`).
-   - `SyncIndicator` `sync-indicator` on the right.
+   - `SyncIndicator` `sync-indicator` on the right. On the reserve server its
+     label ends with `· reserva` *(R5.6)*; the drawing does not change.
 2. **Scope filter** (leaders only, `scope-filter`) — chips: `Minhas` `scope-mine`,
    `Todas` `scope-all`, then one per other enabled member `scope-user-<id>`
    *(R6.11)*.
@@ -374,6 +379,10 @@ it opens `https://insurge.pages.dev` in the browser.
   **Copiar** and "Vale por 24 horas, para uma pessoa.". All disabled offline with
   the note "Disponível quando houver conexão."
 - **Trocar senha:** senha atual, nova senha (min 8), **Salvar**. Online only.
+- **On the reserve server** *(R5.14)*: the role toggle, **Remover**,
+  **Convidar**, **Trocar senha** and the editing of one's own name and colour
+  are disabled, with the note "Disponível quando o servidor principal voltar."
+  `reserve-note`. The family's name and timezone stay editable.
 - **Permissões:** one row per permission with its live state and a button that
   either requests it or opens system Settings: Notificações, Localização,
   Localização em segundo plano, Otimização de bateria, Câmera.
