@@ -583,6 +583,9 @@ async def test_id2_existing_id_and_tombstone_are_unchanged_before_new_references
         "deleted_at"
     ] == frozen_clock.now().isoformat().replace("+00:00", "Z")
     frozen_clock.advance(timedelta(days=1))
+    # The original access token expired during the jump; keep the same actor
+    # with a fresh token so this tests the tombstone rather than authentication.
+    client = client_for(family.users[1])
     before = await revision(app, family)
     repeated_delete = await client.delete(f"/api/v1/tasks/{body['id']}", headers=idem())
     assert (
