@@ -316,14 +316,7 @@ async def complete_vector_row(
     if entity in ("task_completions", "task_timers"):
         base = cast(Values, FIXTURE["base"])
         defaults["task_id"] = cast(list[Values], base["task_templates"])[0]["id"]
-    supplied = deepcopy(partial)
-    # Q-26: the two walk-status vectors use null for unfinished metrics.
-    # Keep their expected rows untouched and supply valid factory values here.
-    if entity == "walk_sessions":
-        for field in ("distance_m", "duration_s"):
-            if field in supplied and supplied[field] is None:
-                supplied[field] = defaults[field]
-    return {**defaults, **supplied}
+    return {**defaults, **deepcopy(partial)}
 
 
 async def seed_groups(
@@ -1023,23 +1016,51 @@ class CommittedDuplicateSender(FakeSender):
 
 
 @pytest.mark.parametrize(
-    "name",
+    "name,same_author",
     [
-        "duplicate-completion-the-earlier-stays",
-        "duplicate-completion-the-incoming-is-earlier",
-        "three-completions-one-live",
+        ("duplicate-completion-the-earlier-stays", False),
+        ("duplicate-completion-the-incoming-is-earlier", False),
+        ("three-completions-one-live", False),
+        pytest.param(
+            "duplicate-completion-the-earlier-stays", True, id="same-author-no-push"
+        ),
     ],
 )
-async def test_rs4_duplicate_push_targets_both_people_after_commit_once_per_loser(
+async def test_rs4_duplicate_push_names_other_author_after_commit_once_per_loser(
     app: FastAPI,
     reseed_base: TestFamily,
     client_for: ClientFor,
     frozen_clock: FrozenClock,
     name: str,
+    same_author: bool,
 ) -> None:
-    vector = next(item for item in VECTORS if item["name"] == name)
+    vector = deepcopy(next(item for item in VECTORS if item["name"] == name))
+    if same_author:
+        for row in cast(Groups, vector["server"]).get("task_completions", []):
+            row["completed_by"] = str(reseed_base.users[0].id)
+        for change in cast(list[Values], vector["incoming"]):
+            cast(Values, change["row"])["completed_by"] = str(reseed_base.users[0].id)
     await seed_groups(app, reseed_base, cast(Groups, vector["server"]), frozen_clock)
-    devices = [(user, secrets.token_urlsafe(24)) for user in reseed_base.users]
+    third_id = uuid4()
+    await seed_groups(
+        app,
+        reseed_base,
+        {
+            "members": [
+                {"id": str(third_id), "display_name": "Third member", "role": "member"}
+            ]
+        },
+        frozen_clock,
+    )
+    async with app.state.session_factory() as session:
+        users = list(
+            await session.scalars(
+                select(AppUser).where(AppUser.family_id == reseed_base.id)
+            )
+        )
+    devices = [
+        (user, secrets.token_urlsafe(24)) for user in [*users, reseed_base.users[0]]
+    ]
     await seed_devices(app, devices)
     sender = CommittedDuplicateSender(app, reseed_base.id)
     app.state.push_sender = sender
@@ -1061,24 +1082,15 @@ async def test_rs4_duplicate_push_targets_both_people_after_commit_once_per_lose
             if row.get("duplicate_of") is not None
         }
         assert response.json()["duplicates"] == len(duplicates)
-        targets = {token for _, token in devices}
-        # reseed_base also has an existing device for the second member.
+        targets: dict[UUID, list[str]] = defaultdict(list)
+        # Include every stored device, including the base's second-member device.
         async with app.state.session_factory() as session:
-            targets.update(
-                await session.scalars(
-                    select(PushDevice.token).where(
-                        PushDevice.user_id.in_([user.id for user in reseed_base.users])
-                    )
+            for device in await session.scalars(
+                select(PushDevice).where(
+                    PushDevice.user_id.in_([user.id for user in users])
                 )
-            )
-        actual = Counter(
-            (str(message["to"]), str(cast(Values, message["data"])["completion_id"]))
-            for message in sender.messages
-        )
-        assert actual == Counter(
-            (token, str(winner)) for winner in duplicates.values() for token in targets
-        )
-        async with app.state.session_factory() as session:
+            ):
+                targets[device.user_id].append(device.token)
             completions = {
                 row.id: row
                 for row in await session.scalars(
@@ -1087,19 +1099,41 @@ async def test_rs4_duplicate_push_targets_both_people_after_commit_once_per_lose
                     )
                 )
             }
-        names = {user.id: user.display_name for user in reseed_base.users}
-        assert_messages(
-            sender.messages,
-            [
-                completion_duplicate_message(
-                    token,
-                    names[completions[loser].completed_by],
-                    completions[winner],
+        if same_author:
+            assert {row.completed_by for row in completions.values()} == {
+                reseed_base.users[0].id
+            }
+        names = {user.id: user.display_name for user in users}
+        expected_messages: list[PushMessage] = []
+        for loser, winner in duplicates.items():
+            winner_author = completions[winner].completed_by
+            loser_author = completions[loser].completed_by
+            if winner_author == loser_author:
+                continue
+            for recipient, other_author in (
+                (winner_author, loser_author),
+                (loser_author, winner_author),
+            ):
+                expected_messages.extend(
+                    completion_duplicate_message(
+                        token, names[other_author], completions[winner]
+                    )
+                    for token in targets[recipient]
                 )
-                for loser, winner in duplicates.items()
-                for token in targets
-            ],
+        actual = Counter(
+            (str(message["to"]), str(cast(Values, message["data"])["completion_id"]))
+            for message in sender.messages
         )
+        assert actual == Counter(
+            (str(message["to"]), str(cast(Values, message["data"])["completion_id"]))
+            for message in expected_messages
+        )
+        assert_messages(sender.messages, expected_messages)
+        assert not {str(message["to"]) for message in sender.messages} & set(
+            targets[third_id]
+        )
+        if same_author:
+            assert sender.messages == []
         for message in sender.messages:
             data = cast(Values, message["data"])
             assert data["type"] == "completion_duplicate"
@@ -1111,7 +1145,8 @@ async def test_rs4_duplicate_push_targets_both_people_after_commit_once_per_lose
             assert "silent" not in data
             assert message["channelId"] == "family-activity"
             assert message["priority"] == "high"
-        assert sender.committed
+        if expected_messages:
+            assert sender.committed
         for visible in sender.committed:
             assert all(
                 visible.get(loser) == winner for loser, winner in duplicates.items()
