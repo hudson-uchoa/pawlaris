@@ -31,7 +31,7 @@ from app.settings import Settings
 async def patch_family(
     session: AsyncSession, actor: AppUser, body: FamilyPatch
 ) -> Family:
-    await _locked_leader(session, actor)
+    require_leader(actor)
     row = await session.get(Family, actor.family_id, populate_existing=True)
     if row is None:
         raise ApiError(404, "not_found", "Family not found.")
@@ -43,7 +43,7 @@ async def patch_family(
 async def change_role(
     session: AsyncSession, actor: AppUser, user_id: UUID, body: RoleChange
 ) -> AppUser:
-    await _locked_leader(session, actor)
+    require_leader(actor)
     target = await _member(session, actor, user_id)
     if target.disabled_at is not None:
         raise ApiError(404, "not_found", "Member not found.")
@@ -56,7 +56,7 @@ async def change_role(
 async def remove_member(
     session: AsyncSession, actor: AppUser, user_id: UUID, clock: Clock
 ) -> AppUser:
-    await _locked_leader(session, actor)
+    require_leader(actor)
     target = await _member(session, actor, user_id)
     if target.disabled_at is not None:
         return target

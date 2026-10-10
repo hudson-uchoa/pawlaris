@@ -12,7 +12,6 @@ from app.services import common
 async def create_task(
     session: AsyncSession, user: AppUser, body: TaskCreate
 ) -> TaskTemplate:
-    user = await _current_actor(session, user)
     values = body.model_dump(exclude_unset=True)
     # Only the recurrence JSON uses JSON-mode serialization; column dates and
     # UUIDs remain typed. No recurrence is evaluated on the server.
@@ -38,7 +37,6 @@ async def create_task(
 async def patch_task(
     session: AsyncSession, user: AppUser, id: UUID, body: TaskPatch
 ) -> TaskTemplate:
-    user = await _current_actor(session, user)
 
     async def validate(row: TaskTemplate) -> None:
         if "assigned_to" in body.model_fields_set:
@@ -57,7 +55,6 @@ async def patch_task(
 async def delete_task(
     session: AsyncSession, user: AppUser, id: UUID, clock: Clock
 ) -> TaskTemplate:
-    user = await _current_actor(session, user)
 
     async def validate(row: TaskTemplate) -> None:
         _require_edit(user, row)
@@ -65,15 +62,6 @@ async def delete_task(
     return await common.soft_delete(
         session, TaskTemplate, id, user, clock, validate=validate
     )
-
-
-async def _current_actor(session: AsyncSession, user: AppUser) -> AppUser:
-    # The idempotency wrapper holds the family lock. Re-read permissions after
-    # waiting for it, rather than trusting the dependency's earlier snapshot.
-    current = await common.get_owned(session, AppUser, user.id, user)
-    if current.disabled_at is not None:
-        raise ApiError(401, "token_invalid", "Invalid or expired access token.")
-    return current
 
 
 async def _normalize_assignee(
