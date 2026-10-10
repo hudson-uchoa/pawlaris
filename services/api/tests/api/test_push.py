@@ -504,6 +504,37 @@ async def test_id2_replay_sends_no_additional_push(
 
 
 @pytest.mark.parametrize("event", ["completion", "walk_started"])
+async def test_r3_39_r3_42_existing_row_under_new_key_sends_nothing(
+    app: FastAPI,
+    scenario: Scenario,
+    sender: FakeSender,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+    event: str,
+) -> None:
+    body = (
+        body_for(scenario.task, frozen_clock)
+        if event == "completion"
+        else start_body(scenario.family, frozen_clock)
+    )
+    path = "/api/v1/completions" if event == "completion" else "/api/v1/walks"
+    http = client_for(scenario.family.users[0])
+    first_headers, second_headers = idem(), idem()
+    assert first_headers != second_headers
+    first = await http.post(path, json=body, headers=first_headers)
+    assert first.status_code == 200 and first.json()["id"] == body["id"]
+    await drain_pushes(app)
+    assert sender.messages, "The original creation must send a push"
+    sender.calls.clear()
+
+    repeated = await http.post(path, json=body, headers=second_headers)
+    assert repeated.status_code == 200 and repeated.content == first.content
+    await drain_pushes(app)
+    assert sender.calls == []
+
+
+@pytest.mark.parametrize("event", ["completion", "walk_started"])
 async def test_cp5_r3_42_validation_failure_sends_nothing(
     app: FastAPI,
     scenario: Scenario,
@@ -732,6 +763,30 @@ def expo_messages(tokens: Sequence[str]) -> list[PushMessage]:
     ]
 
 
+def assert_one_push_error(
+    caplog: pytest.LogCaptureFixture,
+    messages: Sequence[PushMessage],
+    request_id: str | None = None,
+) -> dict[str, JsonValue]:
+    records = [record for record in caplog.records if record.levelno == logging.ERROR]
+    assert len(records) == 1
+    assert records[0].name == "pawlaris.push"
+    line = records[0].getMessage()
+    assert "\n" not in line
+    payload = cast(dict[str, JsonValue], json.loads(line))
+    assert payload["level"] == "ERROR"
+    assert payload["msg"] == "Push delivery failed"
+    assert payload["exc"]
+    if request_id is not None:
+        assert payload["request_id"] == request_id
+    for message in messages:
+        for key in ("to", "title", "body"):
+            value = message.get(key)
+            if isinstance(value, str):
+                assert value not in caplog.text
+    return payload
+
+
 async def test_r3_43_expo_posts_batches_of_at_most_100_in_order(
     app: FastAPI, caplog: pytest.LogCaptureFixture
 ) -> None:
@@ -760,6 +815,30 @@ async def test_r3_43_expo_posts_batches_of_at_most_100_in_order(
     assert [m for batch in batches for m in batch] == messages
     assert not any(str(m["to"]) in caplog.text for m in messages)
     assert "Private notification body" not in caplog.text
+
+
+async def test_r3_43_httpx_emits_no_record_below_warning_during_send(
+    app: FastAPI, caplog: pytest.LogCaptureFixture
+) -> None:
+    requests: list[httpx.Request] = []
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, json={"data": [{"status": "ok"}]})
+
+    # app.main has configured logging; capture without overriding httpx's level.
+    caplog.set_level(logging.DEBUG)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+        await ExpoPushSender(app.state.session_factory, http).send(
+            expo_messages(["logger-test-device"])
+        )
+    assert len(requests) == 1
+    assert not [
+        record
+        for record in caplog.records
+        if record.name == "httpx" and record.levelno < logging.WARNING
+    ]
+    assert logging.getLogger("httpx").level == logging.WARNING
 
 
 async def test_r3_43_device_not_registered_deletes_only_ticket_token(
@@ -797,9 +876,72 @@ async def test_r3_43_device_not_registered_deletes_only_ticket_token(
     }
     assert not any(token in caplog.text for token in tokens)
     assert "Private notification body" not in caplog.text
+    assert not [record for record in caplog.records if record.levelno == logging.ERROR]
 
 
-@pytest.mark.parametrize("failure", ["http", "timeout"])
+@pytest.mark.parametrize(
+    "codes",
+    [
+        pytest.param(("MessageRateExceeded",), id="rate"),
+        pytest.param(("DeviceNotRegistered", "MessageRateExceeded"), id="mixed"),
+        pytest.param(
+            ("MessageRateExceeded", "MessageRateExceeded", "MessageTooBig", None),
+            id="counts-and-missing-code",
+        ),
+    ],
+)
+async def test_r3_43_refused_tickets_keep_tokens_and_log_one_batch_error(
+    app: FastAPI,
+    scenario: Scenario,
+    caplog: pytest.LogCaptureFixture,
+    codes: tuple[str | None, ...],
+) -> None:
+    tokens = [token for _, token in scenario.devices][: len(codes)]
+    before = await device_rows(app)
+    messages = expo_messages(tokens)
+    requests: list[httpx.Request] = []
+
+    def transport(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(
+            200,
+            json={
+                "data": [
+                    {
+                        "status": "error",
+                        "message": request.content.decode(),
+                        "details": {"error": code} if code is not None else {},
+                    }
+                    for code in codes
+                ]
+            },
+        )
+
+    caplog.set_level(logging.DEBUG)
+    async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
+        await ExpoPushSender(app.state.session_factory, http).send(messages)
+    assert len(requests) == 1
+    stale = {
+        token
+        for token, code in zip(tokens, codes, strict=True)
+        if code == "DeviceNotRegistered"
+    }
+    assert await device_rows(app) == {
+        token: owner for token, owner in before.items() if token not in stale
+    }
+    payload = assert_one_push_error(caplog, messages)
+    detail = payload["exc"]
+    assert isinstance(detail, str)
+    assert detail.startswith("ValueError: Expo ticket errors: ")
+    assert json.loads(detail.removeprefix("ValueError: Expo ticket errors: ")) == dict(
+        Counter(
+            code or "UnknownError" for code in codes if code != "DeviceNotRegistered"
+        )
+    )
+    assert "DeviceNotRegistered" not in detail
+
+
+@pytest.mark.parametrize("failure", ["http", "timeout", "malformed"])
 async def test_r3_43_expo_error_is_contained_and_preserves_every_device(
     app: FastAPI,
     scenario: Scenario,
@@ -816,24 +958,38 @@ async def test_r3_43_expo_error_is_contained_and_preserves_every_device(
     def transport(request: httpx.Request) -> httpx.Response:
         requests.append(request)
         if failure == "timeout":
-            raise httpx.ReadTimeout("Injected Expo timeout", request=request)
-        return httpx.Response(503, text="Injected Expo failure")
+            raise httpx.ReadTimeout(request.content.decode(), request=request)
+        if failure == "malformed":
+            return httpx.Response(200, json={"data": request.content.decode()})
+        return httpx.Response(503, text=request.content.decode())
 
     caplog.set_level(logging.DEBUG)
+    request_id = str(uuid4())
     async with httpx.AsyncClient(transport=httpx.MockTransport(transport)) as http:
         app.state.push_sender = ExpoPushSender(app.state.session_factory, http)
         response = await client_for(scenario.family.users[0]).post(
             "/api/v1/completions",
             json=body_for(scenario.task, frozen_clock),
-            headers=idem(),
+            headers={**idem(), "X-Request-ID": request_id},
         )
         assert response.status_code == 200
+        assert response.headers["X-Request-ID"] == request_id
         await drain_pushes(app)
     assert len(requests) == 1
     assert await device_rows(app) == before
     assert not any(token in caplog.text for token in tokens)
     assert scenario.task.title not in caplog.text
     assert app.state.push_tasks == set()
+    messages = cast(list[PushMessage], json.loads(requests[0].content))
+    payload = assert_one_push_error(caplog, messages, request_id)
+    detail = payload["exc"]
+    assert isinstance(detail, str)
+    expected_error = {
+        "http": "HTTPStatusError",
+        "timeout": "ReadTimeout",
+        "malformed": "ValueError",
+    }[failure]
+    assert f"{expected_error}:" in detail
 
 
 async def test_r3_43_noop_sender_accepts_messages_without_http_calls() -> None:
