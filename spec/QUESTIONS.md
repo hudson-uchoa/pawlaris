@@ -534,3 +534,24 @@ unknown or foreign-family member. Apply this to create and PATCH in one
 The task is kept, for anyone. An `assigned_to` that names no member of the
 family stays `404`. The owner gave this to the running session the same
 day, and `04` §9 now states it.
+
+## Q-17 — P2-12 — How does R1 cover routers without numeric fields?
+**Asked:** 2026-10-10
+**Where:** docs/reviews/P2-12.md R1; spec/04-api-contract.md §1 Bodies
+**Problem:** The session asks for a non-finite number in a numeric field
+of one route of every other router. Auth and family bodies have no
+numeric fields; health and sync routers accept no request bodies.
+**I would assume:** Test numeric literals in existing string fields of
+auth and family routes, and in numeric or timestamp fields elsewhere.
+Assert the shared body error itself, so removing that check fails every
+case even when field validation would independently return 422. Cover
+all routers that accept JSON bodies, plus me, weights and health events;
+exclude the read-only health and sync routers.
+**Blocking:** no; the case selection is confined to the parametrization
+of test_r1_every_body_router_uses_shared_non_finite_number_check in
+services/api/tests/api/test_walks.py.
+**Answer:** orchestrator — 2026-10-10. As assumed. The finding asked for a
+numeric field on every router, and some bodies have none; that was the
+review's slip. What matters is that every body passes through the one
+shared check, and a non-finite literal in any field shows it, as long as the
+test asserts that check's own error — which yours does.
