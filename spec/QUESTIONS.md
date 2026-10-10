@@ -774,3 +774,40 @@ person is told that **the other** also marked it. `04` §15 and `11` §3.1
 now spell it out: the author of the completion that stays hears the other
 author's name, the author of the duplicate hears the first one's, and
 nobody hears anything when one person made both. The test follows that.
+
+## Q-29 — P2-17 — Should the lock poll refresh its activity snapshot?
+**Asked:** 2026-10-10
+**Where:** tests/sync/test_reseed.py,
+test_rb3_rs5_actor_removed_while_waiting_for_family_lock_is_401;
+spec/04-api-contract.md §5, RB-3
+**Problem:** The candidate merge passes 182 of 183 reseed tests. The
+remaining test times out in wait_until_blocked, before removing the
+actor. Running that test alone also times out. Its blocker transaction
+polls pg_stat_activity, whose first snapshot can predate the request's
+new database connection and is reused by the later polls.
+
+An independent probe in an isolated database reproduced the problem:
+after the first activity read, a new connection waited for the blocker's
+transaction lock. Direct pg_blocking_pids on that connection observed
+the wait. The test's activity predicate on the blocker still returned
+false; after SELECT pg_stat_clear_snapshot(), it returned true. Existing
+lock tests in tests/security/test_role_matrix.py use the request's known
+backend pid with pg_blocking_pids directly, avoiding this cached view.
+The reseed test's recorded 500 occurs when it cancels the pending
+request after the observation timeout; it is not a merge exception.
+**I would assume:** Clear the blocker's statistics snapshot before each
+pg_stat_activity poll. Keep the five-second timeout, the real family
+lock, the removal, and every response and database assertion unchanged.
+This repairs observation without relaxing RB-3 or replacing the service.
+**Blocking:** yes (task stopped). No test was changed. The candidate
+implementation and diagnostic probe are saved outside the repository;
+the code in the tree remains the committed stub until this is answered.
+
+**Answer (2026-10-10):** As assumed, and well found. The poll reads
+`pg_stat_activity` inside the transaction that holds the lock, and
+PostgreSQL keeps one snapshot of that view for the whole transaction, so a
+request that connects after the first read is never seen. Call
+`pg_stat_clear_snapshot()` before each read. That repairs what the test
+observes and relaxes nothing: the real lock, the five-second limit, the
+removal, the `401` and the table comparison stay as written. It is a
+commit of its own, `test(api)`, before the merge lands.
