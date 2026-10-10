@@ -631,7 +631,7 @@ tests cover them for its routes.
   WebSocket implementation; the extra cases of `07` §5.2.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_socket.py -q` · `pnpm verify --only security`
 
-- [~] **P2-15 — Push**
+- [x] **P2-15 — Push**
   **Depends:** P2-14 · **Read:** `02` §3.6 · `04` §3 (push-token), §15 · `09` §10 · `05` §2.1
   **Build:** `PUT`/`DELETE /me/push-token`; `push.py` — `PushSender` protocol,
   `ExpoPushSender` (httpx, batches of ≤ 100, deletes tokens reported
