@@ -555,3 +555,33 @@ numeric field on every router, and some bodies have none; that was the
 review's slip. What matters is that every body passes through the one
 shared check, and a non-finite literal in any field shows it, as long as the
 test asserts that check's own error — which yours does.
+
+## Q-18 — P2-13 — How many bytes does the 8 MB upload limit mean?
+**Asked:** 2026-10-10
+**Where:** spec/04-api-contract.md §13; spec/07-test-harness.md §5.2
+**Problem:** Both sections say 8 MB without giving an exact byte count.
+The tests need a precise boundary for headers and streamed bytes.
+**I would assume:** 8 × 1024 × 1024 bytes, inclusive. Reject the next byte.
+**Blocking:** no; the assumption is confined to UPLOAD_MAX_BYTES in
+services/api/app/services/assets.py. Tests exercise both sides of it.
+**Answer:** orchestrator — 2026-10-10. As assumed: 8 × 1024 × 1024 =
+8 388 608 bytes, inclusive, for the declared `Content-Length` and for the
+bytes counted while streaming. `04` §1.1 and §13 now say so.
+
+## Q-19 — P2-13 — How are expired refresh-token parents pruned?
+**Asked:** 2026-10-10
+**Where:** spec/05-architecture.md §4.6; spec/03-data-model.md §2
+**Problem:** Maintenance must delete tokens expired for more than 30 days.
+A retained token may have parent_id referencing such a token. The foreign
+key is immediate and has no ON DELETE action, so deleting only the expired
+parent fails while its child remains.
+**I would assume:** Set parent_id to null on retained children whose
+parents are being pruned, then delete the expired rows in the same
+transaction. Preserve the retained child's chain, hash and expiry.
+**Blocking:** no; the assumption is confined to _prune_refresh_tokens in
+services/api/app/services/maintenance.py and tested with a retained child.
+**Answer:** orchestrator — 2026-10-10. As assumed. A kept token can indeed
+name a pruned one: a token rotated on its 29th day leaves a child that
+outlives it by almost a month. Clearing `parent_id` loses nothing: the
+parent is deleted, so it can no longer be presented, and the child is
+itself expired by then. `05` §4.6 now states it.

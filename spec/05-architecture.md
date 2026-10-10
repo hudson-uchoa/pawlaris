@@ -304,7 +304,9 @@ family time:
 1. `backup.sh` (§6)
 2. `docker compose run --rm api python -m app.cli maintenance` — sweep
    unreferenced assets *(AS-2)*, delete refresh tokens expired for more than
-   30 days, delete used or expired invites older than 30 days
+   30 days, delete used or expired invites older than 30 days. A token that is
+   kept may still name a deleted one as its parent: its `parent_id` is set to
+   null first, in the same transaction *(Q-19)*
 
 "No cron" in this project means *no server-side scheduling of pet tasks*. Host
 housekeeping on a timer is fine.

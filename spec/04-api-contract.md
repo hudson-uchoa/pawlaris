@@ -52,7 +52,7 @@ a Portuguese message of its own.
 | 409 | `email_taken` | redeem with an email already registered |
 | 409 | `asset_conflict` | upload of an existing asset id with different bytes |
 | 410 | `invite_invalid` | invite unknown, expired or used |
-| 413 | `payload_too_large` | upload over 8 MB |
+| 413 | `payload_too_large` | upload over 8 MiB (8 388 608 bytes) |
 | 422 | `idempotency_key_reused` | the key was already used by another family or for another kind of row |
 | 422 | `validation_error` | body failed validation; `errors: [{loc, msg}]` included |
 | 429 | `rate_limited` | login throttled; `Retry-After` header set |
@@ -658,7 +658,8 @@ handler in control of every byte it reads.
 - **Order of work, fixed:** authenticate → reject a missing or over-limit
   `Content-Length` (`413`) → read `request.stream()` chunk by chunk into a
   temporary file, hashing as it goes and aborting with `413` the moment the
-  count passes 8 MB → compare the hash with `X-Content-SHA256` (`422` on
+  count passes 8 MiB (8 388 608 bytes; that many are accepted, one more is
+  not) → compare the hash with `X-Content-SHA256` (`422` on
   mismatch) → validate the image → move the file into storage → insert the row.
   Nothing is read before authentication, and nothing is buffered in memory.
 - **Validation is on content, not on the client's claims.** Open with Pillow
