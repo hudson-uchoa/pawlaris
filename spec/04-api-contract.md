@@ -660,15 +660,25 @@ handler in control of every byte it reads.
   temporary file, hashing as it goes and aborting with `413` the moment the
   count passes 8 MiB (8 388 608 bytes; that many are accepted, one more is
   not) → compare the hash with `X-Content-SHA256` (`422` on
-  mismatch) → validate the image → move the file into storage → insert the row.
-  Nothing is read before authentication, and nothing is buffered in memory.
+  mismatch) → validate the image → take the family lock and read the actor
+  again *(RB-3)* → look the `id` up → move the file into storage → insert the
+  row. Nothing is read before authentication, and nothing is buffered in memory.
+- **No lock is held while the body arrives.** The phone's network paces the
+  upload, and a connection that stalls half way may stay open for a long time:
+  a family lock held across it would stop every other write of the family
+  until it dies. So the lock is taken only once the body is on disk, hashed
+  and validated, and everything after it is local and short.
 - **Validation is on content, not on the client's claims.** Open with Pillow
-  (which reads only the header), take format and size from it: format must be
-  JPEG, PNG or WebP; width and height 1–4 096; then `verify()`. Never fully
-  decode the image. Anything else → `422`. The stored MIME comes from the
-  detected format; the request's `Content-Type` is ignored.
+  restricted to the three accepted formats (`formats=("JPEG", "PNG", "WEBP")`,
+  so no other parser ever sees the bytes; opening reads only the header), take
+  format and size from it: format must be JPEG, PNG or WebP; width and height
+  1–4 096; then `verify()`. Never fully decode the image. Anything else →
+  `422`. The stored MIME comes from the detected format; the request's
+  `Content-Type` is ignored.
 - Idempotent by `id`: same id and same hash → `200` with the existing row;
-  same id, different hash → `409 asset_conflict`.
+  same id, different hash → `409 asset_conflict`. An id that maintenance has
+  swept stays swept: the same bytes get `200` with the row and its
+  `deleted_at`, and no file is stored again.
 - The route is declared with a raw `Request`; its body is documented in the
   OpenAPI schema through `openapi_extra` (binary `application/octet-stream`).
 - `GET …/file` requires auth, streams the file from storage with the stored
