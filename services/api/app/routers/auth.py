@@ -5,8 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Clock
 from app.db import get_session
-from app.deps import current_user, get_clock, get_settings
+from app.deps import current_user, get_clock, get_settings, poke_after_commit
 from app.models import AppUser
+from app.realtime import PokeAfterCommit
 from app.schemas.auth import (
     Login,
     Me,
@@ -25,13 +26,18 @@ Database = Annotated[AsyncSession, Depends(get_session)]
 User = Annotated[AppUser, Depends(current_user)]
 RequestClock = Annotated[Clock, Depends(get_clock)]
 Configuration = Annotated[Settings, Depends(get_settings)]
+Poke = Annotated[PokeAfterCommit, Depends(poke_after_commit)]
 
 
 @router.post("/auth/redeem", response_model=Session)
 async def redeem(
-    body: Redeem, session: Database, clock: RequestClock, settings: Configuration
+    body: Redeem,
+    session: Database,
+    clock: RequestClock,
+    settings: Configuration,
+    poke: Poke,
 ) -> Session:
-    return await family.redeem(session, body, clock, settings)
+    return await family.redeem(session, body, clock, settings, poke)
 
 
 def get_limiter(request: Request) -> LoginRateLimiter:
@@ -70,8 +76,8 @@ async def me(user: User) -> Me:
 
 
 @router.patch("/me", response_model=Me)
-async def patch_me(body: MePatch, user: User, session: Database) -> Me:
-    return await auth.patch_me(session, user, body)
+async def patch_me(body: MePatch, user: User, session: Database, poke: Poke) -> Me:
+    return await auth.patch_me(session, user, body, poke)
 
 
 @router.post("/me/password", status_code=204)

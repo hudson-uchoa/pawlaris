@@ -21,6 +21,7 @@ from app.models import (
     RefreshToken,
     TaskTemplate,
 )
+from app.realtime import PokeAfterCommit
 from app.schemas.auth import Redeem, Session
 from app.schemas.family import FamilyPatch, Invite, RoleChange
 from app.security.passwords import hash_password
@@ -109,7 +110,11 @@ async def create_invite(
 
 
 async def redeem(
-    session: AsyncSession, body: Redeem, clock: Clock, settings: Settings
+    session: AsyncSession,
+    body: Redeem,
+    clock: Clock,
+    settings: Settings,
+    poke: PokeAfterCommit,
 ) -> Session:
     async def write() -> Session:
         now = clock.now()
@@ -153,7 +158,9 @@ async def redeem(
             .where(InviteCode.code == body.code)
             .values(used_by=user.id)
         )
-        return await _issue_session(session, user, clock, settings, uuid4(), None)
+        result = await _issue_session(session, user, clock, settings, uuid4(), None)
+        await poke(family_id)
+        return result
 
     try:
         return await transactional(session, write)

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Query, Request, Response
 from pydantic import UUID4
 from starlette.responses import StreamingResponse
 
-from app.routers.auth import Configuration, Database, RequestClock, User
+from app.routers.auth import Configuration, Database, Poke, RequestClock, User
 from app.schemas.assets import AssetKind
 from app.schemas.rows import Asset
 from app.services import assets
@@ -61,9 +61,10 @@ async def upload_asset(
     clock: RequestClock,
     settings: Configuration,
     kind: Annotated[AssetKind, Query()],
+    poke: Poke,
 ) -> Asset:
     row, created = await assets.upload_asset(
-        session, user, id, kind, request, clock, LocalStorage(settings.blob_dir)
+        session, user, id, kind, request, clock, LocalStorage(settings.blob_dir), poke
     )
     response.status_code = 201 if created else 200
     return row
