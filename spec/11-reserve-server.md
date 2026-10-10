@@ -67,6 +67,13 @@ clamps every supplied `updated_at` to at most five minutes ahead of the
 server's clock, so no phone can make a row win forever. `revision` is still
 assigned by the trigger, always: it belongs to the server, not to the row.
 
+Under that setting the trigger stamps nothing that already has an instant,
+and an `UPDATE` that leaves `updated_at` alone carries the old one. So the
+reseed service sets `updated_at` itself on every row it writes: the instant
+the rules of §3.1 give, or the `Clock`'s now for a change the merge itself
+makes — a completion it turns into a duplicate. A stub (§5) is an inserted
+row like any other and keeps the instant its `members` row carries.
+
 ### 2.2 The phone keeps tombstones
 
 Today a row that arrives with `deleted_at` is removed from the phone's disk
