@@ -528,7 +528,7 @@ tests cover them for its routes.
   leader-only route, a disabled leader, the bounds).
   **Gate:** `uv run --directory services/api pytest tests/api/test_family.py tests/auth/test_invites.py -q` · `pnpm verify --only security`
 
-- [ ] **P2-8 — Pets, weights, health events**
+- [~] **P2-8 — Pets, weights, health events**
   **Depends:** P2-7 · **Read:** `02` §2 · `04` §1.2, §8, §5 rows 7–10 · `03` §3
   **Build:** `routers/pets.py`; `services/pets.py`; `services/common.py` —
   `get_owned(session, Model, id, user)` and the shared helpers that implement
