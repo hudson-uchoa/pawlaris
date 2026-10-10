@@ -745,6 +745,20 @@ target device:
 The exact templates are in `09-screens.md` §10.
 
 `completion_duplicate` and `walk_started` send only the visible message.
+Their `data` *(Q-22)*:
+
+```jsonc
+{ "type": "completion_duplicate", "task_id": "...", "occurrence_key": "...",
+  "pet_id": null, "completion_id": "<the winner's>" }
+{ "type": "walk_started", "walk_id": "...", "pet_id": "..." }
+```
+
+When the winner and the loser of a race are the same person nothing is sent
+*(R3.39: nobody is told about their own action)*. Only `POST /walks` sends
+`walk_started`: a `finish` that creates the walk, because its start never
+arrived, sends nothing *(Q-21)*. An undo, a replayed request and a finished
+or discarded walk send nothing.
+
 `HH:mm` is `completed_at` in the family timezone. A token Expo reports as
 `DeviceNotRegistered` is deleted from `push_device`.
 

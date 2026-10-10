@@ -620,6 +620,11 @@ about it; announcing that someone just left would be misleading.
 **Blocking:** no (the assumption is isolated in
 test_q21_finish_without_start_sends_nothing in tests/api/test_push.py).
 
+**Answer (2026-10-10):** As assumed. R3.42 is about a walk that *starts*:
+only `POST /walks` sends `walk_started`. A finish that creates the walk
+means the phone was offline for the whole walk, and "saiu para passear"
+would arrive when the walk is over. `04` §15 now says it.
+
 ## Q-22 — P2-15 — What data identifies duplicate and walk pushes?
 **Asked:** 2026-10-10
 **Where:** spec/04-api-contract.md §15
@@ -633,3 +638,9 @@ visible message carries silent. Confine these shapes to the test helpers
 duplicate_data and walk_data; keep the common visible envelope unchanged.
 **Blocking:** no (the assumptions are isolated in those two helpers in
 tests/api/test_push.py).
+
+**Answer (2026-10-10):** As assumed. `completion_duplicate` carries the
+fields of `completion` with its own `type` and the **winner's**
+`completion_id` — the tap opens the day of that occurrence (`09` §9), which
+needs `task_id` and `occurrence_key`. `walk_started` carries `type`,
+`walk_id` and `pet_id`. Neither has `silent`. `04` §15 now shows both.
