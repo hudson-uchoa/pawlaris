@@ -429,6 +429,25 @@ async def test_as1_image_dimension_bounds_use_the_header(
         assert file_state(family.blob_dir) == {}
 
 
+async def test_as1_right_hash_in_upper_case_is_accepted(
+    app: FastAPI, make_family: MakeFamily, client_for: ClientFor
+) -> None:
+    family = await make_family()
+    payload = image_bytes()
+    digest = hashlib.sha256(payload).hexdigest()
+    assert digest.upper() != digest
+    response = await upload(
+        client_for(family.users[0]),
+        payload,
+        headers={"X-Content-SHA256": digest.upper()},
+    )
+    assert response.status_code == 201
+    async with app.state.session_factory() as session:
+        stored = await session.get(AssetModel, UUID(response.json()["id"]))
+        assert stored is not None and stored.sha256 == digest
+        assert (family.blob_dir / stored.storage_key).read_bytes() == payload
+
+
 async def test_as1_hash_mismatch_precedes_image_validation_and_cleans_temp_file(
     app: FastAPI,
     make_family: MakeFamily,
@@ -1070,6 +1089,70 @@ async def test_as2_orphan_age_is_created_at_and_strictly_older_than_thirty_days(
         else:
             assert stored.deleted_at is None and stored.revision == old_revision
     assert (family.blob_dir / row.storage_key).exists() is not swept
+
+
+async def test_as2_sweep_waits_for_uncommitted_reference_and_preserves_asset(
+    app: FastAPI, make_family: MakeFamily, frozen_clock: FrozenClock
+) -> None:
+    family = await make_family()
+    row = await seed_asset(app, family, frozen_clock, age=timedelta(days=31))
+    files = file_state(family.blob_dir)
+    arrived = asyncio.Event()
+    waiter_pid: int | None = None
+
+    async def sweep() -> None:
+        nonlocal waiter_pid
+        async with app.state.session_factory() as session:
+            waiter_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+            arrived.set()
+            await maintenance.run_maintenance(
+                session, frozen_clock, LocalStorage(family.blob_dir)
+            )
+
+    async with app.state.session_factory() as blocker:
+        await lock_family(blocker, family.id)
+        blocker_pid = await blocker.scalar(text("SELECT pg_backend_pid()"))
+        values = await family.row_values(blocker, "task_completion")
+        values["photo_asset_id"] = row.id
+        completion = TaskCompletion(**values)
+        blocker.add(completion)
+        await blocker.flush()
+        before = (
+            await blocker.execute(
+                select(AssetModel.__table__).where(AssetModel.id == row.id)
+            )
+        ).one()
+        pending = asyncio.create_task(sweep())
+        try:
+            await asyncio.wait_for(arrived.wait(), timeout=5)
+
+            async def wait_until_blocked() -> None:
+                # PostgreSQL lock waits have no asyncio event to subscribe to.
+                while not await blocker.scalar(  # noqa: ASYNC110
+                    text("SELECT :blocker_pid = ANY(pg_blocking_pids(:pid))"),
+                    {"blocker_pid": blocker_pid, "pid": waiter_pid},
+                ):
+                    await asyncio.sleep(0.01)
+
+            await asyncio.wait_for(wait_until_blocked(), timeout=5)
+            assert not pending.done()
+            await blocker.commit()
+            await asyncio.wait_for(pending, timeout=10)
+        finally:
+            if not pending.done():
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
+    async with app.state.session_factory() as session:
+        after = (
+            await session.execute(
+                select(AssetModel.__table__).where(AssetModel.id == row.id)
+            )
+        ).one()
+        assert after == before
+        stored_completion = await session.get(TaskCompletion, completion.id)
+        assert stored_completion is not None
+        assert stored_completion.photo_asset_id == row.id
+    assert file_state(family.blob_dir) == files
 
 
 @pytest.mark.parametrize("reference", ["pet", "health_event", "task_completion"])
