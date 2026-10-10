@@ -8,7 +8,7 @@ from uuid import uuid4
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
-from app.models import AppUser, HealthEvent, Pet, WeightEntry
+from app.models import AppUser, HealthEvent, Pet, TaskTemplate, WeightEntry
 from app.security.passwords import hash_password
 from tests.factories import TestFamily
 
@@ -187,6 +187,100 @@ async def _target(
     )
 
 
+def task_body(fam: TestFamily) -> dict[str, object]:
+    return {
+        "id": str(uuid4()),
+        "title": "Family task",
+        "recurrence": {"freq": "daily", "interval": 1},
+        "starts_on": "2026-09-14",
+        "pet_ids": [str(fam.pets[0].id)],
+    }
+
+
+async def create_task_self(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        "/api/v1/tasks",
+        {**task_body(fam), "assigned_to": str(actor.id)},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def create_task_unassigned(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        "/api/v1/tasks",
+        {**task_body(fam), "assigned_to": None},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def create_task_other(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    other = next(user for user in fam.users if user.id != actor.id)
+    return MatrixRequest(
+        "/api/v1/tasks",
+        {**task_body(fam), "assigned_to": str(other.id)},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def _task_target(
+    fam: TestFamily, actor: AppUser, *, own: bool = True
+) -> TaskTemplate:
+    engine = create_async_engine(fam.database_url)
+    try:
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            values = await fam.row_values(session, "task_template")
+            other = next(user for user in fam.users if user.id != actor.id)
+            values.update(
+                created_by=actor.id if own else other.id, assigned_to=other.id
+            )
+            row = TaskTemplate(**values)
+            session.add(row)
+            await session.commit()
+            return row
+    finally:
+        await engine.dispose()
+
+
+async def patch_own_task(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _task_target(fam, actor)
+    return MatrixRequest(
+        f"/api/v1/tasks/{row.id}",
+        {"title": "Renamed task"},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def patch_other_task(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _task_target(fam, actor, own=False)
+    return MatrixRequest(
+        f"/api/v1/tasks/{row.id}",
+        {"ends_on": "2026-09-13"},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def reassign_own_task(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _task_target(fam, actor)
+    return MatrixRequest(
+        f"/api/v1/tasks/{row.id}",
+        {"assigned_to": str(row.assigned_to)},
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def fork_own_task(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _task_target(fam, actor)
+    return MatrixRequest(
+        "/api/v1/tasks",
+        {
+            **task_body(fam),
+            "assigned_to": str(row.assigned_to),
+            "replaces_task_id": str(row.id),
+        },
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
 PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
     {
         ("GET", "/api/v1/health"),
@@ -279,6 +373,57 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         health_target,
         {"member": 200, "leader": 200},
     ),
+    PermissionCase(
+        11, "POST", "/api/v1/tasks", create_task_self, {"member": 200, "leader": 200}
+    ),
+    PermissionCase(
+        11,
+        "POST",
+        "/api/v1/tasks",
+        create_task_unassigned,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        12, "POST", "/api/v1/tasks", create_task_other, {"member": 403, "leader": 200}
+    ),
+    PermissionCase(
+        12, "POST", "/api/v1/tasks", fork_own_task, {"member": 200, "leader": 200}
+    ),
+    PermissionCase(
+        13,
+        "PATCH",
+        "/api/v1/tasks/{id}",
+        patch_own_task,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        13,
+        "DELETE",
+        "/api/v1/tasks/{id}",
+        patch_own_task,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        14,
+        "PATCH",
+        "/api/v1/tasks/{id}",
+        patch_other_task,
+        {"member": 403, "leader": 200},
+    ),
+    PermissionCase(
+        14,
+        "DELETE",
+        "/api/v1/tasks/{id}",
+        patch_other_task,
+        {"member": 403, "leader": 200},
+    ),
+    PermissionCase(
+        15,
+        "PATCH",
+        "/api/v1/tasks/{id}",
+        reassign_own_task,
+        {"member": 403, "leader": 200},
+    ),
 ]
 
 # Test-only probe until production sync mutations arrive.
@@ -299,4 +444,7 @@ IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/api/v1/health-events"): "health_events",
     ("PATCH", "/api/v1/health-events/{id}"): "health_events",
     ("DELETE", "/api/v1/health-events/{id}"): "health_events",
+    ("POST", "/api/v1/tasks"): "task_templates",
+    ("PATCH", "/api/v1/tasks/{id}"): "task_templates",
+    ("DELETE", "/api/v1/tasks/{id}"): "task_templates",
 }

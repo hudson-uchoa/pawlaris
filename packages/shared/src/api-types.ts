@@ -296,6 +296,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Task */
+        post: operations["create_task_api_v1_tasks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Task */
+        delete: operations["delete_task_api_v1_tasks__id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Task */
+        patch: operations["patch_task_api_v1_tasks__id__patch"];
+        trace?: never;
+    };
     "/api/v1/weights": {
         parameters: {
             query?: never;
@@ -383,6 +418,10 @@ export interface components {
             entity: "assets";
             row: components["schemas"]["Asset"];
         };
+        /** Format: date */
+        CalendarDate: string;
+        /** @enum {string} */
+        Category: "feeding" | "medication" | "hygiene" | "litter" | "play" | "vet" | "other";
         Change: components["schemas"]["FamilyChange"] | components["schemas"]["MemberChange"] | components["schemas"]["PetChange"] | components["schemas"]["WeightChange"] | components["schemas"]["HealthChange"] | components["schemas"]["TaskChange"] | components["schemas"]["CompletionChange"] | components["schemas"]["TimerChange"] | components["schemas"]["WalkChange"] | components["schemas"]["AssetChange"];
         /** Completion */
         Completion: {
@@ -436,6 +475,15 @@ export interface components {
              */
             entity: "task_completions";
             row: components["schemas"]["Completion"];
+        };
+        /** Daily */
+        Daily: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            freq: "daily";
+            interval: components["schemas"]["Interval"];
         };
         /** @enum {string} */
         EventType: "vaccine" | "medication" | "vet_visit" | "symptom" | "procedure" | "other";
@@ -596,6 +644,7 @@ export interface components {
             /** Version */
             version: string;
         };
+        Interval: number;
         /** Invite */
         Invite: {
             /** Code */
@@ -687,6 +736,27 @@ export interface components {
              */
             entity: "members";
             row: components["schemas"]["Member"];
+        };
+        MonthDay: number;
+        /** Monthly */
+        Monthly: {
+            /** Bymonthday */
+            bymonthday: components["schemas"]["MonthDay"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            freq: "monthly";
+            interval: components["schemas"]["Interval"];
+        };
+        /** Once */
+        Once: {
+            date: components["schemas"]["CalendarDate"];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            freq: "once";
         };
         /** PasswordChange */
         PasswordChange: {
@@ -818,6 +888,7 @@ export interface components {
              */
             sort_order: number;
         };
+        Recurrence: components["schemas"]["Daily"] | components["schemas"]["Weekly"] | components["schemas"]["Monthly"] | components["schemas"]["Once"];
         /** Redeem */
         Redeem: {
             /** Code */
@@ -891,6 +962,85 @@ export interface components {
             entity: "task_templates";
             row: components["schemas"]["TaskTemplate"];
         };
+        /** TaskCreate */
+        TaskCreate: {
+            /** Assigned To */
+            assigned_to?: string | null;
+            /** @default other */
+            category: components["schemas"]["Category"];
+            /**
+             * Completion Mode
+             * @default together
+             * @enum {string}
+             */
+            completion_mode: "together" | "per_pet";
+            /** Description */
+            description?: string | null;
+            ends_on?: components["schemas"]["CalendarDate"] | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Pet Ids */
+            pet_ids: string[];
+            recurrence: components["schemas"]["Recurrence"];
+            /**
+             * Reminder Class
+             * @default routine
+             * @enum {string}
+             */
+            reminder_class: "critical" | "routine";
+            /** Replaces Task Id */
+            replaces_task_id?: string | null;
+            /**
+             * Requires Photo
+             * @default false
+             */
+            requires_photo: boolean;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            starts_on: components["schemas"]["CalendarDate"];
+            /** Timer Seconds */
+            timer_seconds?: number | null;
+            /** Times Of Day */
+            times_of_day?: components["schemas"]["TimeOfDay"][];
+            /** Title */
+            title: string;
+        };
+        /** TaskPatch */
+        TaskPatch: {
+            /** Assigned To */
+            assigned_to?: string | null;
+            /** @default other */
+            category: components["schemas"]["Category"];
+            /** Description */
+            description?: string | null;
+            ends_on?: components["schemas"]["CalendarDate"] | null;
+            /**
+             * Reminder Class
+             * @default routine
+             * @enum {string}
+             */
+            reminder_class: "critical" | "routine";
+            /**
+             * Requires Photo
+             * @default false
+             */
+            requires_photo: boolean;
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /** Timer Seconds */
+            timer_seconds?: number | null;
+            /** Title */
+            title?: string;
+        };
         /** TaskTemplate */
         TaskTemplate: {
             /** Assigned To */
@@ -957,6 +1107,7 @@ export interface components {
              */
             updated_at: string;
         };
+        TimeOfDay: string;
         /** Timer */
         Timer: {
             /** Cancelled At */
@@ -1083,6 +1234,19 @@ export interface components {
              */
             entity: "walk_sessions";
             row: components["schemas"]["Walk"];
+        };
+        /** @enum {string} */
+        Weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+        /** Weekly */
+        Weekly: {
+            /** Byday */
+            byday: components["schemas"]["Weekday"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            freq: "weekly";
+            interval: components["schemas"]["Interval"];
         };
         /** WeightChange */
         WeightChange: {
@@ -1794,6 +1958,111 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_task_api_v1_tasks_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTemplate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_task_api_v1_tasks__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTemplate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_task_api_v1_tasks__id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskTemplate"];
                 };
             };
             /** @description Validation Error */
