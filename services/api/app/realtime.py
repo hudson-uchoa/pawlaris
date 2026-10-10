@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import traceback
 from collections.abc import Awaitable, Callable
 from typing import cast
 from uuid import UUID
@@ -7,6 +9,7 @@ from uuid import UUID
 from fastapi import WebSocket
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.websockets import WebSocketDisconnect, WebSocketDisconnected
 
 from app.clock import Clock
 from app.models import AppUser, FamilyRevision
@@ -67,10 +70,19 @@ class Hub:
                 return False
             await ws.send_json({"type": kind, "revision": revision})
             return True
+        except (WebSocketDisconnect, WebSocketDisconnected):
+            await self.unregister(family_id, ws)
+            return False
         except Exception:
             await self.unregister(family_id, ws)
-            logging.getLogger("pawlaris.realtime").exception(
-                "WebSocket delivery failed"
+            logging.getLogger("pawlaris.realtime").error(
+                json.dumps(
+                    {
+                        "level": "ERROR",
+                        "msg": "WebSocket delivery failed",
+                        "exc": traceback.format_exc(),
+                    }
+                )
             )
             return False
 
@@ -85,8 +97,16 @@ class Hub:
                 for ws in tuple(sockets):
                     try:
                         await self.check_expiry(family_id, ws)
+                    except (WebSocketDisconnect, WebSocketDisconnected):
+                        await self.unregister(family_id, ws)
                     except Exception:
                         await self.unregister(family_id, ws)
-                        logging.getLogger("pawlaris.realtime").exception(
-                            "WebSocket expiry close failed"
+                        logging.getLogger("pawlaris.realtime").error(
+                            json.dumps(
+                                {
+                                    "level": "ERROR",
+                                    "msg": "WebSocket expiry close failed",
+                                    "exc": traceback.format_exc(),
+                                }
+                            )
                         )

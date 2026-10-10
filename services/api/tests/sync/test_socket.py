@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import logging
 import secrets
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -18,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.routing import WebSocketRoute
 from starlette.testclient import TestClient, WebSocketTestSession
 from starlette.types import Message
-from starlette.websockets import WebSocketDisconnect
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 from uvicorn.protocols.websockets.auto import AutoWebSocketsProtocol
 
 from app.clock import FrozenClock
@@ -540,6 +541,75 @@ def test_ws1_dead_socket_does_not_stop_other_family_sockets(
             current = mutate(socket_client, user)
             assert live.receive_json() == {"type": "poke", "revision": current}
             assert sorted(sends) == ["dead", "live"]
+
+
+@pytest.mark.parametrize("failure", ["disconnected", "closed", "unexpected"])
+def test_ws1_poke_failure_logs_only_unexpected_errors(
+    socket_client: TestClient,
+    socket_family: TestFamily,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure: str,
+) -> None:
+    original = WebSocket.send
+    attempts: list[str] = []
+
+    async def fail_socket(ws: WebSocket, message: Message) -> None:
+        if message["type"] == "websocket.send":
+            data = json.loads(message.get("text") or message["bytes"].decode())
+            if data.get("type") == "poke":
+                if ws.query_params.get("failing") == "1":
+                    attempts.append("failed")
+                    if failure == "disconnected":
+                        raise WebSocketDisconnect(1006)
+                    if failure == "closed":
+                        # Exercise Starlette's own RuntimeError on a closed socket.
+                        ws.application_state = WebSocketState.DISCONNECTED
+                    else:
+                        raise RuntimeError("Injected unexpected delivery failure")
+                else:
+                    attempts.append("live")
+        await original(ws, message)
+
+    user = socket_family.users[0]
+    with socket_client.websocket_connect("/ws?failing=1") as failing:
+        failing.send_json({"type": "auth", "access_token": token(socket_client, user)})
+        assert failing.receive_json() == {
+            "type": "ready",
+            "revision": revision(socket_client, user),
+        }
+        with authenticated(socket_client, socket_family.users[1]) as live:
+            monkeypatch.setattr(WebSocket, "send", fail_socket)
+            caplog.set_level(logging.DEBUG, logger="pawlaris.realtime")
+            caplog.clear()
+            current = mutate(socket_client, user)
+            assert live.receive_json() == {"type": "poke", "revision": current}
+            assert sorted(attempts) == ["failed", "live"]
+            assert revision(socket_client, user) == current
+            records = [
+                record
+                for record in caplog.records
+                if record.name == "pawlaris.realtime"
+            ]
+            if failure == "unexpected":
+                assert len(records) == 1
+                record = records[0]
+                assert record.levelno == logging.ERROR
+                payload = json.loads(record.getMessage())
+                assert set(payload) == {"level", "msg", "exc"}
+                assert payload["level"] == "ERROR"
+                assert payload["msg"] == "WebSocket delivery failed"
+                assert "Traceback (most recent call last):" in payload["exc"]
+                assert "in fail_socket" in payload["exc"]
+                assert (
+                    "RuntimeError: Injected unexpected delivery failure"
+                    in payload["exc"]
+                )
+                assert record.exc_info is None
+                assert record.exc_text is None
+                assert "\n" not in record.getMessage()
+            else:
+                assert records == []
 
 
 def test_ws1_uvicorn_finds_websocket_protocol() -> None:
