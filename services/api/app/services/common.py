@@ -9,9 +9,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Clock
 from app.errors import ApiError
-from app.models import AppUser, HealthEvent, Pet, TaskTemplate, TaskTimer, WeightEntry
+from app.models import (
+    AppUser,
+    HealthEvent,
+    Pet,
+    TaskTemplate,
+    TaskTimer,
+    WalkSession,
+    WeightEntry,
+)
 
-type SoftDeletableModel = AppUser | Pet | WeightEntry | HealthEvent | TaskTemplate
+type SoftDeletableModel = (
+    AppUser | Pet | WeightEntry | HealthEvent | TaskTemplate | WalkSession
+)
 type OwnedModel = SoftDeletableModel | TaskTimer
 
 
@@ -50,7 +60,12 @@ async def create_owned[Model: OwnedModel](
         await get_owned(session, reference_model, reference_id, user)
     if validate is not None:
         await validate()
-    actor_column = "started_by" if model is TaskTimer else "created_by"
+    if model is TaskTimer:
+        actor_column = "started_by"
+    elif model is WalkSession:
+        actor_column = "user_id"
+    else:
+        actor_column = "created_by"
     row = await session.scalar(
         insert(model)
         .values(**values, family_id=user.family_id, **{actor_column: user.id})

@@ -583,7 +583,7 @@ tests cover them for its routes.
   twice unchanged; both appear in `/sync`.
   **Gate:** `uv run --directory services/api pytest tests/api/test_timers.py -q` · `pnpm verify --only security`
 
-- [ ] **P2-12 — Walks**
+- [~] **P2-12 — Walks**
   **Depends:** P2-11 · **Read:** `02` §4 · `03` §7 · `04` §12, §5 rows 18–21
   **Build:** `routers/walks.py`; `services/walks.py` (finish as upsert; the
   preview stored on the walk row; the edge cases of `04` §12).

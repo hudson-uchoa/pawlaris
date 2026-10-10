@@ -319,6 +319,7 @@ async def test_r4_14_id2_finish_twice_keeps_row_route_and_revision_unchanged(
     assert first.status_code == 200
     before = await database_state(app, family)
     frozen_clock.advance(timedelta(hours=1))
+    client = client_for(family.users[1])
     changed = finish_body(
         family, frozen_clock, distance_m=12, duration_s=3, note="Changed intent"
     )
@@ -470,6 +471,7 @@ async def test_r4_18_id2_walker_discards_and_repeat_keeps_original_tombstone(
         assert discarded[field] == original[field], field
     before = await database_state(app, family)
     frozen_clock.advance(timedelta(hours=1))
+    client = client_for(actor)
     second = await client.post(path, headers=idem())
     replay = await client.post(path, headers=headers)
     assert second.status_code == replay.status_code == 200
@@ -716,6 +718,7 @@ async def test_id2_walk_mutation_replay_returns_same_row_without_new_revision(
     assert first.status_code == 200
     before = await database_state(app, family)
     frozen_clock.advance(timedelta(hours=1))
+    client = client_for(actor)
     replay = await client.post(path, json=body, headers=headers)
     assert replay.status_code == 200 and replay.content == first.content
     assert await database_state(app, family) == before
