@@ -44,7 +44,7 @@ def validate_image(path: Path) -> ImageMetadata:
         "WEBP": ("image/webp", "webp"),
     }
     try:
-        with Image.open(path) as image:
+        with Image.open(path, formats=("JPEG", "PNG", "WEBP")) as image:
             detected = formats.get(image.format or "")
             width, height = image.size
             if detected is None or not (1 <= width <= 4096 and 1 <= height <= 4096):
