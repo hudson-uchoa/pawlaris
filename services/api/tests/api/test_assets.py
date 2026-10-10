@@ -14,15 +14,17 @@ import pytest
 from fastapi import FastAPI
 from httpx import AsyncByteStream, AsyncClient, Response
 from PIL import Image
-from sqlalchemy import event, select, update
+from sqlalchemy import event, select, text, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import cli
 from app.clock import FrozenClock
 from app.errors import ApiError
+from app.locks import lock_family
 from app.models import (
     AppliedMutation,
+    AppUser,
     FamilyRevision,
     HealthEvent,
     InviteCode,
@@ -170,6 +172,106 @@ class TrackedStream(AsyncByteStream):
                 self.before_read(index)
             self.consumed.append(index)
             yield chunk
+
+
+class PausedStream(AsyncByteStream):
+    def __init__(self, payload: bytes) -> None:
+        self.payload = payload
+        self.waiting = asyncio.Event()
+        self.resume = asyncio.Event()
+
+    async def __aiter__(self) -> AsyncIterator[bytes]:
+        yield self.payload[:32]
+        self.waiting.set()
+        await self.resume.wait()
+        yield self.payload[32:]
+
+
+async def test_as1_family_lock_is_free_while_an_upload_chunk_is_pending(
+    app: FastAPI, make_family: MakeFamily, client_for: ClientFor
+) -> None:
+    family = await make_family()
+    payload = image_bytes()
+    stream = PausedStream(payload)
+    pending = asyncio.create_task(
+        client_for(family.users[0]).put(
+            f"/api/v1/assets/{uuid4()}?kind=task_proof",
+            content=stream,
+            headers={
+                "Content-Length": str(len(payload)),
+                "X-Content-SHA256": hashlib.sha256(payload).hexdigest(),
+            },
+        )
+    )
+    try:
+        await asyncio.wait_for(stream.waiting.wait(), timeout=5)
+        assert list(file_state(family.blob_dir).values()) == [payload[:32]]
+        async with app.state.session_factory() as session:
+            locked = await session.scalar(
+                select(FamilyRevision.value)
+                .where(FamilyRevision.family_id == family.id)
+                .with_for_update(nowait=True)
+            )
+            assert locked is not None
+            assert not pending.done()
+            await session.rollback()
+        stream.resume.set()
+        response = await asyncio.wait_for(pending, timeout=10)
+        assert response.status_code == 201
+        assert list(file_state(family.blob_dir).values()) == [payload]
+    finally:
+        if not pending.done():
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
+
+
+async def test_as1_actor_removed_while_body_arrives_leaves_no_row_or_file(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    frozen_clock: FrozenClock,
+) -> None:
+    family = await make_family()
+    await seed_asset(app, family, frozen_clock)
+    files = file_state(family.blob_dir)
+    actor = family.users[1]
+    payload = image_bytes(color="black")
+    stream = PausedStream(payload)
+    pending = asyncio.create_task(
+        client_for(actor).put(
+            f"/api/v1/assets/{uuid4()}?kind=task_proof",
+            content=stream,
+            headers={
+                "Content-Length": str(len(payload)),
+                "X-Content-SHA256": hashlib.sha256(payload).hexdigest(),
+            },
+        )
+    )
+    try:
+        await asyncio.wait_for(stream.waiting.wait(), timeout=5)
+        async with app.state.session_factory() as session:
+            await session.execute(text("SET LOCAL lock_timeout = '1s'"))
+            await lock_family(session, family.id)
+            await session.execute(
+                update(AppUser)
+                .where(AppUser.id == actor.id)
+                .values(disabled_at=frozen_clock.now())
+            )
+            await session.commit()
+        before = await database_state(app, family)
+        stream.resume.set()
+        response = await asyncio.wait_for(pending, timeout=10)
+        assert response.status_code == 401
+        assert response.json()["code"] == "token_invalid"
+        assert await database_state(app, family) == before
+        assert file_state(family.blob_dir) == files
+        async with app.state.session_factory() as session:
+            removed = await session.get(AppUser, actor.id)
+            assert removed is not None and removed.disabled_at == frozen_clock.now()
+    finally:
+        if not pending.done():
+            pending.cancel()
+            await asyncio.gather(pending, return_exceptions=True)
 
 
 @pytest.mark.parametrize("kind", ["pet_avatar", "task_proof", "health_attachment"])
