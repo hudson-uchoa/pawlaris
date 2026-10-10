@@ -11,6 +11,7 @@ from app.clock import Clock
 from app.errors import ApiError
 from app.models import (
     AppUser,
+    Asset,
     HealthEvent,
     Pet,
     TaskTemplate,
@@ -22,7 +23,7 @@ from app.models import (
 type SoftDeletableModel = (
     AppUser | Pet | WeightEntry | HealthEvent | TaskTemplate | WalkSession
 )
-type OwnedModel = SoftDeletableModel | TaskTimer
+type OwnedModel = SoftDeletableModel | TaskTimer | Asset
 
 
 async def get_owned[Model: OwnedModel](
