@@ -690,3 +690,60 @@ route's own bound of 5 000 points. The fixture was wrong, not the model —
 its route points carried two values, the shape of a preview. They carry
 `[lat, lon, t, acc]` now, `11` §3 says so, and the fixture validator
 refuses a route point that is not four numbers.
+
+## Q-25 — P2-17 — What order do single-row vector calls use?
+**Asked:** 2026-10-10
+**Where:** spec/07-test-harness.md §3; spec/11-reserve-server.md §3;
+spec/fixtures/reseed-vectors.json
+**Problem:** The reference-arrival vector lists the completion before its
+template, pet and member. Sending one row per call in that order refuses
+the dependent rows. The duplicate-before-winner vector similarly loses
+its duplicate_of reference, which §3 says is stored as null when absent.
+Neither sequence can reach the vector's expected state.
+**I would assume:** The single-row way uses entity and dependency order,
+including winners before rows naming them in duplicate_of. The other
+three ways preserve the specified ordering of each batch.
+**Blocking:** no for Red; this assumption is confined to vector_batches
+in tests/sync/test_reseed.py and needs review before the merge lands.
+
+## Q-26 — P2-17 — How are explicit null walk metrics sent?
+**Asked:** 2026-10-10
+**Where:** spec/fixtures/reseed-vectors.json, walk-status vectors;
+app/schemas/reseed.py, ReseedWalk
+**Problem:** Two vectors explicitly send null distance_m and duration_s.
+The committed contract and database require non-null numbers. Filling
+missing fields from factories does not cover explicit null values. These
+vectors would fail validation before reaching the merge stub.
+**I would assume:** In vector input only, those null metrics stand for
+the valid factory defaults, since active and discarded walks have no
+finished metrics. Preserve the fixture and the committed contract.
+**Blocking:** no for Red; the normalization is confined to
+complete_vector_row in tests/sync/test_reseed.py. This interpretation
+needs review before the merge lands; assertions of expected state stay
+exactly as the fixture gives them.
+
+## Q-27 — P2-17 — Does RS-4 exclude intentional undo tombstones?
+**Asked:** 2026-10-10
+**Where:** spec/11-reserve-server.md §3, RS-4;
+spec/fixtures/reseed-vectors.json, an-undone-completion-makes-no-duplicate
+**Problem:** RS-4 says every other completion names the live winner, whose
+completed_at is earliest. The vector instead retains an earlier undone
+completion with duplicate_of null alongside a later live completion.
+**I would assume:** Intentional undo tombstones are excluded from the
+contenders. Only live rows and merge duplicates must satisfy the winner
+ordering and duplicate_of assertions.
+**Blocking:** no for Red; the assumption is confined to assert_rs4
+in tests/sync/test_reseed.py and needs review before the merge lands.
+
+## Q-28 — P2-17 — How does RS-1 observe incoming walk routes?
+**Asked:** 2026-10-10
+**Where:** spec/08-tasks.md, P2-17 Tests; spec/04-api-contract.md §2, §6;
+spec/11-reserve-server.md §3
+**Problem:** RS-1's server test asks /sync from zero to list every accepted
+incoming row. walk_routes is accepted by reseed but deliberately excluded
+from sync, whose Walk row never carries the route.
+**I would assume:** Assert all ordinary rows in /sync; for a walk_routes
+row assert its owning walk appears there, and read the stored route via
+GET /walks/{id}/route. A replacement attempt may leave the existing route.
+**Blocking:** no for Red; confined to assert_rs1 in
+tests/sync/test_reseed.py and needs review before the merge lands.
