@@ -99,6 +99,60 @@ async def make_task(
         return task
 
 
+async def test_cp1_cp4_conflict_returns_live_winner_for_exact_pet_and_occurrence(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+) -> None:
+    family = await make_family(pets=2)
+    task = await make_task(app, family, "per_pet")
+    pet_ids = sorted((pet.id for pet in family.pets), key=str)
+    async with app.state.session_factory() as session:
+        await session.execute(
+            update(TaskTemplate)
+            .where(TaskTemplate.id == task.id)
+            .values(pet_ids=pet_ids)
+        )
+        await session.commit()
+    http = client_for(family.users[0])
+    target = body_for(task, frozen_clock, pet_id=str(pet_ids[1]))
+    other_pet = await http.post(
+        "/api/v1/completions",
+        json={**target, "id": str(uuid4()), "pet_id": str(pet_ids[0])},
+        headers=idem(),
+    )
+    other_occurrence = await http.post(
+        "/api/v1/completions",
+        json={**target, "id": str(uuid4()), "occurrence_key": "2026-09-13T08:00"},
+        headers=idem(),
+    )
+    old = await http.post("/api/v1/completions", json=target, headers=idem())
+    assert [other_pet.status_code, other_occurrence.status_code, old.status_code] == [
+        200,
+        200,
+        200,
+    ]
+    undone = await http.post(
+        f"/api/v1/completions/{old.json()['id']}/undo", headers=idem()
+    )
+    assert undone.status_code == 200 and undone.json()["undone_at"] is not None
+    winner = await client_for(family.users[1]).post(
+        "/api/v1/completions", json={**target, "id": str(uuid4())}, headers=idem()
+    )
+    assert winner.status_code == 200
+    loser_id = str(uuid4())
+    lost = await http.post(
+        "/api/v1/completions", json={**target, "id": loser_id}, headers=idem()
+    )
+    assert lost.status_code == 200 and lost.content == winner.content
+    assert lost.json()["completed_by"] == str(family.users[1].id)
+    rows = await task_rows(app, task)
+    assert len(rows) == 4 and loser_id not in {str(row.id) for row in rows}
+    assert sum(row.undone_at is None for row in rows) == 3
+
+
 def body_for(
     task: TaskTemplate, clock: Clock, **overrides: object
 ) -> dict[str, object]:
