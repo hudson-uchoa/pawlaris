@@ -124,6 +124,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/health-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Health */
+        post: operations["create_health_api_v1_health_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/health-events/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Health */
+        delete: operations["delete_health_api_v1_health_events__id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Health */
+        patch: operations["patch_health_api_v1_health_events__id__patch"];
+        trace?: never;
+    };
     "/api/v1/invites": {
         parameters: {
             query?: never;
@@ -176,6 +211,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/pets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Pet */
+        post: operations["create_pet_api_v1_pets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Pet */
+        patch: operations["patch_pet_api_v1_pets__id__patch"];
+        trace?: never;
+    };
+    "/api/v1/pets/{id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Pet */
+        post: operations["archive_pet_api_v1_pets__id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/pets/{id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Pet */
+        post: operations["unarchive_pet_api_v1_pets__id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sync": {
         parameters: {
             query?: never;
@@ -188,6 +291,40 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/weights": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Weight */
+        post: operations["create_weight_api_v1_weights_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/weights/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Weight */
+        delete: operations["delete_weight_api_v1_weights__id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -300,6 +437,8 @@ export interface components {
             entity: "task_completions";
             row: components["schemas"]["Completion"];
         };
+        /** @enum {string} */
+        EventType: "vaccine" | "medication" | "vet_visit" | "symptom" | "procedure" | "other";
         /** Family */
         Family: {
             /** Deleted At */
@@ -395,6 +534,51 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** HealthEventCreate */
+        HealthEventCreate: {
+            /** Attachment Asset Id */
+            attachment_asset_id?: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Next Due On */
+            next_due_on?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Title */
+            title: string;
+            type: components["schemas"]["EventType"];
+        };
+        /** HealthEventPatch */
+        HealthEventPatch: {
+            /** Attachment Asset Id */
+            attachment_asset_id?: string | null;
+            /** Next Due On */
+            next_due_on?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at?: string;
+            /** Title */
+            title?: string;
+            /** @default other */
+            type: components["schemas"]["EventType"];
         };
         /** HealthResponse */
         HealthResponse: {
@@ -576,6 +760,64 @@ export interface components {
             entity: "pets";
             row: components["schemas"]["Pet"];
         };
+        /** PetCreate */
+        PetCreate: {
+            /** Avatar Asset Id */
+            avatar_asset_id?: string | null;
+            /** Birthdate */
+            birthdate?: string | null;
+            /** Breed */
+            breed?: string | null;
+            /** Color */
+            color?: string | null;
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /** Microchip Id */
+            microchip_id?: string | null;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** @default unknown */
+            sex: components["schemas"]["Sex"];
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+            /**
+             * Species
+             * @enum {string}
+             */
+            species: "cat" | "dog";
+        };
+        /** PetPatch */
+        PetPatch: {
+            /** Avatar Asset Id */
+            avatar_asset_id?: string | null;
+            /** Birthdate */
+            birthdate?: string | null;
+            /** Breed */
+            breed?: string | null;
+            /** Color */
+            color?: string | null;
+            /** Microchip Id */
+            microchip_id?: string | null;
+            /** Name */
+            name?: string;
+            /** Notes */
+            notes?: string | null;
+            /** @default unknown */
+            sex: components["schemas"]["Sex"];
+            /**
+             * Sort Order
+             * @default 0
+             */
+            sort_order: number;
+        };
         /** Redeem */
         Redeem: {
             /** Code */
@@ -619,6 +861,8 @@ export interface components {
             refresh_token: string;
             user: components["schemas"]["Me"];
         };
+        /** @enum {string} */
+        Sex: "female" | "male" | "unknown";
         /** SyncResponse */
         SyncResponse: {
             /** Changes */
@@ -848,6 +1092,28 @@ export interface components {
              */
             entity: "weight_entries";
             row: components["schemas"]["WeightEntry"];
+        };
+        /** WeightCreate */
+        WeightCreate: {
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Measured At
+             * Format: date-time
+             */
+            measured_at: string;
+            /** Note */
+            note?: string | null;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Weight Kg */
+            weight_kg: number | string;
         };
         /** WeightEntry */
         WeightEntry: {
@@ -1149,6 +1415,111 @@ export interface operations {
             };
         };
     };
+    create_health_api_v1_health_events_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthEventCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_health_api_v1_health_events__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_health_api_v1_health_events__id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HealthEventPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     invite_api_v1_invites_post: {
         parameters: {
             query?: never;
@@ -1266,6 +1637,144 @@ export interface operations {
             };
         };
     };
+    create_pet_api_v1_pets_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PetCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_pet_api_v1_pets__id__patch: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PetPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_pet_api_v1_pets__id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_pet_api_v1_pets__id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pet"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     sync_api_v1_sync_get: {
         parameters: {
             query: {
@@ -1285,6 +1794,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_weight_api_v1_weights_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeightCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightEntry"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_weight_api_v1_weights__id__delete: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightEntry"];
                 };
             };
             /** @description Validation Error */
