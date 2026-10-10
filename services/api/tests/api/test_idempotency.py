@@ -144,8 +144,8 @@ async def test_id3_cross_family_replay_reveals_nothing(
         route[0], request.url, json=request.json, headers=headers
     )
     assert original.status_code == 200
-    before = await revision(app, second.id)
     request = await route_request(second, route)
+    before = await revision(app, second.id)
     response = await client_for(second.users[0]).request(
         route[0], request.url, json=request.json, headers=headers
     )
@@ -175,13 +175,17 @@ async def test_id3_cross_entity_replay_reveals_nothing(
                 client_mutation_id=UUID(headers["Idempotency-Key"]),
                 family_id=family.id,
                 user_id=family.users[0].id,
-                entity="weight_entries",
+                entity=(
+                    "pets"
+                    if IDEMPOTENT_ROUTES[route] == "weight_entries"
+                    else "weight_entries"
+                ),
                 entity_id=uuid4(),
             )
         )
         await session.commit()
-    before = await revision(app, family.id)
     request = await route_request(family, route)
+    before = await revision(app, family.id)
     response = await client_for(family.users[0]).request(
         route[0], request.url, json=request.json, headers=headers
     )
@@ -204,8 +208,8 @@ async def test_id2_missing_or_malformed_key_is_400_without_write(
     key: str | None,
 ) -> None:
     family = await make_family()
-    before = await revision(app, family.id)
     request = await route_request(family, route)
+    before = await revision(app, family.id)
     response = await client_for(family.users[0]).request(
         route[0],
         request.url,
@@ -238,9 +242,11 @@ async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
     original = IdempotentMutation.__call__
     entry = ENTITY_REGISTRY[IDEMPOTENT_ROUTES[route]]
     row_id = family.id if entry.model is Family else family.users[1].id
-    if entry.model is Pet:
-        assert request.json is not None
-        row_id = UUID(str(request.json["id"]))
+    if entry.model is not Family and IDEMPOTENT_ROUTES[route] != "members":
+        if request.json is not None and "id" in request.json:
+            row_id = UUID(str(request.json["id"]))
+        else:
+            row_id = UUID(request.url.split("/")[4])
     async with app.state.session_factory() as session:
         row = await session.get(entry.model, row_id)
         previous = (
@@ -267,7 +273,7 @@ async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
         return await original(mutation, faulty)
 
     failed_body = request.json
-    if entry.model is Pet:
+    if route == ("POST", "/probe/pet"):
         assert request.json is not None
         failed_body = {**request.json, fault: True}
     else:
@@ -293,7 +299,9 @@ async def test_id2_failure_rolls_back_key_row_revision_and_callbacks(
         route[0], request.url, headers=headers, json=request.json
     )
     assert retry.status_code == 200
-    assert app.state.probe.events == (["pet visible"] if entry.model is Pet else [])
+    assert app.state.probe.events == (
+        ["pet visible"] if route == ("POST", "/probe/pet") else []
+    )
 
 
 async def test_id2_replay_returns_current_row_including_tombstone(
