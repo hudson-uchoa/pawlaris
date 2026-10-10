@@ -659,6 +659,7 @@ Keep the exact contract check and all existing tests unchanged. A later
 stage can make the field required when its schema and builders change.
 **Blocking:** no; the transitional declaration is confined to Completion
 in packages/shared/src/entities.ts.
+
 **Answer (2026-10-10):** As assumed, for the contract and Red commits only.
 The row always carries `duplicate_of`: `04` §2 now lists it and `03` §5 has
 the column — both were missing, and that was the spec's gap. At the task's
