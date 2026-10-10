@@ -684,3 +684,9 @@ points, or the harness should explicitly expand their missing values.
 **Blocking:** no for the contract; the assumption is confined to the
 points declaration of ReseedWalkRoute in app/schemas/reseed.py. The vector
 tests will need the answer before they can send these incoming routes.
+
+**Answer (2026-10-10):** As assumed: four values, as in `04` §12, with the
+route's own bound of 5 000 points. The fixture was wrong, not the model —
+its route points carried two values, the shape of a preview. They carry
+`[lat, lon, t, acc]` now, `11` §3 says so, and the fixture validator
+refuses a route point that is not four numbers.

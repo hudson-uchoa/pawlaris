@@ -119,7 +119,8 @@ POST /reseed   { "rows": [ { "entity": "<name>", "row": { … } }, … ] }   -> 
 - Each `row` has the shape `/sync` gives for that entity *(04 §2)*, checked
   with the same bounds as the bodies of that entity's routes, and through the
   shared body rules (U+0000, non-finite numbers). A `walk_routes` row is
-  `{ "walk_id", "points" }`. The family is always the caller's; a `family_id`
+  `{ "walk_id", "points" }`, its points those of `04` §12 —
+  `[lat, lon, t, acc]`, at most 5 000. The family is always the caller's; a `family_id`
   is neither sent nor read. `revision` is ignored.
 - Every row counts in exactly one of `inserted`, `updated`, `unchanged` and
   `refused`. `duplicates` is apart: the completions this call turned into a
