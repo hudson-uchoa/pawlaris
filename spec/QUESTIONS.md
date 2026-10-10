@@ -491,3 +491,18 @@ second waits, re-checks `used_at IS NULL` and gets no row.
 Two cases join the tests (`07` §5.2 R1.3, `08` P2-7): a redeemed invite
 records `used_by`, and a redeem that fails with `409 email_taken` leaves the
 invite usable.
+
+## Q-15 ? P2-8 ? Which repeated soft-delete status takes precedence?
+**Asked:** 2026-10-09
+**Where:** spec/04-api-contract.md ?1.2 and ?8;
+spec/08-tasks.md P2-8 Tests
+**Problem:** ?8 ends with PATCH or DELETE on a soft-deleted row returning
+404. ?1.2 instead requires DELETE to return the unchanged tombstone with
+200, as does P2-8's test list. The owner's task instruction explicitly
+requires a second delete to return 200 unchanged.
+**I would assume:** Follow the owner's explicit instruction and ?1.2:
+PATCH on a tombstone returns 404, while DELETE returns 200 with the
+unchanged tombstone and no new revision. Confine this behavior to
+services/common.py's soft_delete helper. Please correct ?8's conflicting
+sentence when reviewing the task.
+**Blocking:** no; the owner's instruction settles the implementation.
