@@ -13,6 +13,7 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.models import AppUser, Family, FamilyRevision
 from app.security.passwords import hash_password
@@ -31,6 +32,7 @@ IDENTITY_KEYS = (
 
 
 class BootstrapArguments(argparse.Namespace):
+    command: str
     family: str
     timezone: str
     user: list[str]
@@ -109,15 +111,23 @@ async def bootstrap(
         await engine.dispose()
 
 
+async def maintenance(settings: Settings, clock: Clock) -> None:
+    raise NotImplementedError
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Pawlaris operator commands")
     commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("maintenance", help="Prune assets, refresh tokens and invites")
     command = commands.add_parser("bootstrap", help="Create the first family and users")
     command.add_argument("--family", required=True)
     command.add_argument("--timezone", required=True)
     command.add_argument("--user", action="append", required=True)
     arguments = BootstrapArguments()
     parser.parse_args(argv, namespace=arguments)
+    if arguments.command == "maintenance":
+        asyncio.run(maintenance(Settings(), SystemClock()))
+        return 0
     try:
         if not 1 <= len(arguments.family) <= 60:
             raise ValueError("Family names must contain 1 to 60 characters.")
