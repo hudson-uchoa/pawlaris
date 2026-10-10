@@ -817,6 +817,7 @@ async def test_rs2_501_rows_are_422_and_write_nothing(
     "entity,field,invalid",
     [
         ("members", "display_name", "x" * 41),
+        ("members", "color", "invalid"),
         ("family", "name", "x" * 61),
         ("pets", "name", "x" * 41),
         ("task_templates", "title", "x" * 81),
@@ -827,7 +828,7 @@ async def test_rs2_501_rows_are_422_and_write_nothing(
         ("walk_sessions", "distance_m", -1),
         ("walk_routes", "points", [[0, 0, 1, 5]] * 5001),
     ],
-    ids=list(ENTITY_ORDER),
+    ids=["members", "members-color", *ENTITY_ORDER[1:]],
 )
 async def test_rs2_entity_bounds_reject_entire_batch_without_writes(
     app: FastAPI,
