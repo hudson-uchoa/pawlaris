@@ -343,6 +343,9 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 - **Two tests need a database of their own**, because they depend on its whole
   state: `test_migrations.py` and `test_bootstrap.py` each create, migrate and
   drop a private scratch database through the `scratch_database()` fixture.
+- **No test reaches the network.** `conftest.py` replaces the HTTP client's
+  real transport for every test with one that fails the test; a test that
+  needs an HTTP peer gives the client a `MockTransport`.
 - HTTP tests use `httpx.AsyncClient` over `ASGITransport`. Socket tests use
   Starlette's `TestClient` for the socket **and** for the HTTP calls in the
   same test, so one event loop owns the app.
@@ -371,7 +374,7 @@ at that database and with `get_clock` overridden by a `FrozenClock` fixture.
 | — | `tests/api/test_walks.py` | finish as upsert; discard; route fetch; preview stored and synced; limits; two active walks accepted |
 | AS-1, AS-2 | `tests/api/test_assets.py` | plus: PNG bytes sent as `image/jpeg` stored as PNG; non-image → 422; `Content-Length` over 8 MiB → 413 before any byte is read; a body that exceeds 8 MiB despite a smaller `Content-Length` → 413; the family lock is free while the body is being read, and an actor removed meanwhile gets 401 with no file left; no `Content-Length` → 413; wrong hash → 422; the right hash in upper case → 201; 5000×5000 image → 422; same id other bytes → 409; unauthenticated → 401 with the body unread; the sweep waits for a write that holds the family lock, and keeps the asset that write references |
 | WS-1, WS-2 | `tests/sync/test_socket.py` | `04` §7; plus: a first frame that is not `auth` closes 4401 even when it carries a valid token; an expired token closes on an inbound frame that asks for no answer; whichever socket of a family fails first during a poke, the others still get it, and the failed one is gone from the hub; after a socket closes the hub holds nothing for it; a hub failure is logged as one JSON `ERROR` line and a vanished socket as none; Uvicorn finds a WebSocket implementation (`uvicorn.protocols.websockets.auto.AutoWebSocketsProtocol` is not `None`) — the socket tests run without a server, so nothing else would notice its absence until a phone tried to connect |
-| — | `tests/api/test_push.py` | with a fake sender: completion → message to the other member only; lost race → duplicate push to the winner; author never targeted; sender failure does not fail the request |
+| — | `tests/api/test_push.py` | a completion or a walk start sent again under a new `Idempotency-Key` pushes nothing; a ticket with another error (`MessageRateExceeded`) keeps the token and writes one `ERROR` JSON line; an Expo failure (HTTP error, timeout, a body that is not tickets) writes exactly one, with no token, title or body in it; the HTTP client's own log line is not emitted; with a fake sender: completion → message to the other member only; lost race → duplicate push to the winner; author never targeted; sender failure does not fail the request |
 | R5.9 | `tests/api/test_timing.py` | every response has `Server-Timing: app;dur=<number>`; a `/sync` response over 1 KB is gzip-encoded when asked |
 | — | `tests/api/test_commit_order.py` | a handler whose commit fails returns 500, and its after-commit callback never runs; a successful one runs its callback after the row is visible to a second connection |
 | RB-1, RB-2, RB-3 | `tests/security/test_role_matrix.py` | `04` §5 |

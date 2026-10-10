@@ -384,12 +384,18 @@ housekeeping on a timer is fine.
   a failed after-commit callback are each logged as one `ERROR` line with the
   same fields plus `exc`, the formatted traceback, under the request's
   `request_id`. The traceback goes to the log only, never to the response.
-  For `/auth/*` and `/me/password`, `exc` carries the exception's type and
-  its stack frames — file, line, function — and never its message or local
-  values, which can hold a credential or a statement's parameters *(§5)*.
+  For `/auth/*`, `/me/password` and `/me/push-token`, `exc` carries the
+  exception's type and its stack frames — file, line, function — and never
+  its message or local values, which can hold a credential or a statement's
+  parameters *(§5)*.
   On the socket, a phone that goes away is not an error: its socket is
   unregistered with no log line. Any other failure in the hub is one `ERROR`
   line in the same JSON shape, with `exc` and no `request_id`.
+  A push that fails — the sender raising, Expo unreachable or answering with
+  an error, or a ticket refused for any reason but `DeviceNotRegistered` — is
+  one `ERROR` line per batch under the `request_id` of the request that
+  caused it, naming the error and never a token, a title or a body. The HTTP
+  client's own logger is set to `WARNING`: its line per request is not JSON.
 - Docker `json-file` driver with `max-size=10m, max-file=3`.
 - On the phone: a rotating log file (256 KB) and the Diagnostics screen.
 - No SaaS. Nothing here costs money or ships data off the box.

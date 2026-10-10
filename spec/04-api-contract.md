@@ -756,11 +756,14 @@ Their `data` *(Q-22)*:
 When the winner and the loser of a race are the same person nothing is sent
 *(R3.39: nobody is told about their own action)*. Only `POST /walks` sends
 `walk_started`: a `finish` that creates the walk, because its start never
-arrived, sends nothing *(Q-21)*. An undo, a replayed request and a finished
-or discarded walk send nothing.
+arrived, sends nothing *(Q-21)*. An undo and a finished or discarded walk
+send nothing. Neither does a request that arrives again — with the same
+`Idempotency-Key`, or with a new key for a completion or a walk the server
+already has.
 
 `HH:mm` is `completed_at` in the family timezone. A token Expo reports as
-`DeviceNotRegistered` is deleted from `push_device`.
+`DeviceNotRegistered` is deleted from `push_device`. A ticket with any other
+error keeps its token; the error is logged *(`05` §7)*.
 
 ---
 
