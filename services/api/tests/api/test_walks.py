@@ -1,19 +1,167 @@
+import json
 from collections.abc import Callable
 from datetime import timedelta
 from uuid import UUID, uuid1, uuid4
 
 import pytest
 from fastapi import FastAPI
+from pydantic import ValidationError
 from sqlalchemy import select
 
 from app.clock import FrozenClock
 from app.models import AppliedMutation, AppUser, FamilyRevision, WalkRoute, WalkSession
+from app.schemas.body import RequestBody
 from app.schemas.rows import Walk
 from app.schemas.walks import WalkFinish
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily, TestFamily
+from tests.security.matrix import task_body
 
 type Idem = Callable[[], dict[str, str]]
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize(
+    "field,index",
+    [("route", index) for index in range(4)]
+    + [("preview", index) for index in range(2)],
+)
+async def test_r1_walk_points_reject_non_finite_numbers_before_writing(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+    number: str,
+    field: str,
+    index: int,
+) -> None:
+    family = await make_family()
+    body = finish_body(family, frozen_clock)
+    parsed = WalkFinish.model_validate(body)
+    points = [list(point) for point in getattr(parsed, field)]
+    points[0][index] = float(number)
+    body[field] = points
+    before = await database_state(app, family)
+    # httpx's json argument refuses these literals before the app can see them.
+    response = await client_for(family.users[0]).post(
+        f"/api/v1/walks/{uuid4()}/finish",
+        content=json.dumps(body),
+        headers={**idem(), "Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+    problem = response.json()
+    assert problem["code"] == "validation_error"
+    assert problem["errors"] == [
+        {"loc": ["body"], "msg": "Value error, Numbers must be finite."}
+    ]
+    assert await database_state(app, family) == before
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize(
+    "method,path,field",
+    [
+        ("POST", "auth/login", "email"),
+        ("PATCH", "me", "display_name"),
+        ("PATCH", "family", "name"),
+        ("POST", "pets", "sort_order"),
+        ("POST", "weights", "weight_kg"),
+        ("POST", "health-events", "occurred_at"),
+        ("POST", "tasks", "timer_seconds"),
+        ("POST", "tasks", "recurrence.interval"),
+        ("POST", "completions", "completed_at"),
+        ("POST", "timers", "ends_at"),
+    ],
+)
+async def test_r1_every_body_router_uses_shared_non_finite_number_check(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+    method: str,
+    path: str,
+    field: str,
+    number: str,
+) -> None:
+    family = await make_family()
+    body: dict[str, object]
+    if path == "auth/login":
+        body = {"email": "nobody@example.invalid", "password": "test-password"}
+    elif path == "me":
+        body = {"display_name": "Test member"}
+    elif path == "family":
+        body = {"name": "Test family", "timezone": "America/Sao_Paulo"}
+    elif path == "pets":
+        body = {"id": str(uuid4()), "name": "Test pet", "species": "cat"}
+    elif path in {"weights", "health-events"}:
+        body = {"id": str(uuid4()), "pet_id": str(family.pets[0].id)}
+        if path == "weights":
+            body.update(weight_kg=4.25, measured_at=frozen_clock.now().isoformat())
+        else:
+            body.update(
+                type="vaccine",
+                title="Annual vaccine",
+                occurred_at=frozen_clock.now().isoformat(),
+            )
+    elif path == "tasks":
+        body = task_body(family)
+    else:
+        body = {
+            "id": str(uuid4()),
+            "task_id": str(uuid4()),
+            "occurrence_key": "2026-09-14T08:00",
+        }
+        if path == "completions":
+            body["completed_at"] = frozen_clock.now().isoformat()
+        else:
+            body.update(
+                started_at=frozen_clock.now().isoformat(),
+                ends_at=(frozen_clock.now() + timedelta(minutes=5)).isoformat(),
+            )
+    if field == "recurrence.interval":
+        body["recurrence"] = {"freq": "daily", "interval": float(number)}
+    else:
+        body[field] = float(number)
+    response = await client_for(family.users[0]).request(
+        method,
+        f"/api/v1/{path}",
+        content=json.dumps(body),
+        headers={**idem(), "Content-Type": "application/json"},
+    )
+    assert response.status_code == 422
+    problem = response.json()
+    assert problem["code"] == "validation_error"
+    # Require the shared check, even when a field validator also rejects NaN.
+    assert problem["errors"] == [
+        {"loc": ["body"], "msg": "Value error, Numbers must be finite."}
+    ]
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity"])
+@pytest.mark.parametrize("location", ["scalar", "list", "nested"])
+def test_r1_shared_body_rejects_non_finite_numbers_at_any_depth(
+    number: str, location: str
+) -> None:
+    class NestedBody(RequestBody):
+        payload: object
+
+    value = float(number)
+    payload: object = {
+        "scalar": value,
+        "list": [1, value],
+        "nested": {"items": [1, {"coordinate": value}]},
+    }[location]
+    with pytest.raises(ValidationError, match="Numbers must be finite"):
+        NestedBody(payload=payload)
+
+
+def test_r1_shared_body_accepts_finite_numbers_and_large_integers() -> None:
+    class NestedBody(RequestBody):
+        payload: object
+
+    payload = {"items": [0, -1, 1.5, 1e308, -1e308, 10**400, True, None]}
+    assert NestedBody(payload=payload).payload == payload
 
 
 def start_body(
