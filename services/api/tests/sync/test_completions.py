@@ -29,6 +29,60 @@ from tests.factories import MakeFamily, TestFamily
 type Idem = Callable[[], dict[str, str]]
 
 
+async def test_cp2_foreign_completion_id_returns_404_without_writes(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+) -> None:
+    family, other = await make_family(), await make_family()
+    task, foreign_task = await make_task(app, family), await make_task(app, other)
+    foreign = await client_for(other.users[0]).post(
+        "/api/v1/completions",
+        json=body_for(foreign_task, frozen_clock, note="Private note"),
+        headers=idem(),
+    )
+    assert foreign.status_code == 200
+    async with app.state.session_factory() as session:
+        before = await session.scalar(
+            select(FamilyRevision.value).where(FamilyRevision.family_id == family.id)
+        )
+    response = await client_for(family.users[1]).post(
+        "/api/v1/completions",
+        json=body_for(task, frozen_clock, id=foreign.json()["id"]),
+        headers=idem(),
+    )
+    assert response.status_code == 404
+    assert response.json()["code"] == "not_found"
+    assert "Private note" not in response.text
+    assert foreign.json()["id"] not in response.text
+    assert await task_rows(app, task) == []
+    assert (
+        Completion.model_validate((await task_rows(app, foreign_task))[0]).model_dump(
+            mode="json"
+        )
+        == foreign.json()
+    )
+    async with app.state.session_factory() as session:
+        assert (
+            await session.scalar(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family.id
+                )
+            )
+            == before
+        )
+        assert (
+            await session.scalar(
+                select(func.count())
+                .select_from(AppliedMutation)
+                .where(AppliedMutation.family_id == family.id)
+            )
+            == 0
+        )
+
+
 async def make_task(
     app: FastAPI, family: TestFamily, mode: str = "together"
 ) -> TaskTemplate:

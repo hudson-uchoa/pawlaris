@@ -72,6 +72,14 @@ async def create_completion(
         if row is not None:
             return row, "lost"
         # The winner was undone between INSERT and SELECT; try again.
+    foreign_id = await session.scalar(
+        select(TaskCompletion.id).where(
+            TaskCompletion.id == body.id,
+            TaskCompletion.family_id != user.family_id,
+        )
+    )
+    if foreign_id is not None:
+        raise ApiError(404, "not_found", "Completion not found.")
     raise ApiError(500, "internal_error", "Internal server error.")
 
 
