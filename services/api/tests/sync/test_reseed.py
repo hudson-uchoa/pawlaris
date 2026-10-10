@@ -1181,6 +1181,7 @@ async def test_rb3_rs5_actor_removed_while_waiting_for_family_lock_is_401(
                 # Observe the real PostgreSQL wait, without replacing the service
                 # or its lock. The unfinished stub instead returns 500 promptly.
                 while not pending.done():  # noqa: ASYNC110
+                    await blocker.execute(text("SELECT pg_stat_clear_snapshot()"))
                     waiting = await blocker.scalar(
                         text(
                             "SELECT EXISTS (SELECT 1 FROM pg_stat_activity "
