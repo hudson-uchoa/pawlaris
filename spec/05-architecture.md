@@ -136,7 +136,9 @@ services/api/
   rolling back anything left uncommitted. The single exception that commits
   and still answers with an error is refresh-chain revocation *(04 §3)*.
 - **The family lock comes first.** Every mutation calls `lock_family` before it
-  checks or writes anything *(03 §1.2)*.
+  checks or writes anything *(03 §1.2)*. It is never held while a request body
+  is still arriving: the asset upload takes it after the body is on disk
+  *(`04` §13)*.
 - **CPU-bound work leaves the event loop.** Argon2 runs in a thread behind a
   semaphore of 2. Image validation runs in a thread.
 - **Latency *(R5.9)*:** a handler issues a small, fixed number of queries — no
@@ -265,7 +267,7 @@ sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.co
 All three terminate TLS before the API; the API itself speaks plain HTTP on the
 Docker network only. None exposes Postgres. All cap the request body at 10 MB
 where the proxy allows it (Caddy: `request_body { max_size 10MB }`); the API's
-own 8 MB check is authoritative.
+own 8 MiB check is authoritative.
 
 Profile B also needs the DuckDNS updater (a five-minute systemd timer calling
 the DuckDNS update URL), which `infra/` provides.
@@ -304,7 +306,9 @@ family time:
 1. `backup.sh` (§6)
 2. `docker compose run --rm api python -m app.cli maintenance` — sweep
    unreferenced assets *(AS-2)*, delete refresh tokens expired for more than
-   30 days, delete used or expired invites older than 30 days. A token that is
+   30 days, delete invites used more than 30 days ago and invites that
+   expired more than 30 days ago. The sweep takes every family lock first, so
+   a write in progress that references an asset is seen. A token that is
    kept may still name a deleted one as its parent: its `parent_id` is set to
    null first, in the same transaction *(Q-19)*
 

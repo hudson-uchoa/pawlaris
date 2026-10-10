@@ -100,7 +100,9 @@ SELECT value FROM family_revision WHERE family_id = :f FOR UPDATE;
 updates, so holding it makes the transaction the only writer of that family
 until it ends. **Every mutation takes it first**, before any check or write
 (the idempotency wrapper of §9 does it for ⟳ routes; the few other writers call
-it themselves). That turns every check-then-write rule — last leader, the
+it themselves). One writer receives its body at the phone's pace, the asset
+upload: it takes the lock once the body is on disk, and still before any check
+or write in the database *(`04` §13)*. That turns every check-then-write rule — last leader, the
 completion lookup, assignment — into a serial section, and removes any
 lock-ordering deadlock between two mutations of the same family.
 
