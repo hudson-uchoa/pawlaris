@@ -399,6 +399,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/walks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Walk */
+        post: operations["create_walk_api_v1_walks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/walks/{id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard Walk */
+        post: operations["discard_walk_api_v1_walks__id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/walks/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish Walk */
+        post: operations["finish_walk_api_v1_walks__id__finish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/walks/{id}/route": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Walk Route */
+        get: operations["get_walk_route_api_v1_walks__id__route_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/weights": {
         parameters: {
             query?: never;
@@ -982,6 +1050,10 @@ export interface components {
              */
             sort_order: number;
         };
+        PreviewPoint: [
+            number,
+            number
+        ];
         Recurrence: components["schemas"]["Daily"] | components["schemas"]["Weekly"] | components["schemas"]["Monthly"] | components["schemas"]["Once"];
         /** Redeem */
         Redeem: {
@@ -1013,6 +1085,12 @@ export interface components {
              */
             role: "leader" | "member";
         };
+        RoutePoint: [
+            number,
+            number,
+            number,
+            number
+        ];
         /** Session */
         Session: {
             /**
@@ -1355,6 +1433,61 @@ export interface components {
              */
             entity: "walk_sessions";
             row: components["schemas"]["Walk"];
+        };
+        /** WalkCreate */
+        WalkCreate: {
+            /**
+             * Id
+             * Format: uuid4
+             */
+            id: string;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /** WalkFinish */
+        WalkFinish: {
+            /** Avg Pace S Per Km */
+            avg_pace_s_per_km: number | null;
+            /** Distance M */
+            distance_m: number | string;
+            /** Duration S */
+            duration_s: number;
+            /**
+             * Ended At
+             * Format: date-time
+             */
+            ended_at: string;
+            /** Note */
+            note?: string | null;
+            /** Paused Ms */
+            paused_ms: number;
+            /**
+             * Pet Id
+             * Format: uuid
+             */
+            pet_id: string;
+            /** Preview */
+            preview: components["schemas"]["PreviewPoint"][];
+            /** Route */
+            route: components["schemas"]["RoutePoint"][];
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+        };
+        /** WalkRoute */
+        WalkRoute: {
+            /** Points */
+            points: components["schemas"]["RoutePoint"][];
         };
         /** @enum {string} */
         Weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
@@ -2320,6 +2453,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Timer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_walk_api_v1_walks_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Walk"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_walk_api_v1_walks__id__discard_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Walk"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    finish_walk_api_v1_walks__id__finish_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Idempotency-Key"?: string | null;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WalkFinish"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Walk"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_walk_route_api_v1_walks__id__route_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WalkRoute"];
                 };
             };
             /** @description Validation Error */

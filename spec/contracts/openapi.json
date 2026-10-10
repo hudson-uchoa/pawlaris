@@ -1467,6 +1467,19 @@
         "title": "PetPatch",
         "type": "object"
       },
+      "PreviewPoint": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
       "Recurrence": {
         "discriminator": {
           "mapping": {
@@ -1562,6 +1575,25 @@
         ],
         "title": "RoleChange",
         "type": "object"
+      },
+      "RoutePoint": {
+        "maxItems": 4,
+        "minItems": 4,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
       },
       "Session": {
         "properties": {
@@ -2421,6 +2453,149 @@
           "row"
         ],
         "title": "WalkChange",
+        "type": "object"
+      },
+      "WalkCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid4",
+            "title": "Id",
+            "type": "string"
+          },
+          "pet_id": {
+            "format": "uuid",
+            "title": "Pet Id",
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pet_id",
+          "started_at"
+        ],
+        "title": "WalkCreate",
+        "type": "object"
+      },
+      "WalkFinish": {
+        "additionalProperties": false,
+        "properties": {
+          "avg_pace_s_per_km": {
+            "anyOf": [
+              {
+                "maximum": 2147483647,
+                "minimum": -2147483648,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avg Pace S Per Km"
+          },
+          "distance_m": {
+            "anyOf": [
+              {
+                "maximum": 200000,
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d{0,2}0*$",
+                "type": "string"
+              }
+            ],
+            "title": "Distance M"
+          },
+          "duration_s": {
+            "maximum": 86400,
+            "minimum": 0,
+            "title": "Duration S",
+            "type": "integer"
+          },
+          "ended_at": {
+            "format": "date-time",
+            "title": "Ended At",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "paused_ms": {
+            "maximum": 9223372036854776000,
+            "minimum": -9223372036854776000,
+            "title": "Paused Ms",
+            "type": "integer"
+          },
+          "pet_id": {
+            "format": "uuid",
+            "title": "Pet Id",
+            "type": "string"
+          },
+          "preview": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewPoint"
+            },
+            "maxItems": 32,
+            "title": "Preview",
+            "type": "array"
+          },
+          "route": {
+            "items": {
+              "$ref": "#/components/schemas/RoutePoint"
+            },
+            "maxItems": 5000,
+            "title": "Route",
+            "type": "array"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pet_id",
+          "started_at",
+          "ended_at",
+          "paused_ms",
+          "distance_m",
+          "duration_s",
+          "avg_pace_s_per_km",
+          "route",
+          "preview"
+        ],
+        "title": "WalkFinish",
+        "type": "object"
+      },
+      "WalkRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/RoutePoint"
+            },
+            "title": "Points",
+            "type": "array"
+          }
+        },
+        "required": [
+          "points"
+        ],
+        "title": "WalkRoute",
         "type": "object"
       },
       "Weekday": {
@@ -4056,6 +4231,244 @@
           }
         ],
         "summary": "Cancel Timer"
+      }
+    },
+    "/api/v1/walks": {
+      "post": {
+        "operationId": "create_walk_api_v1_walks_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalkCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Walk"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Walk"
+      }
+    },
+    "/api/v1/walks/{id}/discard": {
+      "post": {
+        "operationId": "discard_walk_api_v1_walks__id__discard_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Walk"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Discard Walk"
+      }
+    },
+    "/api/v1/walks/{id}/finish": {
+      "post": {
+        "operationId": "finish_walk_api_v1_walks__id__finish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WalkFinish"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Walk"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Finish Walk"
+      }
+    },
+    "/api/v1/walks/{id}/route": {
+      "get": {
+        "operationId": "get_walk_route_api_v1_walks__id__route_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalkRoute"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Walk Route"
       }
     },
     "/api/v1/weights": {

@@ -16,6 +16,8 @@ from app.models import (
     TaskCompletion,
     TaskTemplate,
     TaskTimer,
+    WalkRoute,
+    WalkSession,
     WeightEntry,
 )
 from app.security.passwords import hash_password
@@ -379,6 +381,103 @@ async def cancel_timer(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     )
 
 
+async def create_walk(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    from tests.factories import INSTANT
+
+    return MatrixRequest(
+        "/api/v1/walks",
+        {
+            "id": str(uuid4()),
+            "pet_id": str(fam.pets[0].id),
+            "started_at": INSTANT.isoformat(),
+        },
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+def walk_finish_body(fam: TestFamily) -> dict[str, object]:
+    from tests.factories import INSTANT
+
+    return {
+        "pet_id": str(fam.pets[0].id),
+        "started_at": INSTANT.isoformat(),
+        "ended_at": (INSTANT + timedelta(minutes=30)).isoformat(),
+        "paused_ms": 0,
+        "distance_m": 2140.5,
+        "duration_s": 1800,
+        "avg_pace_s_per_km": 841,
+        "note": None,
+        "route": [[-23.5505, -46.6333, 1757845800000, 6.5]],
+        "preview": [[-23.5505, -46.6333]],
+    }
+
+
+async def _walk_target(
+    fam: TestFamily, actor: AppUser, *, own: bool = True, with_route: bool = False
+) -> WalkSession:
+    engine = create_async_engine(fam.database_url)
+    try:
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            values = await fam.row_values(session, "walk_session")
+            other = next(user for user in fam.users if user.id != actor.id)
+            values.update(user_id=actor.id if own else other.id)
+            if with_route:
+                values.update(status="finished", has_route=True, point_count=1)
+            row = WalkSession(**values)
+            session.add(row)
+            await session.flush()
+            if with_route:
+                session.add(
+                    WalkRoute(
+                        walk_id=row.id,
+                        points=[[-23.5505, -46.6333, 1757845800000, 6.5]],
+                    )
+                )
+            await session.commit()
+            return row
+    finally:
+        await engine.dispose()
+
+
+async def finish_own_walk(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _walk_target(fam, actor)
+    return MatrixRequest(
+        f"/api/v1/walks/{row.id}/finish",
+        walk_finish_body(fam),
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def finish_other_walk(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _walk_target(fam, actor, own=False)
+    return MatrixRequest(
+        f"/api/v1/walks/{row.id}/finish",
+        walk_finish_body(fam),
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def discard_own_walk(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _walk_target(fam, actor)
+    return MatrixRequest(
+        f"/api/v1/walks/{row.id}/discard",
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def discard_other_walk(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _walk_target(fam, actor, own=False)
+    return MatrixRequest(
+        f"/api/v1/walks/{row.id}/discard",
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def read_walk_route(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    row = await _walk_target(fam, actor, own=False, with_route=True)
+    return MatrixRequest(f"/api/v1/walks/{row.id}/route")
+
+
 PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
     {
         ("GET", "/api/v1/health"),
@@ -550,6 +649,44 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         cancel_timer,
         {"member": 200, "leader": 200},
     ),
+    PermissionCase(
+        18, "POST", "/api/v1/walks", create_walk, {"member": 200, "leader": 200}
+    ),
+    PermissionCase(
+        18,
+        "POST",
+        "/api/v1/walks/{id}/finish",
+        finish_own_walk,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        19,
+        "POST",
+        "/api/v1/walks/{id}/finish",
+        finish_other_walk,
+        {"member": 403, "leader": 200},
+    ),
+    PermissionCase(
+        19,
+        "POST",
+        "/api/v1/walks/{id}/discard",
+        discard_other_walk,
+        {"member": 403, "leader": 200},
+    ),
+    PermissionCase(
+        20,
+        "POST",
+        "/api/v1/walks/{id}/discard",
+        discard_own_walk,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        21,
+        "GET",
+        "/api/v1/walks/{id}/route",
+        read_walk_route,
+        {"member": 200, "leader": 200},
+    ),
 ]
 
 # Test-only probe until production sync mutations arrive.
@@ -577,4 +714,7 @@ IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {
     ("POST", "/api/v1/completions/{id}/undo"): "task_completions",
     ("POST", "/api/v1/timers"): "task_timers",
     ("POST", "/api/v1/timers/{id}/cancel"): "task_timers",
+    ("POST", "/api/v1/walks"): "walk_sessions",
+    ("POST", "/api/v1/walks/{id}/finish"): "walk_sessions",
+    ("POST", "/api/v1/walks/{id}/discard"): "walk_sessions",
 }
