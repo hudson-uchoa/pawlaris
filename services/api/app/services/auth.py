@@ -12,7 +12,15 @@ from app.errors import ApiError
 from app.locks import lock_family
 from app.models import AppUser, RefreshToken
 from app.realtime import PokeAfterCommit
-from app.schemas.auth import Login, Me, MePatch, PasswordChange, Refresh, Session
+from app.schemas.auth import (
+    Login,
+    Me,
+    MePatch,
+    PasswordChange,
+    PushToken,
+    Refresh,
+    Session,
+)
 from app.security.passwords import hash_password, verify_password
 from app.security.ratelimit import LoginRateLimiter
 from app.security.tokens import issue_access, new_refresh_token
@@ -196,6 +204,20 @@ async def change_password(
         )
 
     await transactional(session, write)
+
+
+async def upsert_push_token(
+    session: AsyncSession, user: AppUser, body: PushToken, clock: Clock
+) -> None:
+    await _locked_user(session, user)
+    raise NotImplementedError
+
+
+async def delete_push_token(
+    session: AsyncSession, user: AppUser, body: PushToken
+) -> None:
+    await _locked_user(session, user)
+    raise NotImplementedError
 
 
 async def _locked_user(session: AsyncSession, user: AppUser) -> AppUser:
