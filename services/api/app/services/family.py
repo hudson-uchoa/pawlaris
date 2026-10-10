@@ -21,10 +21,10 @@ from app.models import (
     RefreshToken,
     TaskTemplate,
 )
-from app.schemas.auth import Me, Redeem, Session
+from app.schemas.auth import Redeem, Session
 from app.schemas.family import FamilyPatch, Invite, RoleChange
 from app.security.passwords import hash_password
-from app.security.tokens import issue_access, new_refresh_token
+from app.services.auth import _issue_session
 from app.settings import Settings
 
 
@@ -111,7 +111,7 @@ async def create_invite(
 async def redeem(
     session: AsyncSession, body: Redeem, clock: Clock, settings: Settings
 ) -> Session:
-    async def write() -> tuple[AppUser, str]:
+    async def write() -> Session:
         now = clock.now()
         claimed = (
             await session.execute(
@@ -153,22 +153,10 @@ async def redeem(
             .where(InviteCode.code == body.code)
             .values(used_by=user.id)
         )
-        token, digest = new_refresh_token()
-        session.add(
-            RefreshToken(
-                id=uuid4(),
-                user_id=user.id,
-                chain_id=uuid4(),
-                token_hash=digest,
-                expires_at=clock.now() + timedelta(days=30),
-                created_at=clock.now(),
-            )
-        )
-        await session.flush()
-        return user, token
+        return await _issue_session(session, user, clock, settings, uuid4(), None)
 
     try:
-        user, token = await transactional(session, write)
+        return await transactional(session, write)
     except IntegrityError as exc:
         if (
             getattr(exc.orig, "sqlstate", None) == "23505"
@@ -177,13 +165,6 @@ async def redeem(
         ):
             raise ApiError(409, "email_taken", "Email is already registered.") from None
         raise
-    # Tokens are exposed only after the user, invite and refresh row have committed.
-    return Session(
-        access_token=issue_access(user, clock, settings),
-        refresh_token=token,
-        access_expires_at=clock.now() + timedelta(minutes=15),
-        user=Me.model_validate(user),
-    )
 
 
 def require_leader(actor: AppUser) -> None:
