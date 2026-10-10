@@ -515,3 +515,16 @@ last sentence of §8 contradicted it; the mistake was the spec's. §8 now reads:
 `PATCH` on a soft-deleted row → `404`; `DELETE` on one → `200` with the
 tombstone, unchanged. The section symbols that the shell replaced with
 question marks in this entry are restored.
+
+## Q-16 — P2-9 — What status rejects a disabled task assignee?
+**Asked:** 2026-10-09
+**Where:** spec/04-api-contract.md §1.2 and §9
+**Problem:** §9 requires an enabled family member as `assigned_to`, but
+does not specify the status for a disabled member who still has a row in
+the caller's family. §1.2 specifies 404 for absent or foreign-family scalar
+references; that wording does not cover an existing disabled member.
+**I would assume:** Return 422 `validation_error` with an `assigned_to`
+body error for an existing disabled family member. Return 404 for an
+unknown or foreign-family member. Apply this to create and PATCH in one
+`services/tasks.py` assignee-validation helper.
+**Blocking:** no; the distinction is confined to that helper and its test.
