@@ -838,3 +838,11 @@ has been changed and no assertion needs relaxing.
 **Blocking:** yes (task stopped before changing a test). The candidate
 is saved outside the repository, and app/ is the committed stub. The
 security gate failed; contract-check and full verify were not run.
+
+**Answer (2026-10-10):** As assumed. That test watches the lock by
+patching `lock_family` in each module that takes it, so a new service that
+takes the family lock is one more line there — as `assets` was. The patch
+needs the name to exist in `app.services.reseed`, so it lands in the same
+commit as the merge; say so in its message. The real lock, both limits,
+the removal, the `401` and the whole-database comparison stay as written.
+Keep the direct import from `app.locks`.
