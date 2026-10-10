@@ -11,3 +11,4 @@ class HealthResponse(BaseModel):
     disk_free_mb: int = Field(ge=0)
     version: str
     uptime_s: int = Field(ge=0)
+    role: Literal["primary", "reserve"]

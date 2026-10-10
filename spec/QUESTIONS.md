@@ -644,3 +644,18 @@ fields of `completion` with its own `type` and the **winner's**
 `completion_id` — the tap opens the day of that occurrence (`09` §9), which
 needs `task_id` and `occurrence_key`. `walk_started` carries `type`,
 `walk_id` and `pet_id`. Neither has `silent`. `04` §15 now shows both.
+
+## Q-23 — P2-16 — How does the shared Completion bridge Stage A?
+**Asked:** 2026-10-10
+**Where:** spec/04-api-contract.md §2, §16; Stage A session instructions
+**Problem:** Stage A requires duplicate_of to default to null until the
+database migration exists, forbids test changes, and requires shared tsc
+to pass. The shared entity contract checks exact keys and field types.
+Adding the generated wire field alone breaks that check; making the local
+field required also breaks existing completion builders in the tests.
+**I would assume:** Add duplicate_of as an optional string-or-null field
+to the shared Completion type, matching the generated defaulted field.
+Keep the exact contract check and all existing tests unchanged. A later
+stage can make the field required when its schema and builders change.
+**Blocking:** no; the transitional declaration is confined to Completion
+in packages/shared/src/entities.ts.
