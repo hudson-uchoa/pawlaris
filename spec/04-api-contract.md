@@ -22,7 +22,7 @@ no per-resource list endpoints: the phone reads its replica *(ADR-019, ADR-020)*
 | Time | ISO-8601 UTC with `Z` (`2026-09-14T10:30:00Z`). Dates are `YYYY-MM-DD` |
 | Auth | `Authorization: Bearer <access_token>` on everything except §3's public routes and `/health` |
 | Idempotency | Every mutation marked ⟳ requires `Idempotency-Key: <uuidv4>` *(ADR-021)*. Missing or malformed → 400 `idempotency_key_required` |
-| Bodies | Unknown fields are rejected (`extra = "forbid"`) → 422. So is any string that contains the character U+0000, which the database cannot store, and any integer outside the range of its column (`sort_order`: −2 147 483 648 to 2 147 483 647). The check for U+0000 is written once and covers every request body |
+| Bodies | Unknown fields are rejected (`extra = "forbid"`) → 422. So is any string that contains the character U+0000, which the database cannot store, and any integer outside the range of its column (`sort_order`: −2 147 483 648 to 2 147 483 647). A number that is not finite — `NaN`, `Infinity`, `-Infinity`, which a lenient JSON parser lets through — is `422` too. The checks for U+0000 and for non-finite numbers are written once, in the same place, and cover every request body, at any depth |
 | Responses | A mutation returns the full row it produced or changed, in the same shape `/sync` uses |
 | Family | The family is always the caller's. No route takes a family id. A row of another family is `404`, never `403` |
 | Timing | Every response carries `Server-Timing: app;dur=<milliseconds>` — the time from the request reaching the app to the response leaving it *(R5.9)* |

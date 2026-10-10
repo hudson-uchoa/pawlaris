@@ -593,7 +593,9 @@ tests cover them for its routes.
   discarded; two active walks for one pet both accepted; discard by the walker
   and by a leader, 403 for another member; the route is absent from `/sync` and
   present at `GET …/route`; the preview is present in `/sync`; 5 001 route
-  points or 33 preview points → 422.
+  points or 33 preview points → 422. From the review of 2026-10-10: `NaN` or
+  `Infinity` anywhere in a body → 422, on a walk and on one route of every
+  other router.
   **Gate:** `uv run --directory services/api pytest tests/api/test_walks.py -q` · `pnpm verify --only security`
 
 - [ ] **P2-13 — Assets, storage, maintenance**
