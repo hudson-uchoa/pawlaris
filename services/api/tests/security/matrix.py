@@ -3,6 +3,7 @@
 import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
+from datetime import timedelta
 from uuid import uuid4
 
 from sqlalchemy import update
@@ -14,6 +15,7 @@ from app.models import (
     Pet,
     TaskCompletion,
     TaskTemplate,
+    TaskTimer,
     WeightEntry,
 )
 from app.security.passwords import hash_password
@@ -331,6 +333,52 @@ async def undo_completion(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     )
 
 
+async def create_timer(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    from tests.factories import INSTANT
+
+    task = await _task_target(fam, actor, own=False)
+    return MatrixRequest(
+        "/api/v1/timers",
+        {
+            "id": str(uuid4()),
+            "task_id": str(task.id),
+            "occurrence_key": "2026-09-14T08:00",
+            "pet_id": str(fam.pets[0].id),
+            "started_at": INSTANT.isoformat(),
+            "ends_at": (INSTANT + timedelta(minutes=5)).isoformat(),
+        },
+        {"Idempotency-Key": str(uuid4())},
+    )
+
+
+async def cancel_timer(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    from tests.factories import INSTANT
+
+    task = await _task_target(fam, actor, own=False)
+    engine = create_async_engine(fam.database_url)
+    try:
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            row = TaskTimer(
+                id=uuid4(),
+                family_id=fam.id,
+                task_id=task.id,
+                occurrence_key="2026-09-14T08:00",
+                pet_id=fam.pets[0].id,
+                started_by=task.created_by,
+                started_at=INSTANT,
+                ends_at=INSTANT + timedelta(minutes=5),
+            )
+            session.add(row)
+            await session.commit()
+            row_id = row.id
+    finally:
+        await engine.dispose()
+    return MatrixRequest(
+        f"/api/v1/timers/{row_id}/cancel",
+        headers={"Idempotency-Key": str(uuid4())},
+    )
+
+
 PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
     {
         ("GET", "/api/v1/health"),
@@ -488,6 +536,20 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         undo_completion,
         {"member": 200, "leader": 200},
     ),
+    PermissionCase(
+        17,
+        "POST",
+        "/api/v1/timers",
+        create_timer,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        17,
+        "POST",
+        "/api/v1/timers/{id}/cancel",
+        cancel_timer,
+        {"member": 200, "leader": 200},
+    ),
 ]
 
 # Test-only probe until production sync mutations arrive.
@@ -513,4 +575,6 @@ IDEMPOTENT_ROUTES: dict[tuple[str, str], str] = {
     ("DELETE", "/api/v1/tasks/{id}"): "task_templates",
     ("POST", "/api/v1/completions"): "task_completions",
     ("POST", "/api/v1/completions/{id}/undo"): "task_completions",
+    ("POST", "/api/v1/timers"): "task_timers",
+    ("POST", "/api/v1/timers/{id}/cancel"): "task_timers",
 }
