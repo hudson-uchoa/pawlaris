@@ -568,7 +568,10 @@ tests cover them for its routes.
   CP-4, CP-5; `completed_at` six minutes in the future is clamped; completing
   an ended or soft-deleted template → 200; unknown task → 404; undo twice →
   same row; a member undoing a leader's completion → 200 with `undone_by` = the
-  member.
+  member. From the review of 2026-10-10: an `id` of another family → 404 and
+  never its row; a conflicting completion returns its own winner while a live
+  completion of another pet, one of another occurrence and an undone one of
+  the same occurrence exist.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_completions.py -q` · `pnpm verify --only security`
   **Not here:** push (P2-15).
 

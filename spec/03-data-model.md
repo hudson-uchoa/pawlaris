@@ -500,13 +500,17 @@ repeat up to 3 times:
         AND pet_id IS NOT DISTINCT FROM :pet_id AND undone_at IS NULL;
     if found                                → return it            (lost the race)
     -- neither: the winner was undone between our INSERT and SELECT → loop
-raise 500 if the loop exhausts
+-- the loop exhausted:
+if a row with this id exists in another family    → 404   (04 §1.2; never that row)
+raise 500
 ```
 
 The response is the row and nothing else. A client learns it lost by comparing
 the returned `id` with the one it sent. (Under the family lock the loop never
 needs a second pass; it stays as a guard, so the code is correct even if the
-lock is ever removed.)
+lock is ever removed. Under the lock, the one way to exhaust it is an `id`
+that already belongs to another family, which is answered like every other
+create: `404`, and nothing of that row.)
 
 **Undo:** `UPDATE … SET undone_at = clock.now(), undone_by = :user WHERE id = :id
 AND undone_at IS NULL`. Already undone → return the row unchanged.
