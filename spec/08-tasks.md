@@ -672,7 +672,7 @@ accepted: the server's half of the reserve server *(ADR-038, `11`)*.
   **Gate:** `uv run --directory services/api pytest tests/api/test_reserve_role.py tests/sync/test_reseed.py -q` · `pnpm verify --only security` · `pnpm contract-check`
   **Not here:** `POST /reseed` and stubs (P2-17).
 
-- [ ] **P2-17 — Reseed**
+- [~] **P2-17 — Reseed**
   **Depends:** P2-16 · **Read:** `11` §2, §3, §5 (stubs) · `04` §2, §5 row 23, §6.1, §15 · `03` §1.2 · `07` §3 (`reseed-vectors.json`), §5.2
   **Build:** contract first: `POST /reseed` with its request and
   `ReseedResult` models and matrix row 23; it is not ⟳ and does not go in
