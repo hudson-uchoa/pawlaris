@@ -6,6 +6,21 @@ from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
 
+RESERVE_READ_ONLY_RESPONSE: dict[str, object] = {
+    "description": "reserve_read_only: Account operations require the primary server.",
+    "content": {
+        "application/problem+json": {
+            "example": {
+                "type": "about:blank",
+                "title": "Conflict",
+                "status": 409,
+                "code": "reserve_read_only",
+                "detail": "Account operations require the primary server.",
+            }
+        }
+    },
+}
+
 
 class ApiError(Exception):
     def __init__(

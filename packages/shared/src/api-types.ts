@@ -625,6 +625,8 @@ export interface components {
              * Format: uuid
              */
             completed_by: string;
+            /** Duplicate Of */
+            duplicate_of?: string | null;
             /**
              * Id
              * Format: uuid
@@ -850,6 +852,11 @@ export interface components {
             db: boolean;
             /** Disk Free Mb */
             disk_free_mb: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "primary" | "reserve";
             /**
              * Status
              * @enum {string}
@@ -1808,6 +1815,24 @@ export interface operations {
                     "application/json": components["schemas"]["Session"];
                 };
             };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -1977,6 +2002,24 @@ export interface operations {
                     "application/json": components["schemas"]["Member"];
                 };
             };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2012,6 +2055,24 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Member"];
+                };
+            };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2172,6 +2233,24 @@ export interface operations {
                     "application/json": components["schemas"]["Invite"];
                 };
             };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2225,6 +2304,24 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -2255,6 +2352,24 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description reserve_read_only: Account operations require the primary server. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "reserve_read_only",
+                     *       "detail": "Account operations require the primary server.",
+                     *       "status": 409,
+                     *       "title": "Conflict",
+                     *       "type": "about:blank"
+                     *     }
+                     */
+                    "application/problem+json": unknown;
+                };
             };
             /** @description Validation Error */
             422: {
