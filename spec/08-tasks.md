@@ -649,7 +649,7 @@ tests cover them for its routes.
 The two tasks below were added on 2026-10-10, after P2-1 to P2-15 were
 accepted: the server's half of the reserve server *(ADR-038, `11`)*.
 
-- [ ] **P2-16 — Reserve role, and what a reseed stands on**
+- [~] **P2-16 — Reserve role, and what a reseed stands on**
   **Depends:** P2-15 · **Read:** `11` §1, §2.1, §2.3, §5 · `03` §1.1, §5 · `04` §1.1, §2, §14 · `05` §2.2
   **Build:** contract first: `duplicate_of` in the Completion row, `role` in
   `/health`, `409 reserve_read_only` on the six routes of `11` §5. One
