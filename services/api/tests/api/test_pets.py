@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Callable
 from datetime import timedelta
-from uuid import UUID, uuid4
+from uuid import UUID, uuid1, uuid4
 
 import pytest
 from fastapi import FastAPI
@@ -22,6 +22,46 @@ ENTITIES = {
     "weights": "weight_entries",
     "health-events": "health_events",
 }
+
+
+@pytest.mark.parametrize(
+    "resource,field,limit", [("pets", "name", 40), ("health-events", "title", 80)]
+)
+@pytest.mark.parametrize("edge", ["empty", "minimum", "maximum", "too_long"])
+async def test_r3_patch_text_bounds_on_existing_row(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    resource: str,
+    field: str,
+    limit: int,
+    edge: str,
+) -> None:
+    family = await make_family()
+    client = client_for(family.users[0])
+    body = body_for(resource, family)
+    created = await client.post(f"/api/v1/{resource}", json=body, headers=idem())
+    assert created.status_code == 200
+    length = {"empty": 0, "minimum": 1, "maximum": limit, "too_long": limit + 1}[edge]
+    response = await client.patch(
+        f"/api/v1/{resource}/{body['id']}", json={field: "x" * length}, headers=idem()
+    )
+    assert response.status_code == (200 if edge in {"minimum", "maximum"} else 422)
+    if response.status_code == 200:
+        assert response.json()[field] == "x" * length
+
+
+@pytest.mark.parametrize("resource", MODELS)
+async def test_r3_create_id_must_be_uuid4(
+    make_family: MakeFamily, client_for: ClientFor, idem: Idem, resource: str
+) -> None:
+    family = await make_family()
+    body = body_for(resource, family)
+    body["id"] = str(uuid1())
+    response = await client_for(family.users[0]).post(
+        f"/api/v1/{resource}", json=body, headers=idem()
+    )
+    assert response.status_code == 422
 
 
 @pytest.mark.parametrize(
