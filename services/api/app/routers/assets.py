@@ -28,7 +28,10 @@ router = APIRouter()
                 "name": "Content-Length",
                 "in": "header",
                 "required": True,
-                "description": "Image byte count; missing or over 8 MB returns 413.",
+                "description": (
+                    "Image byte count; missing or over 8 MiB "
+                    "(8 388 608 bytes) returns 413."
+                ),
                 "schema": {"type": "integer", "minimum": 0},
             },
             {
