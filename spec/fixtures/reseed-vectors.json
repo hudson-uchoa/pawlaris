@@ -1,0 +1,384 @@
+{
+  "version": 1,
+  "now": "2026-10-10T12:00:00Z",
+  "base": {
+    "family": { "id": "00000000-0000-4000-8000-0000000000ff", "name": "Casa", "timezone": "America/Sao_Paulo", "updated_at": "2026-10-01T00:00:00Z" },
+    "members": [
+      { "id": "00000000-0000-4000-8000-000000000001", "display_name": "Hudson", "role": "leader" },
+      { "id": "00000000-0000-4000-8000-000000000002", "display_name": "Duda", "role": "member" }
+    ],
+    "pets": [ { "id": "00000000-0000-4000-8000-0000000000a0", "name": "Aurora" } ],
+    "task_templates": [ { "id": "00000000-0000-4000-8000-0000000000b0", "pet_ids": ["00000000-0000-4000-8000-0000000000a0"], "completion_mode": "together" } ]
+  },
+  "vectors": [
+    {
+      "name": "insert-absent",
+      "tags": ["insert"],
+      "server": {},
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "created_by": "00000000-0000-4000-8000-000000000002", "updated_at": "2026-10-05T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "created_by": "00000000-0000-4000-8000-000000000002", "updated_at": "2026-10-05T10:00:00Z", "deleted_at": null } ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "older-incoming-is-unchanged",
+      "tags": ["older"],
+      "server": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "updated_at": "2026-10-05T10:00:00Z" } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Nome antigo", "updated_at": "2026-10-04T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "updated_at": "2026-10-05T10:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 0, "unchanged": 1, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "newer-incoming-wins-and-keeps-the-author",
+      "tags": ["newer"],
+      "server": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "notes": null, "created_by": "00000000-0000-4000-8000-000000000001", "updated_at": "2026-10-05T10:00:00Z" } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin Galathynius", "notes": "Come devagar", "created_by": "00000000-0000-4000-8000-000000000002", "updated_at": "2026-10-06T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin Galathynius", "notes": "Come devagar", "created_by": "00000000-0000-4000-8000-000000000001", "updated_at": "2026-10-06T10:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "two-versions-of-one-row",
+      "tags": ["newer", "order"],
+      "server": {},
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Primeiro", "updated_at": "2026-10-04T10:00:00Z", "deleted_at": null } },
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Segundo", "updated_at": "2026-10-06T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Segundo", "updated_at": "2026-10-06T10:00:00Z" } ] },
+        "result": { "inserted": 1, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "future-instant-is-clamped",
+      "tags": ["clamp"],
+      "server": {},
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "updated_at": "2026-12-01T00:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "updated_at": "2026-10-10T12:05:00Z" } ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "unarchive-newer-wins",
+      "tags": ["newer", "archive"],
+      "server": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "archived_at": "2026-10-05T10:00:00Z", "updated_at": "2026-10-05T10:00:00Z" } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "archived_at": null, "updated_at": "2026-10-07T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "archived_at": null, "updated_at": "2026-10-07T10:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "older-tombstone-deletes-a-newer-row",
+      "tags": ["tombstone"],
+      "server": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Editado depois", "updated_at": "2026-10-08T10:00:00Z", "deleted_at": null } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Antes", "updated_at": "2026-10-06T09:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Editado depois", "updated_at": "2026-10-08T10:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "tombstone-is-never-undone",
+      "tags": ["tombstone"],
+      "server": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Antes", "updated_at": "2026-10-06T09:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Voltou", "updated_at": "2026-10-09T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Voltou", "updated_at": "2026-10-09T10:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "earliest-tombstone-instant-stays",
+      "tags": ["tombstone", "order"],
+      "server": {},
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "updated_at": "2026-10-07T09:00:00Z", "deleted_at": "2026-10-07T09:00:00Z" } },
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "updated_at": "2026-10-06T09:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "updated_at": "2026-10-07T09:00:00Z", "deleted_at": "2026-10-06T09:00:00Z" } ] },
+        "result": { "inserted": 1, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "completion-undo-travels",
+      "tags": ["tombstone", "completion"],
+      "server": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "updated_at": "2026-10-05T11:00:00Z" } ] },
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": "2026-10-05T11:30:00Z", "undone_by": "00000000-0000-4000-8000-000000000002", "duplicate_of": null, "updated_at": "2026-10-05T11:30:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": "2026-10-05T11:30:00Z", "undone_by": "00000000-0000-4000-8000-000000000002", "duplicate_of": null, "updated_at": "2026-10-05T11:30:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "duplicate-completion-the-earlier-stays",
+      "tags": ["duplicate", "completion"],
+      "server": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "updated_at": "2026-10-05T11:00:00Z" } ] },
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T14:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T14:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": null, "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "completed_by": "00000000-0000-4000-8000-000000000002", "undone_at": "@now", "undone_by": null, "duplicate_of": "00000000-0000-4000-8000-0000000000c1" }
+        ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 1, "refused": 0 }
+      }
+    },
+    {
+      "name": "duplicate-completion-the-incoming-is-earlier",
+      "tags": ["duplicate", "completion"],
+      "server": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T14:00:00Z", "undone_at": null, "updated_at": "2026-10-05T14:00:00Z" } ] },
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": null, "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "undone_at": "@now", "undone_by": null, "duplicate_of": "00000000-0000-4000-8000-0000000000c1" }
+        ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 1, "refused": 0 }
+      }
+    },
+    {
+      "name": "three-completions-one-live",
+      "tags": ["duplicate", "completion", "order"],
+      "server": {},
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T14:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T14:00:00Z" } },
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c3", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T16:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T16:00:00Z" } },
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": null, "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "undone_at": "@now", "duplicate_of": "00000000-0000-4000-8000-0000000000c1" },
+          { "id": "00000000-0000-4000-8000-0000000000c3", "undone_at": "@now", "duplicate_of": "00000000-0000-4000-8000-0000000000c1" }
+        ] },
+        "result": { "inserted": 3, "updated": 0, "unchanged": 0, "duplicates": 2, "refused": 0 }
+      }
+    },
+    {
+      "name": "same-instant-the-smaller-id-stays",
+      "tags": ["duplicate", "completion"],
+      "server": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "updated_at": "2026-10-05T11:00:00Z" } ] },
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": null, "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "undone_at": "@now", "duplicate_of": "00000000-0000-4000-8000-0000000000c1" }
+        ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 1, "refused": 0 }
+      }
+    },
+    {
+      "name": "an-undone-completion-makes-no-duplicate",
+      "tags": ["duplicate", "tombstone", "completion"],
+      "server": { "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": "2026-10-05T11:30:00Z", "undone_by": "00000000-0000-4000-8000-000000000001", "updated_at": "2026-10-05T11:30:00Z" } ] },
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T14:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T14:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": "2026-10-05T11:30:00Z", "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "undone_at": null, "duplicate_of": null }
+        ] },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "a-duplicate-arrives-before-its-winner",
+      "tags": ["duplicate", "completion", "order"],
+      "server": {},
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c2", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000002", "completed_at": "2026-10-05T14:00:00Z", "undone_at": "2026-10-06T09:00:00Z", "undone_by": null, "duplicate_of": "00000000-0000-4000-8000-0000000000c1", "updated_at": "2026-10-06T09:00:00Z" } },
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_completions": [
+          { "id": "00000000-0000-4000-8000-0000000000c1", "undone_at": null, "duplicate_of": null },
+          { "id": "00000000-0000-4000-8000-0000000000c2", "undone_at": "2026-10-06T09:00:00Z", "undone_by": null, "duplicate_of": "00000000-0000-4000-8000-0000000000c1" }
+        ] },
+        "result": { "inserted": 2, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "timer-cancel-travels",
+      "tags": ["tombstone", "timer"],
+      "server": { "task_timers": [ { "id": "00000000-0000-4000-8000-0000000000d1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "started_by": "00000000-0000-4000-8000-000000000001", "started_at": "2026-10-05T11:00:00Z", "ends_at": "2026-10-05T11:10:00Z", "cancelled_at": null, "updated_at": "2026-10-05T11:00:00Z" } ] },
+      "incoming": [
+        { "entity": "task_timers", "row": { "id": "00000000-0000-4000-8000-0000000000d1", "task_id": "00000000-0000-4000-8000-0000000000b0", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "started_by": "00000000-0000-4000-8000-000000000001", "started_at": "2026-10-05T11:00:00Z", "ends_at": "2026-10-05T11:10:00Z", "cancelled_at": "2026-10-05T11:04:00Z", "updated_at": "2026-10-05T11:04:00Z" } }
+      ],
+      "expect": {
+        "rows": { "task_timers": [ { "id": "00000000-0000-4000-8000-0000000000d1", "cancelled_at": "2026-10-05T11:04:00Z", "updated_at": "2026-10-05T11:04:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "walk-the-further-status-wins",
+      "tags": ["walk"],
+      "server": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "started_at": "2026-10-05T17:30:00Z", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ] },
+      "incoming": [
+        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "active", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": null, "duration_s": null, "updated_at": "2026-10-05T18:30:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "status": "finished", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:30:00Z", "deleted_at": null } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "walk-discard-wins-over-finish",
+      "tags": ["walk", "tombstone"],
+      "server": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "started_at": "2026-10-05T17:30:00Z", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ] },
+      "incoming": [
+        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "discarded", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": null, "duration_s": null, "updated_at": "2026-10-05T17:40:00Z", "deleted_at": "2026-10-05T17:40:00Z" } }
+      ],
+      "expect": {
+        "rows": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "status": "discarded", "updated_at": "2026-10-05T18:00:00Z", "deleted_at": "2026-10-05T17:40:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "walk-route-fills-a-finished-walk",
+      "tags": ["walk-route"],
+      "server": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "has_route": false, "point_count": 0, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ] },
+      "incoming": [
+        { "entity": "walk_routes", "row": { "walk_id": "00000000-0000-4000-8000-0000000000e1", "points": [[-3.7319, -38.5267], [-3.7321, -38.5269], [-3.7324, -38.527]] } }
+      ],
+      "expect": {
+        "rows": {
+          "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "has_route": true, "point_count": 3, "updated_at": "2026-10-05T18:00:00Z" } ],
+          "walk_routes": [ { "walk_id": "00000000-0000-4000-8000-0000000000e1", "points": [[-3.7319, -38.5267], [-3.7321, -38.5269], [-3.7324, -38.527]] } ]
+        },
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "walk-route-is-not-replaced",
+      "tags": ["walk-route"],
+      "server": {
+        "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "has_route": true, "point_count": 3, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ],
+        "walk_routes": [ { "walk_id": "00000000-0000-4000-8000-0000000000e1", "points": [[-3.7319, -38.5267], [-3.7321, -38.5269], [-3.7324, -38.527]] } ]
+      },
+      "incoming": [
+        { "entity": "walk_routes", "row": { "walk_id": "00000000-0000-4000-8000-0000000000e1", "points": [[0, 0], [1, 1]] } }
+      ],
+      "expect": {
+        "rows": {
+          "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "has_route": true, "point_count": 3 } ],
+          "walk_routes": [ { "walk_id": "00000000-0000-4000-8000-0000000000e1", "points": [[-3.7319, -38.5267], [-3.7321, -38.5269], [-3.7324, -38.527]] } ]
+        },
+        "result": { "inserted": 0, "updated": 0, "unchanged": 1, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "a-row-of-another-family-is-refused",
+      "tags": ["refused"],
+      "server": {},
+      "other_family": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000f1", "name": "Deles", "updated_at": "2026-10-02T10:00:00Z" } ] },
+      "incoming": [
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000f1", "name": "Meu agora", "updated_at": "2026-10-09T10:00:00Z", "deleted_at": "2026-10-09T10:00:00Z" } }
+      ],
+      "expect": {
+        "other_family": { "pets": [ { "id": "00000000-0000-4000-8000-0000000000f1", "name": "Deles", "updated_at": "2026-10-02T10:00:00Z", "deleted_at": null } ] },
+        "absent": { "pets": ["00000000-0000-4000-8000-0000000000f1"] },
+        "result": { "inserted": 0, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 1 }
+      }
+    },
+    {
+      "name": "a-missing-reference-is-refused",
+      "tags": ["refused"],
+      "server": {},
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b9", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a0", "completed_by": "00000000-0000-4000-8000-000000000001", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } }
+      ],
+      "expect": {
+        "absent": { "task_completions": ["00000000-0000-4000-8000-0000000000c1"] },
+        "result": { "inserted": 0, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 1 }
+      }
+    },
+    {
+      "name": "a-reference-arrives-in-the-same-call",
+      "tags": ["insert", "order"],
+      "server": {},
+      "incoming": [
+        { "entity": "task_completions", "row": { "id": "00000000-0000-4000-8000-0000000000c1", "task_id": "00000000-0000-4000-8000-0000000000b1", "occurrence_key": "2026-10-05T08:00", "pet_id": "00000000-0000-4000-8000-0000000000a1", "completed_by": "00000000-0000-4000-8000-000000000003", "completed_at": "2026-10-05T11:00:00Z", "undone_at": null, "undone_by": null, "duplicate_of": null, "updated_at": "2026-10-05T11:00:00Z" } },
+        { "entity": "task_templates", "row": { "id": "00000000-0000-4000-8000-0000000000b1", "pet_ids": ["00000000-0000-4000-8000-0000000000a1"], "created_by": "00000000-0000-4000-8000-000000000003", "updated_at": "2026-10-04T10:00:00Z", "deleted_at": null } },
+        { "entity": "pets", "row": { "id": "00000000-0000-4000-8000-0000000000a1", "name": "Aelin", "created_by": "00000000-0000-4000-8000-000000000003", "updated_at": "2026-10-04T09:00:00Z", "deleted_at": null } },
+        { "entity": "members", "row": { "id": "00000000-0000-4000-8000-000000000003", "display_name": "Visita", "role": "member", "color": "#C98BDB", "disabled_at": null, "updated_at": "2026-10-03T09:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": {
+          "members": [ { "id": "00000000-0000-4000-8000-000000000003", "display_name": "Visita", "role": "member", "color": "#C98BDB" } ],
+          "pets": [ { "id": "00000000-0000-4000-8000-0000000000a1", "created_by": "00000000-0000-4000-8000-000000000003" } ],
+          "task_templates": [ { "id": "00000000-0000-4000-8000-0000000000b1", "pet_ids": ["00000000-0000-4000-8000-0000000000a1"] } ],
+          "task_completions": [ { "id": "00000000-0000-4000-8000-0000000000c1", "completed_by": "00000000-0000-4000-8000-000000000003", "undone_at": null } ]
+        },
+        "result": { "inserted": 4, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "an-unknown-member-becomes-a-stub",
+      "tags": ["members"],
+      "server": {},
+      "incoming": [
+        { "entity": "members", "row": { "id": "00000000-0000-4000-8000-000000000003", "display_name": "Visita", "role": "leader", "color": "#C98BDB", "disabled_at": null, "updated_at": "2026-10-03T09:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "members": [ { "id": "00000000-0000-4000-8000-000000000003", "display_name": "Visita", "role": "member", "color": "#C98BDB", "disabled_at": null } ] },
+        "stubs": ["00000000-0000-4000-8000-000000000003"],
+        "result": { "inserted": 1, "updated": 0, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "a-known-member-is-never-changed",
+      "tags": ["members"],
+      "server": {},
+      "incoming": [
+        { "entity": "members", "row": { "id": "00000000-0000-4000-8000-000000000002", "display_name": "Outro nome", "role": "leader", "color": "#000000", "disabled_at": "2026-10-09T09:00:00Z", "updated_at": "2026-10-09T09:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "members": [ { "id": "00000000-0000-4000-8000-000000000002", "display_name": "Duda", "role": "member", "disabled_at": null } ] },
+        "stubs": [],
+        "result": { "inserted": 0, "updated": 0, "unchanged": 1, "duplicates": 0, "refused": 0 }
+      }
+    },
+    {
+      "name": "family-the-newer-name-wins",
+      "tags": ["family", "newer"],
+      "server": {},
+      "incoming": [
+        { "entity": "family", "row": { "id": "00000000-0000-4000-8000-0000000000ff", "name": "Casa nova", "timezone": "America/Fortaleza", "updated_at": "2026-10-08T10:00:00Z", "deleted_at": null } }
+      ],
+      "expect": {
+        "rows": { "family": [ { "id": "00000000-0000-4000-8000-0000000000ff", "name": "Casa nova", "timezone": "America/Fortaleza", "updated_at": "2026-10-08T10:00:00Z" } ] },
+        "result": { "inserted": 0, "updated": 1, "unchanged": 0, "duplicates": 0, "refused": 0 }
+      }
+    }
+  ]
+}

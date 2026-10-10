@@ -83,11 +83,18 @@ Redis, no second implementation of anything. Complexity that does not serve
 these seven beings is waste. When two designs work, the one with fewer moving
 parts wins.
 
+One exception, by the owner's decision *(ADR-038)*: a single **reserve
+server**, off most of the time, that the phones can bring up to date by
+themselves *(11)*. It is the same image and the same code as the primary, not
+a second implementation, and the two servers never talk to each other.
+
 ## P8 — Reversible infrastructure
 
 The backend is reconstructible from `infra/` plus one encrypted archive holding
 the database **and** the photos. Every nightly backup is restore-verified.
-Losing the box costs an afternoon, not the data.
+Losing the box costs an afternoon, not the data. With the reserve server
+*(11)* it does not stop the family either: the phones move to it by
+themselves and carry their data with them.
 
 ## P9 — Accessible and respectful
 

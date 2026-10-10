@@ -51,6 +51,7 @@ a Portuguese message of its own.
 | 409 | `last_leader` | would leave the family without a leader |
 | 409 | `email_taken` | redeem with an email already registered |
 | 409 | `asset_conflict` | upload of an existing asset id with different bytes |
+| 409 | `reserve_read_only` | an account operation sent to the reserve server *(`11` §5)* |
 | 410 | `invite_invalid` | invite unknown, expired or used |
 | 413 | `payload_too_large` | upload over 8 MiB (8 388 608 bytes) |
 | 422 | `idempotency_key_reused` | the key was already used by another family or for another kind of row |
@@ -292,6 +293,7 @@ every row below is a write.
 | 20 | `POST /walks/{id}/discard` — own walk | 200 | 200 |
 | 21 | `GET /walks/{id}/route` | 200 | 200 |
 | 22 | `PUT /assets/{id}`, `GET /assets/{id}/file` | 201/200 | 201/200 |
+| 23 | `POST /reseed` *(§6.1)* | 200 | 200 |
 
 Row 16 is deliberate: anyone may complete or undo anyone's occurrence, and
 `completed_by` / `undone_by` record who actually did it. Refusing would make the
@@ -395,6 +397,20 @@ cursor to 0 and pulls again *(10 §5)*.
 > **SY-6** The cursor never passes an unseen row. Gate: call the service with an
 > explicit `hi` lower than the newest rows → none of them is returned and
 > `revision` equals `hi`; a following call with the real `hi` returns them.
+
+### 6.1 Reseed *(ADR-038)*
+
+```
+POST /reseed   { "rows": [ { "entity": "<name>", "row": { … } }, … ] }   -> ReseedResult
+```
+
+The opposite direction of `/sync`: a phone gives a server the rows it holds,
+and the server merges them. The body, the result, the merge rules and the
+invariants RS-1 to RS-5 and RS-10 are in `11` §3. It is not ⟳, takes the
+family lock like every mutation, and reads the actor again under it *(RB-3)*.
+
+On a server whose `SERVER_ROLE` is `reserve`, six account routes answer
+`409 reserve_read_only` *(`11` §5, RS-6)*.
 
 ---
 
@@ -708,12 +724,14 @@ handler in control of every byte it reads.
 
 ```
 GET /health   -> { "status": "ok" | "degraded", "db": true, "disk_free_mb": 18234,
-                   "version": "2026.10.0+abc1234", "uptime_s": 86400 }
+                   "version": "2026.10.0+abc1234", "uptime_s": 86400,
+                   "role": "primary" | "reserve" }
 ```
 
 Unauthenticated. `status` is `degraded` when the database check fails or free
 disk is under 500 MB; the HTTP status is still `200` so the deploy script can
-read the body. No family data, no revision.
+read the body. No family data, no revision. `role` is the server's
+`SERVER_ROLE`; a phone uses it to choose its server *(`11` §4.2)*.
 
 ---
 

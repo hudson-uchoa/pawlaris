@@ -154,6 +154,7 @@ services/api/
 | `JWT_SECRET` | HS256 key, ≥ 32 bytes | — required |
 | `BLOB_DIR` | directory for asset files | `/data/blobs` |
 | `PUSH_ENABLED` | send Expo pushes | `true` |
+| `SERVER_ROLE` | `primary` or `reserve` *(`11` §1)* | `primary` |
 | `APP_VERSION` | reported by `/health` | `dev` |
 | `LOG_LEVEL` | | `INFO` |
 | `WS_AUTH_TIMEOUT_SECONDS` | time allowed for the socket's `auth` frame | `5` |
@@ -315,6 +316,32 @@ family time:
 "No cron" in this project means *no server-side scheduling of pet tasks*. Host
 housekeeping on a timer is fine.
 
+### 4.7 The reserve server *(ADR-038, `11`)*
+
+A second instance of the same API, on the owner's computer, **off unless the
+primary is gone**. It runs natively, like the development environment (§9) —
+PostgreSQL and `uv`, no Docker — in a database of its own,
+`pawlaris_reserve`, with its own blob directory. `scripts/reserve.ps1`:
+
+| Command | Does |
+|---|---|
+| `reserve.ps1 start` | takes the newest archive pulled from the box (§6), decrypts it, restores it into an empty `pawlaris_reserve`, copies the blobs, gives it a new `sync_epoch`, runs the migrations, starts the API with `SERVER_ROLE=reserve`, and publishes it with `tailscale serve` |
+| `reserve.ps1 stop` | unpublishes it and stops the API. The database is kept until the next `start`, which replaces it |
+
+- **Reached through the tailnet** (profile C of §4.4), whatever profile the
+  primary uses: the Tailscale app stays on both phones, and the reserve's
+  address — a `*.ts.net` name — is the `EXPO_PUBLIC_RESERVE_API_URL` baked
+  into the build (§8).
+- It needs the **private `age` key** on that computer, in a file readable by
+  the owner's account only. That is a second place where the key lives; it
+  is still never on the box.
+- It has its own `JWT_SECRET`, in its own git-ignored env file, so a token of
+  one server is nothing on the other *(RS-9)*.
+- Pushes work as on the primary, to the push tokens the phones register
+  with it when they arrive.
+- Every `start` begins from the newest backup, so the reserve is as old as
+  that backup until the first phone arrives and reseeds it *(`11` §4.3)*.
+
 ---
 
 ## 5. Security
@@ -359,16 +386,20 @@ housekeeping on a timer is fine.
 - The dump is verified **before** encryption, so the private key never needs to
   be on the box. The private `age` key lives in the family's password manager.
 - Photos are in the same archive as the database.
-- **Second location:** `scripts/pull-backup.ps1` on the dev machine, weekly via
-  Windows Task Scheduler: `scp` the newest archive and its checksum, verify the
-  checksum, keep the newest 8, and fail loudly if `last_backup.json` is older
-  than 48 h.
+- **Second location:** `scripts/pull-backup.ps1` on the dev machine, via
+  Windows Task Scheduler at logon and every six hours while it is on: `scp`
+  the newest archive and its checksum, verify the checksum, keep the newest 8,
+  and fail loudly if `last_backup.json` is older than 48 h. The reserve
+  server starts from this copy (§4.7).
 - **Restore** (`infra/restore.sh <archive> <age key file>`): decrypt, untar,
   `pg_restore` into an empty database, copy blobs into place, then
   `UPDATE server_meta SET sync_epoch = gen_random_uuid()` so every phone
-  rebuilds its replica from the restored history *(03 §1.3)*. Changes made
-  after the backup was taken are gone from the server; mutations still waiting
-  in a phone's outbox are sent again.
+  knows the history changed *(03 §1.3)*. Changes made after the backup was
+  taken are gone from the server until a phone arrives: each phone gives the
+  restored server the rows it holds, then pulls *(`11` §4.3)*, and mutations
+  still waiting in an outbox are sent again. What comes back that way is the
+  family's data; accounts, invites and photos no phone holds come only from
+  the backup.
 - The release keystore is stored in the same password manager entry as the
   `age` key. Losing it means the phones can no longer upgrade in place.
 
@@ -410,6 +441,9 @@ housekeeping on a timer is fine.
 - Push needs a Firebase project (free, no card) with its `google-services.json`
   in `apps/mobile/` (git-ignored) and the FCM V1 service-account key uploaded
   to the Expo project (free Expo account) so Expo's push service can deliver.
+- The reserve server's address *(§4.7)* is baked in the same way, from the
+  optional `EXPO_PUBLIC_RESERVE_API_URL`; a build without it knows one
+  server only.
 - The API URL is baked in at build time from `EXPO_PUBLIC_API_URL`. When it
   starts with `http://` (development against the dev machine), `app.config.ts`
   enables cleartext traffic through `expo-build-properties`; with `https://` it
@@ -767,3 +801,46 @@ before the assignment rules, which is what keeps the fork exception to
 permission row 12 working for a member whose old template lost its assignee
 to the removal. An unknown member is still `404`. The phone learns the
 outcome from the row in the response, like any other mutation.
+
+### ADR-038 — A reserve server that the phones heal *(2026-10-10)*
+**Context:** the primary may be a free virtual machine that its provider can
+reclaim. While it is gone the phones work alone, but neither person sees what
+the other did — which, for a medicine, matters. Restoring a backup elsewhere
+brings a server back only as old as that backup, and only when someone does
+it by hand. The owner asked for more: he switches a second server on, and
+everything else happens by itself, with nothing lost.
+**Decision (the owner):** the family has a primary and one reserve server.
+The app knows both and moves between them by itself. **The phones heal a
+server**: on arriving at one that lacks what it holds, a phone uploads its
+replica, the server merges it by fixed rules, and the phone pulls the result
+*(11)*. Of the choices put to him he took: the newer change wins when one row
+was edited on both; when one occurrence was completed on both, the earlier
+stands and the other is kept as a duplicate that the app tells both people
+about; account operations only on the primary; the password asked once when
+the reserve's session has expired; the app shows, discreetly, that it is on
+the reserve; any member's phone may heal a server; the phones reach the
+reserve through the tailnet.
+**Rejected:** the first design considered — on its return the primary tells
+the reserve to send it a backup — needs one server to command a restore of
+the other, and silently loses what the primary alone had received. Two
+servers that both accept writes are safe only when merging is the normal
+path, not the exception. Also rejected: continuous replication between
+servers, which needs the reserve always on and reachable.
+**Cost:** this amends P7 of the constitution ("no replicas"), by the owner's
+decision. A merge with rules of its own, a second address and a second
+session on the phone, tombstones kept on the phone, and a drill with two
+phones. Roughly nine tasks across P2, P3, P4 and P8.
+**Consequence:** `11` is the specification. `03` §1 lets a reseed keep the
+change time a row carries; `03` §5 gains `duplicate_of`; `04` gains
+`POST /reseed`, `409 reserve_read_only` and `role` in `/health`; `10`
+keeps tombstones, holds its cursor, epoch and session per server, and no
+longer discards anything before a full pull has ended. Trust is the family's:
+a member can reseed rows attributed to another member, which is acceptable
+for this household and would not be for strangers.
+**Approved with it (the owner, the same day):** the points settled while
+`11` was written — a person a server does not know becomes a stub, on
+either server and always as a member, and needs a new invite on a primary
+restored from before their arrival; the private `age` key also lives on
+the owner's computer; that computer pulls the backup at logon and every six
+hours; and a tombstone takes the earlier of two instants, so that a merge
+does not depend on the order of arrival.
