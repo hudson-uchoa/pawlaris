@@ -13,10 +13,12 @@ from app import idempotency
 from app.clock import FrozenClock
 from app.errors import ApiError
 from app.idempotency import IdempotentMutation, SyncModel
+from app.locks import lock_family
 from app.models import (
     AppUser,
     Family,
     FamilyRevision,
+    InviteCode,
     PushDevice,
     RefreshToken,
     TaskCompletion,
@@ -24,10 +26,98 @@ from app.models import (
 )
 from app.schemas.rows import Row
 from app.security.tokens import new_refresh_token
+from app.services import family as service
 from tests.conftest import ClientFor
 from tests.factories import MakeFamily
 
 type Idem = Callable[[], dict[str, str]]
+
+
+@pytest.mark.parametrize("route", ["family", "role", "remove", "invite"])
+@pytest.mark.parametrize("change", ["demoted", "removed"])
+async def test_fm1_each_leader_write_rechecks_actor_after_waiting_for_lock(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    frozen_clock: FrozenClock,
+    monkeypatch: pytest.MonkeyPatch,
+    route: str,
+    change: str,
+) -> None:
+    family = await make_family(members=3)
+    actor, target = family.users[:2]
+    arrived = asyncio.Event()
+
+    async def observed_lock(session: AsyncSession, family_id: UUID) -> None:
+        arrived.set()
+        await lock_family(session, family_id)
+
+    monkeypatch.setattr(idempotency, "lock_family", observed_lock)
+    monkeypatch.setattr(service, "lock_family", observed_lock)
+    method, path, body = {
+        "family": ("PATCH", "/family", {"name": "Forbidden rename"}),
+        "role": ("PATCH", f"/family/members/{target.id}", {"role": "leader"}),
+        "remove": ("DELETE", f"/family/members/{target.id}", None),
+        "invite": ("POST", "/invites", {"role": "leader"}),
+    }[route]
+    http = client_for(actor)
+    async with app.state.session_factory() as blocker:
+        await lock_family(blocker, family.id)
+        pending = asyncio.create_task(
+            http.request(
+                method,
+                f"/api/v1{path}",
+                json=body,
+                headers=idem(),
+            )
+        )
+        try:
+            await asyncio.wait_for(arrived.wait(), timeout=5)
+            await blocker.execute(
+                update(AppUser)
+                .where(AppUser.id == actor.id)
+                .values(
+                    **(
+                        {"role": "member"}
+                        if change == "demoted"
+                        else {"disabled_at": frozen_clock.now()}
+                    )
+                )
+            )
+            await blocker.commit()
+            before = await blocker.scalar(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family.id
+                )
+            )
+            response = await asyncio.wait_for(pending, timeout=5)
+        finally:
+            if not pending.done():
+                pending.cancel()
+                await asyncio.gather(pending, return_exceptions=True)
+    assert response.status_code == (403 if change == "demoted" else 401)
+    async with app.state.session_factory() as session:
+        assert (
+            await session.scalar(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family.id
+                )
+            )
+            == before
+        )
+        assert (
+            await session.scalar(
+                select(func.count())
+                .select_from(InviteCode)
+                .where(InviteCode.family_id == family.id)
+            )
+            == 0
+        )
+        saved = await session.get(AppUser, target.id)
+        assert (
+            saved is not None and saved.role == "member" and saved.disabled_at is None
+        )
 
 
 @pytest.mark.parametrize("fault", ["after_write", "commit"])
