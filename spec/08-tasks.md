@@ -614,7 +614,8 @@ tests cover them for its routes.
 
 - [ ] **P2-14 — WebSocket poke**
   **Depends:** P2-13 · **Read:** `04` §7 · `05` §2.1, §2.2
-  **Build:** `realtime.py` — `Hub` with `register(family_id, ws)`,
+  **Build:** `websockets` added to the API's dependencies (`05` §1);
+  `realtime.py` — `Hub` with `register(family_id, ws)`,
   `unregister`, `poke(family_id, revision)`; `routers/ws.py` (auth timeout from
   settings; register → read revision → `ready`; expiry checked on every frame
   and by the sweep; `pong` carrying the revision). The idempotency wrapper
@@ -625,7 +626,8 @@ tests cover them for its routes.
   the current revision; a mutation by member A pokes A's and B's sockets with
   the new revision; a request that fails with 422 pokes nobody; a token that
   expires (frozen clock advanced, sweep shortened) closes with 4401; no `auth`
-  frame within the shortened timeout closes with 4408.
+  frame within the shortened timeout closes with 4408; Uvicorn finds a
+  WebSocket implementation.
   **Gate:** `uv run --directory services/api pytest tests/sync/test_socket.py -q` · `pnpm verify --only security`
 
 - [ ] **P2-15 — Push**

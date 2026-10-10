@@ -52,7 +52,7 @@ native build shows a mismatch (Reanimated and Worklets, P0-6).
 | Concern | Choice |
 |---|---|
 | Framework | FastAPI (async), Pydantic v2, `pydantic-settings` |
-| Server | Uvicorn, **1 worker** *(ADR-002)* |
+| Server | Uvicorn, **1 worker** *(ADR-002)*, with the `websockets` package: plain Uvicorn has no WebSocket implementation and refuses the upgrade of `04` §7 |
 | Database | PostgreSQL 16, SQLAlchemy 2.x async, `asyncpg`, Alembic |
 | Auth | PyJWT (HS256) + `argon2-cffi` |
 | Uploads | Pillow (header validation only); the body is read as a raw stream — no multipart |
