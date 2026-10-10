@@ -543,7 +543,7 @@ tests cover them for its routes.
   router; a second delete or archive at a later instant changes nothing.
   **Gate:** `uv run --directory services/api pytest tests/api/test_pets.py -q` · `pnpm verify --only security`
 
-- [~] **P2-9 — Task templates**
+- [x] **P2-9 — Task templates** — accepted 2026-10-10
   **Depends:** P2-8 · **Read:** `02` §3.1 · `04` §1.2, §9, §5 rows 11–15 and the fork exception · `03` §4, §4.1
   **Build:** `routers/tasks.py`; `services/tasks.py`; Pydantic models for the
   four recurrence shapes (discriminated on `freq`) with the validation of
