@@ -52,15 +52,15 @@ def socket_client(
 
     def bounded_receive(socket: WebSocketTestSession) -> Message:
         async def receive() -> Message:
-            try:
-                with anyio.fail_after(1):
-                    return cast(Message, await socket._send_rx.receive())
-            except TimeoutError:
-                pytest.fail("WS frame did not arrive within one second")
+            with anyio.fail_after(1):
+                return cast(Message, await socket._send_rx.receive())
 
         # TestClient has no public receive timeout. Bound its existing in-memory
         # stream, including the handshake, without creating another event loop.
-        return socket.portal.call(receive)
+        try:
+            return socket.portal.call(receive)
+        except TimeoutError:
+            pytest.fail("WS frame did not arrive within one second")
 
     monkeypatch.setattr(WebSocketTestSession, "receive", bounded_receive)
     with TestClient(create_app(settings, frozen_clock)) as client:
@@ -354,6 +354,25 @@ def test_ws2_expired_token_closes_on_next_inbound_frame(
         assert_close(socket, 4401)
 
 
+def test_ws2_expired_token_closes_on_noop_without_sweep(
+    socket_client: TestClient, socket_family: TestFamily, sweep_seconds: float
+) -> None:
+    assert sweep_seconds == 3600
+    with authenticated(socket_client, socket_family.users[0]) as socket:
+        advance(socket_client, timedelta(minutes=15))
+        socket.send_json({"type": "noop"})
+        assert_close(socket, 4401)
+
+
+def test_ws2_first_ping_with_valid_token_closes_4401(
+    socket_client: TestClient, socket_family: TestFamily
+) -> None:
+    access = token(socket_client, socket_family.users[0])
+    with socket_client.websocket_connect("/ws") as socket:
+        socket.send_json({"type": "ping", "access_token": access})
+        assert_close(socket, 4401)
+
+
 def test_ws2_expired_token_closes_before_outbound_poke(
     socket_client: TestClient, socket_family: TestFamily
 ) -> None:
@@ -509,38 +528,81 @@ def test_ws1_failing_poke_preserves_successful_http_response(
     assert revision(socket_client, socket_family.users[0]) == current
 
 
-def test_ws1_dead_socket_does_not_stop_other_family_sockets(
+def test_ws1_first_poke_failure_continues_and_unregisters_failed_socket(
     socket_client: TestClient,
     socket_family: TestFamily,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    hub = cast(Hub, application(socket_client).state.hub)
+    original_register = hub.register
     original = WebSocket.send
-    sends: list[str] = []
+    registered: list[WebSocket] = []
+    attempts: list[WebSocket] = []
+    failed: WebSocket | None = None
 
-    async def fail_dead(ws: WebSocket, message: Message) -> None:
+    async def register(family_id: UUID, ws: WebSocket) -> None:
+        await original_register(family_id, ws)
+        registered.append(ws)
+
+    async def fail_first(ws: WebSocket, message: Message) -> None:
+        nonlocal failed
         if message["type"] == "websocket.send":
             data = json.loads(message.get("text") or message["bytes"].decode())
         else:
             data = {}
         if data.get("type") == "poke":
-            if ws.query_params.get("dead") == "1":
-                sends.append("dead")
+            attempts.append(ws)
+            if failed is None:
+                # Fail whichever socket the hub's unordered set visits first.
+                failed = ws
+            if ws is failed:
                 raise WebSocketDisconnect(1006)
-            sends.append("live")
         await original(ws, message)
 
+    def family_sockets() -> set[WebSocket]:
+        return set(hub.sockets.get(socket_family.id, ()))
+
+    assert socket_client.portal is not None
+    monkeypatch.setattr(hub, "register", register)
     user = socket_family.users[0]
-    with socket_client.websocket_connect("/ws?dead=1") as dead:
-        dead.send_json({"type": "auth", "access_token": token(socket_client, user)})
-        assert dead.receive_json() == {
-            "type": "ready",
-            "revision": revision(socket_client, user),
-        }
-        with authenticated(socket_client, socket_family.users[1]) as live:
-            monkeypatch.setattr(WebSocket, "send", fail_dead)
-            current = mutate(socket_client, user)
-            assert live.receive_json() == {"type": "poke", "revision": current}
-            assert sorted(sends) == ["dead", "live"]
+    with (
+        authenticated(socket_client, user) as a,
+        authenticated(socket_client, socket_family.users[1]) as b,
+    ):
+        assert len(registered) == 2
+        monkeypatch.setattr(WebSocket, "send", fail_first)
+        current = mutate(socket_client, user)
+        assert len(attempts) == 2
+        assert failed is attempts[0]
+        assert set(attempts) == set(registered)
+        survivor = attempts[1]
+        live = b if failed is registered[0] else a
+        assert live.receive_json() == {"type": "poke", "revision": current}
+        remaining = socket_client.portal.call(family_sockets)
+        assert failed not in remaining
+        assert remaining == {survivor}
+
+        second = mutate(socket_client, user)
+        assert second > current
+        assert live.receive_json() == {"type": "poke", "revision": second}
+        assert attempts == [failed, survivor, survivor]
+        assert socket_client.portal.call(family_sockets) == {survivor}
+        assert revision(socket_client, user) == second
+
+
+def test_ws1_authenticated_socket_close_removes_family_from_hub(
+    socket_client: TestClient, socket_family: TestFamily
+) -> None:
+    hub = cast(Hub, application(socket_client).state.hub)
+
+    def family_sockets() -> set[WebSocket]:
+        return set(hub.sockets.get(socket_family.id, ()))
+
+    assert socket_client.portal is not None
+    with authenticated(socket_client, socket_family.users[0]):
+        assert len(socket_client.portal.call(family_sockets)) == 1
+    assert socket_client.portal.call(family_sockets) == set()
+    assert socket_client.portal.call(lambda: socket_family.id not in hub.sockets)
 
 
 @pytest.mark.parametrize("failure", ["disconnected", "closed", "unexpected"])
