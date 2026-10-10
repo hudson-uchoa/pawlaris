@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.clock import Clock
 from app.errors import ApiError
 from app.models import AppUser, TaskCompletion, TaskTemplate
+from app.push import PushAfterCommit, queue_completion
 from app.schemas.completions import CompletionCreate
 from app.services.common import get_owned
 
@@ -81,6 +82,17 @@ async def create_completion(
     if foreign_id is not None:
         raise ApiError(404, "not_found", "Completion not found.")
     raise ApiError(500, "internal_error", "Internal server error.")
+
+
+async def notify_completion(
+    session: AsyncSession,
+    user: AppUser,
+    row: TaskCompletion,
+    outcome: CompletionOutcome,
+    push: PushAfterCommit,
+) -> None:
+    if outcome != "existing":
+        await queue_completion(session, user, row, push, duplicate=outcome == "lost")
 
 
 async def undo_completion(

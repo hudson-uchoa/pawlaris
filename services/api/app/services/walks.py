@@ -6,14 +6,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.clock import Clock
 from app.errors import ApiError
 from app.models import AppUser, Pet, WalkRoute, WalkSession
+from app.push import PushAfterCommit, queue_walk
 from app.schemas.walks import WalkCreate, WalkFinish
 from app.services import common
 
 
 async def create_walk(
-    session: AsyncSession, user: AppUser, body: WalkCreate
+    session: AsyncSession,
+    user: AppUser,
+    body: WalkCreate,
+    push: PushAfterCommit | None = None,
 ) -> WalkSession:
-    return await common.create_owned(
+    existing = await session.scalar(
+        select(WalkSession).where(
+            WalkSession.id == body.id, WalkSession.family_id == user.family_id
+        )
+    )
+    if existing is not None:
+        return existing
+    row = await common.create_owned(
         session,
         WalkSession,
         body.id,
@@ -21,6 +32,9 @@ async def create_walk(
         body.model_dump(),
         references=((Pet, body.pet_id),),
     )
+    if push is not None:
+        await queue_walk(session, user, row, push)
+    return row
 
 
 async def finish_walk(
