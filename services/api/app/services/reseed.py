@@ -63,8 +63,6 @@ EDITABLE_FIELDS: dict[str, tuple[str, ...]] = {
 }
 WALK_METRICS = (
     "status",
-    "has_route",
-    "point_count",
     *(
         field
         for field in WalkFinish.model_fields
@@ -360,6 +358,7 @@ async def merge_row(
         values["recurrence"] = incoming.recurrence.model_dump(mode="json")
     elif isinstance(incoming, ReseedWalk):
         values["preview"] = [list(point) for point in incoming.preview]
+        values.update(has_route=False, point_count=0)
     if not await references_exist(session, values, family_id):
         return "refused"
     if server is not None:
