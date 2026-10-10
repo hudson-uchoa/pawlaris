@@ -17,6 +17,7 @@ from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.errors import problem_response, register_handlers
 from app.routers import (
+    assets,
     auth,
     completions,
     family,
@@ -144,6 +145,7 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.include_router(completions.router, prefix="/api/v1")
     app.include_router(timers.router, prefix="/api/v1")
     app.include_router(walks.router, prefix="/api/v1")
+    app.include_router(assets.router, prefix="/api/v1")
     app.include_router(sync.router, prefix="/api/v1")
     register_handlers(app)
     app.add_middleware(GZipMiddleware, minimum_size=1000)

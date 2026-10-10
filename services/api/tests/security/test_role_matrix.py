@@ -65,7 +65,11 @@ async def test_rb3_waiting_mutation_uses_locked_actor_and_writes_nothing(
         await lock_family(blocker, family.id)
         pending = asyncio.create_task(
             client_for(actor).request(
-                case.method, request.url, json=request.json, headers=request.headers
+                case.method,
+                request.url,
+                json=request.json,
+                content=request.content,
+                headers=request.headers,
             )
         )
         try:
@@ -166,7 +170,11 @@ async def test_rb1_permission_row_returns_expected_status(
     actor = next(user for user in family.users if user.role == role)
     request = await case.request(family, actor)
     response = await client_for(actor).request(
-        case.method, request.url, json=request.json, headers=request.headers
+        case.method,
+        request.url,
+        json=request.json,
+        content=request.content,
+        headers=request.headers,
     )
     assert response.status_code == case.expected[role], (
         case.row,
@@ -189,7 +197,11 @@ async def test_rb2_member_is_forbidden_on_every_implemented_leader_only_case(
         request = await case.request(family, actor)
         client: AsyncClient = client_for(actor)
         response = await client.request(
-            case.method, request.url, json=request.json, headers=request.headers
+            case.method,
+            request.url,
+            json=request.json,
+            content=request.content,
+            headers=request.headers,
         )
         assert response.status_code == 403, (
             case.row,

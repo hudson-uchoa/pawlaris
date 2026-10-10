@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/v1/assets/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload Asset */
+        put: operations["upload_asset_api_v1_assets__id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Asset */
+        get: operations["download_asset_api_v1_assets__id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -554,6 +588,8 @@ export interface components {
             entity: "assets";
             row: components["schemas"]["Asset"];
         };
+        /** @enum {string} */
+        AssetKind: "pet_avatar" | "task_proof" | "health_attachment";
         /** Format: date */
         CalendarDate: string;
         /** @enum {string} */
@@ -1578,6 +1614,91 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    upload_asset_api_v1_assets__id__put: {
+        parameters: {
+            query: {
+                kind: components["schemas"]["AssetKind"];
+            };
+            header: {
+                /** @description Image byte count; missing or over 8 MB returns 413. */
+                "Content-Length": number;
+                /** @description SHA-256 of the raw image bytes, in hexadecimal. */
+                "X-Content-SHA256": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+            };
+        };
+        responses: {
+            /** @description Existing asset with the same hash. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Asset"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_asset_api_v1_assets__id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stored image bytes. */
+            200: {
+                headers: {
+                    "Cache-Control"?: "private, max-age=31536000, immutable";
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                    "image/png": string;
+                    "image/webp": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
