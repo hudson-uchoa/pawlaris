@@ -612,7 +612,7 @@ tests cover them for its routes.
   unauthenticated download → 401; path traversal in a storage key rejected.
   **Gate:** `uv run --directory services/api pytest tests/api/test_assets.py -q` · `pnpm verify --only security`
 
-- [ ] **P2-14 — WebSocket poke**
+- [~] **P2-14 — WebSocket poke**
   **Depends:** P2-13 · **Read:** `04` §7 · `05` §2.1, §2.2
   **Build:** `websockets` added to the API's dependencies (`05` §1);
   `realtime.py` — `Hub` with `register(family_id, ws)`,
