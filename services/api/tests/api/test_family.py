@@ -219,6 +219,7 @@ async def test_fm1_failed_removal_rolls_back_every_effect(
     ).status_code == 200
 
 
+@pytest.mark.parametrize("disabled_leader", [False, True])
 @pytest.mark.parametrize("method", ["PATCH", "DELETE"])
 async def test_fm1_sole_leader_cannot_demote_or_remove_self(
     app: FastAPI,
@@ -226,10 +227,19 @@ async def test_fm1_sole_leader_cannot_demote_or_remove_self(
     client_for: ClientFor,
     idem: Idem,
     method: str,
+    disabled_leader: bool,
+    frozen_clock: FrozenClock,
 ) -> None:
     family = await make_family()
     leader = family.users[0]
     async with app.state.session_factory() as session:
+        if disabled_leader:
+            await session.execute(
+                update(AppUser)
+                .where(AppUser.id == family.users[1].id)
+                .values(role="leader", disabled_at=frozen_clock.now())
+            )
+            await session.commit()
         before = await session.scalar(
             select(FamilyRevision.value).where(FamilyRevision.family_id == family.id)
         )
@@ -338,6 +348,9 @@ async def test_fm1_removal_is_atomic_and_preserves_history(
             .where(TaskTemplate.family_id == family.id)
             .values(assigned_to=member.id)
         )
+        other_task = TaskTemplate(**await family.row_values(session, "task_template"))
+        other_task.assigned_to = leader.id
+        session.add(other_task)
         session.add(PushDevice(token=secrets.token_urlsafe(24), user_id=member.id))
         session.add(PushDevice(token=secrets.token_urlsafe(24), user_id=leader.id))
         for i, (_, digest) in enumerate(tokens):
@@ -381,10 +394,15 @@ async def test_fm1_removal_is_atomic_and_preserves_history(
                 .select_from(TaskTemplate)
                 .where(
                     TaskTemplate.family_id == family.id,
-                    TaskTemplate.assigned_to.is_not(None),
+                    TaskTemplate.assigned_to == member.id,
                 )
             )
             == 0
+        )
+        preserved = await session.get(TaskTemplate, other_task.id)
+        assert preserved is not None and preserved.assigned_to == leader.id
+        before_repeat = await session.scalar(
+            select(FamilyRevision.value).where(FamilyRevision.family_id == family.id)
         )
         for token in (
             await session.scalars(
@@ -424,10 +442,20 @@ async def test_fm1_removal_is_atomic_and_preserves_history(
             "/api/v1/auth/refresh", json={"refresh_token": tokens[0][0]}
         )
     ).status_code == 401
+    frozen_clock.advance(timedelta(minutes=1))
     second = await client_for(leader).delete(
         f"/api/v1/family/members/{member.id}", headers=idem()
     )
     assert second.status_code == 200 and second.json() == response.json()
+    async with app.state.session_factory() as session:
+        assert (
+            await session.scalar(
+                select(FamilyRevision.value).where(
+                    FamilyRevision.family_id == family.id
+                )
+            )
+            == before_repeat
+        )
     assert (
         await client_for(leader).patch(
             f"/api/v1/family/members/{member.id}",
@@ -515,3 +543,20 @@ async def test_fm1_leader_can_promote_and_remove_self_when_another_leads(
         f"/api/v1/family/members/{family.users[0].id}", headers=idem()
     )
     assert removed.status_code == 200 and removed.json()["disabled_at"] is not None
+
+
+@pytest.mark.parametrize("length,expected", [(0, 422), (1, 200), (60, 200), (61, 422)])
+async def test_fm1_family_name_boundaries(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    idem: Idem,
+    length: int,
+    expected: int,
+) -> None:
+    family = await make_family()
+    response = await client_for(family.users[0]).patch(
+        "/api/v1/family",
+        json={"name": "x" * length},
+        headers=idem(),
+    )
+    assert response.status_code == expected

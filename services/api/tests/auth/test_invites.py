@@ -197,6 +197,7 @@ async def test_r1_3_invite_redeem_records_role_identity_and_used_by(
     response = await client_for(family.users[0]).post(
         "/api/v1/invites", json={"role": role}
     )
+    unused = await create_invite(client_for(family.users[0]))
     assert response.status_code == 200
     invite = response.json()
     assert set(invite) == {"code", "role", "expires_at"}
@@ -221,6 +222,8 @@ async def test_r1_3_invite_redeem_records_role_identity_and_used_by(
             stored.used_by == UUID(user["id"]) and stored.used_at == frozen_clock.now()
         )
         assert stored.created_by == family.users[0].id and stored.role == role
+        untouched = await session.get(InviteCode, unused["code"])
+        assert untouched is not None and untouched.used_by is None
         account = await session.get(AppUser, UUID(user["id"]))
         assert account is not None
         assert await verify_password(body["password"], account.password_hash)
@@ -419,3 +422,84 @@ async def test_r1_3_redeem_validates_body(
     body = redeem_body("UNKNOWN000")
     body[field] = value
     assert (await client.post("/api/v1/auth/redeem", json=body)).status_code == 422
+
+
+@pytest.mark.parametrize("length,expected", [(7, 422), (8, 200)])
+async def test_r1_3_password_minimum_boundary(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+    length: int,
+    expected: int,
+) -> None:
+    family = await make_family()
+    invite = await create_invite(client_for(family.users[0]))
+    body = redeem_body(invite["code"])
+    body["password"] = secrets.token_urlsafe(24)[:length]
+    assert (await client.post("/api/v1/auth/redeem", json=body)).status_code == expected
+
+
+async def test_r1_3_code_excludes_i_deterministically(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    family = await make_family()
+
+    def choose(alphabet: str) -> str:
+        return "I" if "I" in alphabet else alphabet[0]
+
+    monkeypatch.setattr(service.secrets, "choice", choose)
+    invite = await create_invite(client_for(family.users[0]))
+    assert len(invite["code"]) == 10
+    assert set(invite["code"]) <= set("0123456789ABCDEFGHJKMNPQRSTVWXYZ")
+
+
+async def test_r1_3_family_lock_is_held_before_identity_selection(
+    app: FastAPI,
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    family = await make_family()
+    invite = await create_invite(client_for(family.users[0]))
+    original = service.lock_family
+    checked = False
+
+    async def check_lock(session: AsyncSession, family_id: UUID) -> None:
+        nonlocal checked
+        await original(session, family_id)
+        async with app.state.session_factory() as observer:
+            with pytest.raises(DBAPIError) as caught:
+                await observer.execute(
+                    select(FamilyRevision)
+                    .where(FamilyRevision.family_id == family_id)
+                    .with_for_update(nowait=True)
+                )
+            assert getattr(caught.value.orig, "sqlstate", None) == "55P03"
+        checked = True
+
+    monkeypatch.setattr(service, "lock_family", check_lock)
+    response = await client.post(
+        "/api/v1/auth/redeem", json=redeem_body(invite["code"])
+    )
+    assert response.status_code == 200 and checked
+
+
+async def test_r1_3_two_invites_redeemed_together_get_different_keys(
+    make_family: MakeFamily,
+    client_for: ClientFor,
+    client: AsyncClient,
+) -> None:
+    family = await make_family()
+    leader = client_for(family.users[0])
+    invites = [await create_invite(leader), await create_invite(leader)]
+    responses = await asyncio.gather(
+        *[
+            client.post("/api/v1/auth/redeem", json=redeem_body(invite["code"]))
+            for invite in invites
+        ]
+    )
+    assert [response.status_code for response in responses] == [200, 200]
+    assert len({response.json()["user"]["color"] for response in responses}) == 2
