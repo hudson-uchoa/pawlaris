@@ -204,7 +204,10 @@ DELETE /me/push-token {token}                                  -> 204
   one — the transaction rolls back and the invite is unused again. The
   password is hashed after the claim and before the family lock: an invalid
   code costs no hash, and the family is never locked while one runs. Password
-  rules: 8–128 characters, no other constraint.
+  rules: 8–128 characters, no other constraint. The email is 3–254 characters
+  with no whitespace and an `@` that is neither its first nor its last
+  character, and is not in `pawlaris.invalid`, the domain that removal writes
+  (§4); anything else is `422`, refused before the claim.
 - Password hashing and verification run off the event loop
   (`asyncio.to_thread`) behind a semaphore of 2, so a burst of logins can
   neither freeze the single worker nor exhaust its memory. The rate limiter's

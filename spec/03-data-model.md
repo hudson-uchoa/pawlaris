@@ -167,8 +167,10 @@ CREATE INDEX app_user_family_rev ON app_user (family_id, revision);
 #5B7DB1  #B15B6B  #4F8A6B  #C88A2E  #7A65B0  #3F8F97  #B5654A  #B15B9E
 ```
 
-It is assigned at creation: the first key not used by another user of the
-family, wrapping around when all eight are taken.
+It is assigned at creation: the key used by the fewest users of the family,
+disabled ones included, and among equals the first in the list. So the first
+eight users get one key each, the ninth gets the first key again and the tenth
+the second.
 
 Membership lives on `app_user` because a user belongs to exactly one family
 *(P7)*. `app_user` syncs to phones as the **member** projection —

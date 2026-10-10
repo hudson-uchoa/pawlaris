@@ -522,7 +522,10 @@ tests cover them for its routes.
   usable; FM-1 including the concurrent case; a sole leader cannot demote
   themselves; removal disables, rewrites the email, revokes chains, deletes
   push devices, unassigns their tasks, keeps their completions; the freed email
-  can be invited again; valid and invalid timezones).
+  can be invited again; valid and invalid timezones; and the cases added to
+  those two rows by the review of 2026-10-09 — the shape of the redeem email,
+  the identity key past eight users, the actor re-read under the lock on every
+  leader-only route, a disabled leader, the bounds).
   **Gate:** `uv run --directory services/api pytest tests/api/test_family.py tests/auth/test_invites.py -q` · `pnpm verify --only security`
 
 - [ ] **P2-8 — Pets, weights, health events**
