@@ -163,7 +163,7 @@ And these, for the entities that are more than fields:
 |---|---|
 | `walk_sessions` | the status and the metrics are those of the row with the further status — `active` < `finished` < `discarded`; on an equal status, of the newer `updated_at` |
 | `walk_routes` | stored when the walk exists, is `finished` and has no route; sets `has_route` and `point_count`; otherwise unchanged |
-| `task_completions` | when two live rows hold the same `(task, occurrence, pet)`, the one with the earlier `completed_at` (then the smaller id) stays live and the other becomes its duplicate *(§2.3, RS-4)*; every row that named the loser in `duplicate_of` now names the winner. After the commit, the duplicate push of `04` §10 goes to both people. A `duplicate_of` naming a completion the server lacks after the call is stored as null |
+| `task_completions` | when two live rows hold the same `(task, occurrence, pet)`, the one with the earlier `completed_at` (then the smaller id) stays live and the other becomes its duplicate *(§2.3, RS-4)*; every row that named the loser in `duplicate_of` now names the winner. After the commit each of the two authors is told that the other also marked it *(`04` §15)*. A `duplicate_of` naming a completion the server lacks after the call is stored as null |
 | `family` | `name` and `timezone` only |
 | `members` | a member the server does not know becomes a *stub* (§5); a known one is never changed *(RS-5)* |
 
@@ -183,15 +183,21 @@ rows and the expected state *(`07` §3)*.
 >
 > **RS-2** The merge is idempotent and independent of order. Gate: every
 > vector gives the expected state when its rows are sent once, twice, in
-> reverse order, and one row per call.
+> reverse order, and one row per call. Inside a call the order of the rows
+> never matters. From one call to the next a row must follow what it names
+> — a completion its template, a duplicate its winner — which is the order
+> a phone sends its batches in (§4.3): one row per call means in the entity
+> order above.
 >
 > **RS-3** A tombstone is never undone: no vector, and no sequence of two
 > reseeds, turns a deleted, undone or cancelled row live again.
 >
 > **RS-4** After any reseed there is at most one live completion per
-> `(task, occurrence, pet)`; every other one for it is undone with
-> `duplicate_of` naming the live one, and the live one has the earliest
-> `completed_at`.
+> `(task, occurrence, pet)`. Of the completions that were live when a merge
+> met them, the one with the earliest `completed_at` (then the smaller id)
+> is the one left live; each of the others is undone, with `undone_by` null
+> and `duplicate_of` naming it. A completion that a person undid is not a
+> duplicate: it competes with nobody and its `duplicate_of` stays null.
 >
 > **RS-10** A row of another family in a reseed is refused: nothing is
 > written, and the response carries nothing of that row.

@@ -684,12 +684,13 @@ accepted: the server's half of the reserve server *(ADR-038, `11`)*.
   and skipped. Each entity's rows are checked with the bounds its routes
   already use: reuse those models, do not restate them. After the commit:
   one poke for the family when anything was inserted or updated, and the
-  duplicate push of `04` §15 to both people for each completion this call
-  turned into a duplicate.
+  duplicate push of `04` §15 to each of the two authors, naming the other,
+  for each completion this call turned into a duplicate.
   **Tests:** `tests/sync/test_reseed.py` — RS-1 … RS-5, RS-10 and the cases
   of `07` §5.2: every vector of `spec/fixtures/reseed-vectors.json`, each of
   the four ways against a fresh database; after a call, `/sync` from zero
-  lists every row that was not refused; a row left unchanged gets no new
+  lists every row that was not refused (a route is read through
+  `GET /walks/{id}/route`); a row left unchanged gets no new
   revision, and a call that changes nothing pokes nobody; an `updated_at` an
   hour ahead is stored as the clock plus five minutes; a stub is a `member`
   and no password logs it in; an entity outside the list of §3, `assets`

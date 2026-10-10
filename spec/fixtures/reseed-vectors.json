@@ -244,7 +244,7 @@
       "tags": ["walk"],
       "server": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "started_at": "2026-10-05T17:30:00Z", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ] },
       "incoming": [
-        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "active", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": null, "duration_s": null, "updated_at": "2026-10-05T18:30:00Z", "deleted_at": null } }
+        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "active", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": 0, "duration_s": 0, "updated_at": "2026-10-05T18:30:00Z", "deleted_at": null } }
       ],
       "expect": {
         "rows": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "status": "finished", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:30:00Z", "deleted_at": null } ] },
@@ -256,7 +256,7 @@
       "tags": ["walk", "tombstone"],
       "server": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "finished", "started_at": "2026-10-05T17:30:00Z", "ended_at": "2026-10-05T18:00:00Z", "distance_m": 1200.5, "duration_s": 900, "updated_at": "2026-10-05T18:00:00Z", "deleted_at": null } ] },
       "incoming": [
-        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "discarded", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": null, "duration_s": null, "updated_at": "2026-10-05T17:40:00Z", "deleted_at": "2026-10-05T17:40:00Z" } }
+        { "entity": "walk_sessions", "row": { "id": "00000000-0000-4000-8000-0000000000e1", "pet_id": "00000000-0000-4000-8000-0000000000a0", "user_id": "00000000-0000-4000-8000-000000000001", "status": "discarded", "started_at": "2026-10-05T17:30:00Z", "ended_at": null, "distance_m": 0, "duration_s": 0, "updated_at": "2026-10-05T17:40:00Z", "deleted_at": "2026-10-05T17:40:00Z" } }
       ],
       "expect": {
         "rows": { "walk_sessions": [ { "id": "00000000-0000-4000-8000-0000000000e1", "status": "discarded", "updated_at": "2026-10-05T18:00:00Z", "deleted_at": "2026-10-05T17:40:00Z" } ] },
