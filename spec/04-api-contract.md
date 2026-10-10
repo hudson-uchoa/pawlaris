@@ -577,6 +577,7 @@ own clock. The write path is fixed by `03` §5.
 | Template soft-deleted or ended | `200`, accepted — history is preserved |
 | `per_pet` without a pet, or with a pet not in the template; `together` with a pet | `422` |
 | Unknown `task_id` | `404` |
+| An `id` that belongs to a completion of another family | `404`, and nothing of that row |
 | Undo of a live completion | `200`, row with `undone_at` / `undone_by` set |
 | Undo of an already-undone completion | `200`, row unchanged |
 
