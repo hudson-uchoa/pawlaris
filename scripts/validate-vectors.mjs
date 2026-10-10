@@ -163,6 +163,9 @@ const uniqueNames = (list, where) => {
     'duplicate', 'timer', 'walk', 'walk-route', 'refused', 'members', 'family',
   ];
   const COUNTS = ['inserted', 'updated', 'unchanged', 'duplicates', 'refused'];
+  const IDENTITY_KEYS = [
+    '#5B7DB1', '#B15B6B', '#4F8A6B', '#C88A2E', '#7A65B0', '#3F8F97', '#B5654A', '#B15B9E',
+  ];
   const MIN_RESEED_VECTORS = 20;
 
   if (!INSTANT.test(f.now ?? '')) fail(where, '`now` must be ISO UTC with seconds');
@@ -178,6 +181,9 @@ const uniqueNames = (list, where) => {
     if (!ENTITIES.includes(entity)) return fail(at, `unknown entity ${entity}`);
     const id = entity === 'walk_routes' ? row?.walk_id : row?.id;
     if (!UUID.test(id ?? '')) fail(at, `${entity} row has no UUIDv4 id`);
+    if (entity === 'members' && row?.color !== undefined && !IDENTITY_KEYS.includes(row.color)) {
+      fail(at, `members color ${row.color} is not an identity key (03 §2)`);
+    }
     if (entity === 'walk_routes') {
       const fourNumbers = (p) => Array.isArray(p) && p.length === 4 && p.every(Number.isFinite);
       if (!Array.isArray(row?.points) || !row.points.every(fourNumbers)) {
