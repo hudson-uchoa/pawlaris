@@ -142,6 +142,9 @@ class TaskCompletion(Base):
     undone_by: Mapped[UUID | None] = mapped_column(
         ForeignKey("app_user.id"), nullable=True
     )
+    duplicate_of: Mapped[UUID | None] = mapped_column(
+        ForeignKey("task_completion.id"), nullable=True
+    )
     revision: Mapped[int] = mapped_column(
         BigInteger(),
         nullable=False,

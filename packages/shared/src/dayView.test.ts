@@ -34,7 +34,8 @@ function completion(patch: Partial<Completion> = {}): Completion {
     id: 'completion', task_id: 'task', occurrence_key: `${date}T08:00`,
     pet_id: null, completed_by: 'other', completed_at: stamp,
     title_snapshot: 'Original breakfast', photo_asset_id: null, note: null,
-    undone_at: null, undone_by: null, revision: 2, updated_at: stamp, ...patch,
+    undone_at: null, undone_by: null, duplicate_of: null,
+    revision: 2, updated_at: stamp, ...patch,
   };
 }
 

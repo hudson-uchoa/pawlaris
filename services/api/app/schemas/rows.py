@@ -112,7 +112,7 @@ class Completion(Row):
     note: str | None
     undone_at: datetime | None
     undone_by: UUID | None
-    duplicate_of: UUID | None = None
+    duplicate_of: UUID | None
     revision: int
     updated_at: datetime
 

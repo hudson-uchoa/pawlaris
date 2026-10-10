@@ -298,6 +298,7 @@
           "note",
           "undone_at",
           "undone_by",
+          "duplicate_of",
           "revision",
           "updated_at"
         ],

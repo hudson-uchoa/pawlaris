@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr
     blob_dir: Path = Path("/data/blobs")
     push_enabled: bool = True
-    server_role: str = "primary"
+    server_role: Literal["primary", "reserve"] = "primary"
     app_version: str = "dev"
     log_level: str = "INFO"
     ws_auth_timeout_seconds: float = Field(default=5, gt=0)

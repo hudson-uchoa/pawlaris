@@ -28,6 +28,17 @@ def get_settings(request: Request) -> Settings:
     return cast(Settings, request.app.state.settings)
 
 
+def require_primary(
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    if settings.server_role == "reserve":
+        raise ApiError(
+            409,
+            "reserve_read_only",
+            "Account operations require the primary server.",
+        )
+
+
 def get_push_sender(request: Request) -> PushSender:
     return cast(PushSender, request.app.state.push_sender)
 

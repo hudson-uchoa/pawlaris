@@ -5,7 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Clock
 from app.db import get_session
-from app.deps import current_user, get_clock, get_settings, poke_after_commit
+from app.deps import (
+    current_user,
+    get_clock,
+    get_settings,
+    poke_after_commit,
+    require_primary,
+)
 from app.errors import RESERVE_READ_ONLY_RESPONSE
 from app.models import AppUser
 from app.realtime import PokeAfterCommit
@@ -34,6 +40,7 @@ Poke = Annotated[PokeAfterCommit, Depends(poke_after_commit)]
 @router.post(
     "/auth/redeem",
     response_model=Session,
+    dependencies=[Depends(require_primary)],
     responses={409: RESERVE_READ_ONLY_RESPONSE},
 )
 async def redeem(
@@ -81,13 +88,21 @@ async def me(user: User) -> Me:
     return Me.model_validate(user)
 
 
-@router.patch("/me", response_model=Me, responses={409: RESERVE_READ_ONLY_RESPONSE})
+@router.patch(
+    "/me",
+    response_model=Me,
+    dependencies=[Depends(current_user), Depends(require_primary)],
+    responses={409: RESERVE_READ_ONLY_RESPONSE},
+)
 async def patch_me(body: MePatch, user: User, session: Database, poke: Poke) -> Me:
     return await auth.patch_me(session, user, body, poke)
 
 
 @router.post(
-    "/me/password", status_code=204, responses={409: RESERVE_READ_ONLY_RESPONSE}
+    "/me/password",
+    status_code=204,
+    dependencies=[Depends(current_user), Depends(require_primary)],
+    responses={409: RESERVE_READ_ONLY_RESPONSE},
 )
 async def change_password(
     body: PasswordChange, user: User, session: Database, clock: RequestClock
