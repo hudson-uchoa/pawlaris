@@ -88,6 +88,7 @@ class TestFamily:
     users: list[AppUser]
     pets: list[Pet]
     database_url: str
+    blob_dir: Path
 
     @property
     def id(self) -> UUID:
@@ -212,7 +213,7 @@ class MakeFamily(Protocol):
 
 
 @pytest.fixture
-def make_family(database_url: str) -> MakeFamily:
+def make_family(database_url: str, tmp_path: Path) -> MakeFamily:
     async def make(*, members: int = 2, pets: int = 1) -> TestFamily:
         if members < 1 or pets < 0:
             raise ValueError(
@@ -250,7 +251,7 @@ def make_family(database_url: str) -> MakeFamily:
                 ]
                 session.add_all(animals)
                 await session.commit()
-                return TestFamily(family, users, animals, database_url)
+                return TestFamily(family, users, animals, database_url, tmp_path)
         finally:
             await engine.dispose()
 

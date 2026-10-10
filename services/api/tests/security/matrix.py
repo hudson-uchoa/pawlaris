@@ -1,16 +1,20 @@
 """Implemented permission cases from the API contract, with valid requests."""
 
+import hashlib
 import secrets
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import timedelta
+from io import BytesIO
 from uuid import uuid4
 
+from PIL import Image
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.models import (
     AppUser,
+    Asset,
     HealthEvent,
     Pet,
     TaskCompletion,
@@ -29,6 +33,7 @@ class MatrixRequest:
     url: str
     json: dict[str, object] | None = None
     headers: dict[str, str] = field(default_factory=dict)
+    content: bytes | None = None
 
 
 type RequestBuilder = Callable[[TestFamily, AppUser], Awaitable[MatrixRequest]]
@@ -478,6 +483,53 @@ async def read_walk_route(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(f"/api/v1/walks/{row.id}/route")
 
 
+def asset_bytes() -> bytes:
+    with BytesIO() as buffer, Image.new("RGB", (2, 2), "white") as image:
+        image.save(buffer, format="PNG")
+        return buffer.getvalue()
+
+
+async def upload_asset(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    content = asset_bytes()
+    return MatrixRequest(
+        f"/api/v1/assets/{uuid4()}?kind=task_proof",
+        headers={
+            "Content-Type": "application/octet-stream",
+            "Content-Length": str(len(content)),
+            "X-Content-SHA256": hashlib.sha256(content).hexdigest(),
+        },
+        content=content,
+    )
+
+
+async def download_asset(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    content = asset_bytes()
+    id = uuid4()
+    key = f"{fam.id}/{id}.png"
+    path = fam.blob_dir / key
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+    engine = create_async_engine(fam.database_url)
+    try:
+        async with AsyncSession(engine) as session:
+            values = await fam.row_values(session, "asset")
+            values.update(
+                id=id,
+                storage_key=key,
+                mime="image/png",
+                bytes=len(content),
+                width=2,
+                height=2,
+                sha256=hashlib.sha256(content).hexdigest(),
+                uploaded_by=next(user.id for user in fam.users if user.id != actor.id),
+            )
+            session.add(Asset(**values))
+            await session.commit()
+    finally:
+        await engine.dispose()
+    return MatrixRequest(f"/api/v1/assets/{id}/file")
+
+
 PUBLIC_ROUTES: frozenset[tuple[str, str]] = frozenset(
     {
         ("GET", "/api/v1/health"),
@@ -685,6 +737,16 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         "GET",
         "/api/v1/walks/{id}/route",
         read_walk_route,
+        {"member": 200, "leader": 200},
+    ),
+    PermissionCase(
+        22, "PUT", "/api/v1/assets/{id}", upload_asset, {"member": 201, "leader": 201}
+    ),
+    PermissionCase(
+        22,
+        "GET",
+        "/api/v1/assets/{id}/file",
+        download_asset,
         {"member": 200, "leader": 200},
     ),
 ]
