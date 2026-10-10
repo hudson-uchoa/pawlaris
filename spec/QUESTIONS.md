@@ -492,21 +492,26 @@ Two cases join the tests (`07` §5.2 R1.3, `08` P2-7): a redeemed invite
 records `used_by`, and a redeem that fails with `409 email_taken` leaves the
 invite usable.
 
-## Q-15 ? P2-8 ? Which repeated soft-delete status takes precedence?
+## Q-15 — P2-8 — Which repeated soft-delete status takes precedence?
 **Asked:** 2026-10-09
-**Where:** spec/04-api-contract.md ?1.2 and ?8;
+**Where:** spec/04-api-contract.md §1.2 and §8;
 spec/08-tasks.md P2-8 Tests
-**Problem:** ?8 ends with PATCH or DELETE on a soft-deleted row returning
-404. ?1.2 instead requires DELETE to return the unchanged tombstone with
+**Problem:** §8 ends with PATCH or DELETE on a soft-deleted row returning
+404. §1.2 instead requires DELETE to return the unchanged tombstone with
 200, as does P2-8's test list. The owner's task instruction explicitly
 requires a second delete to return 200 unchanged.
-**I would assume:** Follow the owner's explicit instruction and ?1.2:
+**I would assume:** Follow the owner's explicit instruction and §1.2:
 PATCH on a tombstone returns 404, while DELETE returns 200 with the
 unchanged tombstone and no new revision. Confine this behavior to
-services/common.py's soft_delete helper. Please correct ?8's conflicting
+services/common.py's soft_delete helper. Please correct §8's conflicting
 sentence when reviewing the task.
 **Blocking:** no; the owner's instruction settles the implementation.
 
 **Reference clarification:** PowerShell replaced the section symbols in
 this entry with question marks. The cited sections of `04` are 1.2 and 8;
 the requested correction concerns the last sentence of section 8.
+**Answer:** orchestrator — 2026-10-09. As assumed. §1.2 is the rule and the
+last sentence of §8 contradicted it; the mistake was the spec's. §8 now reads:
+`PATCH` on a soft-deleted row → `404`; `DELETE` on one → `200` with the
+tombstone, unchanged. The section symbols that the shell replaced with
+question marks in this entry are restored.
