@@ -585,3 +585,17 @@ name a pruned one: a token rotated on its 29th day leaves a child that
 outlives it by almost a month. Clearing `parent_id` loses nothing: the
 parent is deleted, so it can no longer be presented, and the child is
 itself expired by then. `05` §4.6 now states it.
+
+## Q-20 — P2-15 — What validation applies to a push token?
+**Asked:** 2026-10-10
+**Where:** spec/04-api-contract.md §3; spec/03-data-model.md §2
+**Problem:** PUT and DELETE /me/push-token take {token}, but neither
+section defines token validation. The push_device column is text with an
+ExponentPushToken[...] example, without a format or length constraint.
+**I would assume:** Require a string and apply the common request-body
+checks of `04` §1. Do not add a prefix, length, non-empty or whitespace
+rule, and preserve the token unchanged on both routes.
+**Blocking:** no (proceeded on the assumption, isolated in PushToken in
+services/api/app/schemas/auth.py)
+
+**Answer:** pending orchestrator review.

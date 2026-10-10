@@ -13,6 +13,7 @@ from app.schemas.auth import (
     Me,
     MePatch,
     PasswordChange,
+    PushToken,
     Redeem,
     Refresh,
     Session,
@@ -85,4 +86,18 @@ async def change_password(
     body: PasswordChange, user: User, session: Database, clock: RequestClock
 ) -> Response:
     await auth.change_password(session, user, body, clock)
+    return Response(status_code=204)
+
+
+@router.put("/me/push-token", status_code=204)
+async def put_push_token(
+    body: PushToken, user: User, session: Database, clock: RequestClock
+) -> Response:
+    await auth.upsert_push_token(session, user, body, clock)
+    return Response(status_code=204)
+
+
+@router.delete("/me/push-token", status_code=204)
+async def delete_push_token(body: PushToken, user: User, session: Database) -> Response:
+    await auth.delete_push_token(session, user, body)
     return Response(status_code=204)

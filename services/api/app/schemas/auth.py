@@ -61,3 +61,8 @@ class MePatch(RequestBody):
 class PasswordChange(RequestBody):
     current_password: SecretStr
     new_password: SecretStr = Field(min_length=8, max_length=128)
+
+
+class PushToken(RequestBody):
+    # Q-20: no token-specific constraints until the contract defines them.
+    token: str

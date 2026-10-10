@@ -60,6 +60,13 @@ async def patch_me(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(url="/api/v1/me", json={"display_name": "Matrix member"})
 
 
+async def push_token(fam: TestFamily, actor: AppUser) -> MatrixRequest:
+    return MatrixRequest(
+        url="/api/v1/me/push-token",
+        json={"token": f"ExponentPushToken[{uuid4().hex}]"},
+    )
+
+
 async def patch_family(fam: TestFamily, actor: AppUser) -> MatrixRequest:
     return MatrixRequest(
         "/api/v1/family", {"name": "Renamed family"}, {"Idempotency-Key": str(uuid4())}
@@ -549,6 +556,20 @@ PERMISSION_MATRIX: list[PermissionCase] = [
         "POST",
         "/api/v1/me/password",
         change_password,
+        {"member": 204, "leader": 204},
+    ),
+    PermissionCase(
+        2,
+        "PUT",
+        "/api/v1/me/push-token",
+        push_token,
+        {"member": 204, "leader": 204},
+    ),
+    PermissionCase(
+        2,
+        "DELETE",
+        "/api/v1/me/push-token",
+        push_token,
         {"member": 204, "leader": 204},
     ),
     PermissionCase(
