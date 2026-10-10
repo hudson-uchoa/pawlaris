@@ -420,6 +420,16 @@ The socket carries no data. It tells a phone that the family's revision moved.
 | 4408 | no `auth` frame within 5 s |
 
 - The token travels in a frame, never in the URL, so it reaches no access log.
+- The first frame must be the `auth` frame. Any other first frame closes with
+  4401, whatever else it carries — a token in a `ping` frame authenticates
+  nobody.
+- Frames are tiny, and the server says so: Uvicorn is started with
+  `--ws-max-size 4096`, so a longer frame closes the socket instead of being
+  buffered. Its default would let a client that never authenticates make
+  the server hold 16 MiB per connection.
+- A socket leaves the hub the moment it closes, dies or expires. A socket
+  that fails while a poke is being delivered is removed, and the poke goes
+  on to the family's other sockets.
 - The server closes the socket with 4401 when the token's `exp` passes.
 - `poke.revision` is the family revision after the commit. Pokes are sent after
   commit, to every socket of that family, including the author's.
