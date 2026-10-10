@@ -552,7 +552,8 @@ tests cover them for its routes.
   `03` §4.1 → 422; unknown pet or duplicate in `pet_ids` → 422; `once` with
   `starts_on ≠ date` → 422; assignment rules (rows 11–15); the fork exception
   (a member's fork of their own template keeps another assignee → 200; the same
-  request without `replaces_task_id` → 403); `ends_on` earlier than `starts_on`
+  request without `replaces_task_id` → 403); an `assigned_to` naming a removed
+  member is stored as null *(ADR-037)*; `ends_on` earlier than `starts_on`
   accepted; no route path contains `occurrence`, `today` or `schedule`.
   **Gate:** `uv run --directory services/api pytest tests/api/test_tasks.py -q` · `pnpm verify --only security`
 

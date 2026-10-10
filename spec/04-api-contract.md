@@ -510,9 +510,14 @@ DELETE /tasks/{id}                ⟳ -> TaskTemplate
 ```
 
 - `TaskCreate` validation: the recurrence rules of `03` §4.1; every `pet_ids`
-  entry is a pet of the family, no duplicates; `assigned_to` is an enabled
-  member of the family or null; `replaces_task_id`, when set, names a template
-  of the family.
+  entry is a pet of the family, no duplicates; `assigned_to` is a member of the
+  family or null; `replaces_task_id`, when set, names a template of the family.
+- An `assigned_to` that names a **removed** member — one with `disabled_at`
+  set — is read as null, on `POST` and on `PATCH`, and stored as null. It is
+  not an error: the task is kept, for anyone *(ADR-037)*. The reading happens
+  before the assignment rules of §5 are applied, so the request is judged as
+  one that assigns to nobody. An `assigned_to` that names no member of the
+  family is `404`, as §1.2 says.
 - `TaskPatch` does not contain schedule fields. Sending one is an unknown field
   → `422` *(TK-1)*.
 - `ends_on` may be any date or null. A value earlier than `starts_on` is valid
