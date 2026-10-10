@@ -1,4 +1,5 @@
 import secrets
+from collections import Counter
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -129,14 +130,12 @@ async def redeem(
         encoded = await hash_password(body.password.get_secret_value())
         family_id, role = claimed
         await lock_family(session, family_id)
-        used_colors = set(
+        used_colors = Counter(
             await session.scalars(
                 select(AppUser.color).where(AppUser.family_id == family_id)
             )
         )
-        color = next(
-            (key for key in IDENTITY_KEYS if key not in used_colors), IDENTITY_KEYS[0]
-        )
+        color = min(IDENTITY_KEYS, key=lambda key: used_colors[key])
         user = AppUser(
             id=uuid4(),
             family_id=family_id,
