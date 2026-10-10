@@ -46,16 +46,6 @@ def settings(settings: Settings) -> Settings:
     return settings.model_copy(update={"push_enabled": True})
 
 
-@pytest.fixture(autouse=True)
-def forbid_network(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def forbidden(
-        self: httpx.AsyncHTTPTransport, request: httpx.Request
-    ) -> httpx.Response:
-        raise AssertionError("Push tests must use ASGITransport or MockTransport")
-
-    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", forbidden)
-
-
 async def checkpoint() -> None:
     future = asyncio.get_running_loop().create_future()
     asyncio.get_running_loop().call_soon(future.set_result, None)

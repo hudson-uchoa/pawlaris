@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, AsyncHTTPTransport, Request, Response
 from pydantic import SecretStr
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -21,6 +21,14 @@ from tests._probe import ProbeState, router
 
 API_ROOT = Path(__file__).resolve().parents[1]
 pytest_plugins = ["tests.factories"]
+
+
+@pytest.fixture(autouse=True)
+def forbid_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def forbidden(self: AsyncHTTPTransport, request: Request) -> Response:
+        raise AssertionError("API tests must use ASGITransport or MockTransport")
+
+    monkeypatch.setattr(AsyncHTTPTransport, "handle_async_request", forbidden)
 
 
 @pytest.fixture
