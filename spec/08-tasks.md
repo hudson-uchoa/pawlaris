@@ -538,7 +538,9 @@ tests cover them for its routes.
   archive → 403; weight bounds (0, 120, and three decimals → 422); soft deletes
   return the tombstone and appear in `/sync`; a second delete → 200 unchanged;
   a row of another family → 404; patch on a deleted row → 404; a weight for an
-  unknown pet → 404.
+  unknown pet → 404; and, from the review of 2026-10-09: a `sort_order` outside
+  its column → 422; a string containing U+0000 → 422 on one route of every
+  router; a second delete or archive at a later instant changes nothing.
   **Gate:** `uv run --directory services/api pytest tests/api/test_pets.py -q` · `pnpm verify --only security`
 
 - [ ] **P2-9 — Task templates**
