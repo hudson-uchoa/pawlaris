@@ -17,6 +17,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from app.clock import Clock, SystemClock
 from app.db import make_engine
 from app.errors import problem_response, register_handlers
+from app.push import ExpoPushSender, NoOpPushSender, PushSender
 from app.realtime import Hub
 from app.routers import (
     assets,
@@ -133,7 +134,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await cast(AsyncEngine, app.state.engine).dispose()
 
 
-def create_app(settings: Settings | None = None, clock: Clock | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None,
+    clock: Clock | None = None,
+    push_sender: PushSender | None = None,
+) -> FastAPI:
 
     settings = settings or Settings()
     clock = clock or SystemClock()
@@ -147,6 +152,16 @@ def create_app(settings: Settings | None = None, clock: Clock | None = None) -> 
     app.state.session_factory = async_sessionmaker(
         app.state.engine, expire_on_commit=False
     )
+    app.state.push_sender = (
+        push_sender
+        if push_sender is not None
+        else (
+            ExpoPushSender(app.state.session_factory)
+            if settings.push_enabled
+            else NoOpPushSender()
+        )
+    )
+    app.state.push_tasks = set[asyncio.Task[None]]()
     app.include_router(health.router, prefix="/api/v1")
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(family.router, prefix="/api/v1")
