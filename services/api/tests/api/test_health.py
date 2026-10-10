@@ -21,7 +21,8 @@ async def test_health_reports_ok_and_real_database(client: AsyncClient) -> None:
     assert body["disk_free_mb"] >= 500
     assert body["version"] == "dev"
     assert body["uptime_s"] == 0
-    assert set(body) == {"status", "db", "disk_free_mb", "version", "uptime_s"}
+    assert body["role"] == "primary"
+    assert set(body) == {"status", "db", "disk_free_mb", "version", "uptime_s", "role"}
 
 
 async def test_health_uptime_uses_injected_monotonic_clock(

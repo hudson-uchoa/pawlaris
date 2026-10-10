@@ -59,7 +59,7 @@ SHAPES: tuple[tuple[str, type[BaseModel], str], ...] = (
         Completion,
         "id task_id occurrence_key pet_id completed_by "
         "completed_at title_snapshot photo_asset_id note "
-        "undone_at undone_by revision updated_at",
+        "undone_at undone_by duplicate_of revision updated_at",
     ),
     (
         "task_timer",

@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr
     blob_dir: Path = Path("/data/blobs")
     push_enabled: bool = True
+    server_role: str = "primary"
     app_version: str = "dev"
     log_level: str = "INFO"
     ws_auth_timeout_seconds: float = Field(default=5, gt=0)
