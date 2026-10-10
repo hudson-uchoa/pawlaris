@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import traceback
+from collections import Counter
 from collections.abc import Callable, Sequence
 from contextvars import ContextVar
 from typing import Protocol
@@ -65,18 +66,26 @@ class ExpoPushSender:
                 log_failure(exc)
                 return
             stale: set[str] = set()
-            for message, ticket in zip(batch, tickets, strict=False):
-                if not isinstance(ticket, dict):
+            errors: Counter[str] = Counter()
+            for index, ticket in enumerate(tickets):
+                if not isinstance(ticket, dict) or ticket.get("status") != "error":
                     continue
                 details = ticket.get("details")
-                if (
-                    ticket.get("status") == "error"
-                    and isinstance(details, dict)
-                    and details.get("error") == "DeviceNotRegistered"
-                ):
-                    token = message.get("to")
-                    if isinstance(token, str):
-                        stale.add(token)
+                code = details.get("error") if isinstance(details, dict) else None
+                if code == "DeviceNotRegistered":
+                    if index < len(batch):
+                        token = batch[index].get("to")
+                        if isinstance(token, str):
+                            stale.add(token)
+                else:
+                    error = code if isinstance(code, str) and code else "UnknownError"
+                    errors[error] += 1
+            if errors:
+                summary = json.dumps(dict(sorted(errors.items())))
+                log_failure(
+                    ValueError("Expo push tickets refused"),
+                    detail=f"Expo ticket errors: {summary}",
+                )
             if stale:
                 async with self.session_factory() as session, session.begin():
                     await session.execute(

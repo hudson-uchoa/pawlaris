@@ -184,3 +184,4 @@ app = create_app()
 logging.basicConfig(
     stream=sys.stdout, format="%(message)s", level=app.state.settings.log_level
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
