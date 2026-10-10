@@ -1492,6 +1492,8 @@
         "additionalProperties": false,
         "properties": {
           "token": {
+            "maxLength": 255,
+            "minLength": 1,
             "title": "Token",
             "type": "string"
           }

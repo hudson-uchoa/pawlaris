@@ -64,5 +64,4 @@ class PasswordChange(RequestBody):
 
 
 class PushToken(RequestBody):
-    # Q-20: no token-specific constraints until the contract defines them.
-    token: str
+    token: str = Field(min_length=1, max_length=255)
