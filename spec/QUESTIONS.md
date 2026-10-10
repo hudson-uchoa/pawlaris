@@ -598,4 +598,12 @@ rule, and preserve the token unchanged on both routes.
 **Blocking:** no (proceeded on the assumption, isolated in PushToken in
 services/api/app/schemas/auth.py)
 
-**Answer:** pending orchestrator review.
+**Answer (2026-10-10):** Almost as assumed: the token is opaque, with a
+length. It is a string of 1 to 255 characters, stored and handed to Expo
+exactly as received; the server gives it no prefix or pattern rule, because
+the format is Expo's to change, and a token Expo does not know is reported
+as `DeviceNotRegistered` and deleted like any stale one. The two bounds are
+there because the value is a primary key that comes from outside: an empty
+string is no device, and an unbounded one is a row of any size. `04` §3 now
+says it, and also what `DELETE` does with a token that is not the
+caller's: nothing, and still `204`.

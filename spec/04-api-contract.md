@@ -221,6 +221,12 @@ DELETE /me/push-token {token}                                  -> 204
   go through the outbox and take no `Idempotency-Key`. The UI disables their
   buttons while offline.
 - **`PUT /me/push-token`:** upsert by token; re-points the token to the caller.
+  `token` is an opaque string of 1–255 characters, stored and sent to Expo as
+  received: no prefix or pattern is checked *(Q-20)*; outside those bounds →
+  `422`.
+- **`DELETE /me/push-token`:** deletes the row only if the token is the
+  caller's. An unknown token, or one that belongs to someone else, deletes
+  nothing and is still `204`.
 - There is no `/auth/register`. Gate: `POST /auth/register` → 404 *(R1.1)*.
 
 ---
