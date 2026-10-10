@@ -62,6 +62,7 @@ async def test_rb3_waiting_mutation_uses_locked_actor_and_writes_nothing(
     monkeypatch.setattr(family_service, "lock_family", observed_lock)
     monkeypatch.setattr(auth, "lock_family", observed_lock)
     monkeypatch.setattr(assets, "lock_family", observed_lock)
+    monkeypatch.setattr("app.services.reseed.lock_family", observed_lock)
     async with app.state.session_factory() as blocker:
         await lock_family(blocker, family.id)
         pending = asyncio.create_task(
