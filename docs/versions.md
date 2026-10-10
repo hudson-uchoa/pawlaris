@@ -36,6 +36,7 @@ the TypeScript generator is pinned in the workspace manifest and lockfile.
 | Pydantic | 2.13.5 | Wire validation | MIT |
 | pydantic-settings | 2.15.0 | Environment configuration | MIT |
 | Uvicorn | 0.54.0 | One-worker ASGI server | BSD-3-Clause |
+| websockets | 17.2 | WebSocket protocol for Uvicorn | BSD-3-Clause |
 | SQLAlchemy | 2.1.3 | Async sessions and transactions | MIT |
 | asyncpg | 0.31.0 | PostgreSQL driver | Apache-2.0 |
 | Alembic | 1.20.0 | Async migrations | MIT |
