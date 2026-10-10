@@ -78,9 +78,10 @@ class TimingMiddleware:
         try:
             await self.app(scope, receive, timed_send)
         except Exception as exc:
-            if scope["path"].startswith("/api/v1/auth/") or scope["path"] == (
-                "/api/v1/me/password"
-            ):
+            if scope["path"].startswith("/api/v1/auth/") or scope["path"] in {
+                "/api/v1/me/password",
+                "/api/v1/me/push-token",
+            }:
                 # Library exceptions may carry credentials or SQL bind parameters.
                 frames = traceback.walk_tb(exc.__traceback__)
                 error_traceback = "\n".join(

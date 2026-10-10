@@ -3,14 +3,15 @@ import secrets
 from datetime import timedelta
 from uuid import UUID, uuid4
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Clock
 from app.db import transactional
 from app.errors import ApiError
 from app.locks import lock_family
-from app.models import AppUser, RefreshToken
+from app.models import AppUser, PushDevice, RefreshToken
 from app.realtime import PokeAfterCommit
 from app.schemas.auth import (
     Login,
@@ -209,15 +210,35 @@ async def change_password(
 async def upsert_push_token(
     session: AsyncSession, user: AppUser, body: PushToken, clock: Clock
 ) -> None:
-    await _locked_user(session, user)
-    raise NotImplementedError
+    async def write() -> None:
+        enabled = await _locked_user(session, user)
+        now = clock.now()
+        await session.execute(
+            insert(PushDevice)
+            .values(
+                token=body.token, user_id=enabled.id, created_at=now, updated_at=now
+            )
+            .on_conflict_do_update(
+                index_elements=[PushDevice.token],
+                set_={"user_id": enabled.id, "updated_at": now},
+            )
+        )
+
+    await transactional(session, write)
 
 
 async def delete_push_token(
     session: AsyncSession, user: AppUser, body: PushToken
 ) -> None:
-    await _locked_user(session, user)
-    raise NotImplementedError
+    async def write() -> None:
+        enabled = await _locked_user(session, user)
+        await session.execute(
+            delete(PushDevice).where(
+                PushDevice.token == body.token, PushDevice.user_id == enabled.id
+            )
+        )
+
+    await transactional(session, write)
 
 
 async def _locked_user(session: AsyncSession, user: AppUser) -> AppUser:

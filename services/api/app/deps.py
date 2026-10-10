@@ -1,3 +1,5 @@
+import asyncio
+from collections.abc import Sequence
 from typing import Annotated, cast
 from uuid import UUID
 
@@ -10,7 +12,7 @@ from app.clock import Clock
 from app.db import CommitCallback, get_session
 from app.errors import ApiError
 from app.models import AppUser
-from app.push import PushSender
+from app.push import PushAfterCommit, PushMessage, PushSender, register_push
 from app.realtime import Hub, PokeAfterCommit, family_revision
 from app.security.tokens import decode_access
 from app.settings import Settings
@@ -56,6 +58,21 @@ def after_commit(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[CommitCallback]:
     return cast(list[CommitCallback], session.info.setdefault("after_commit", []))
+
+
+def push_after_commit(
+    request: Request,
+    sender: Annotated[PushSender, Depends(get_push_sender)],
+    callbacks: Annotated[list[CommitCallback], Depends(after_commit)],
+) -> PushAfterCommit:
+    tasks = cast(set[asyncio.Task[None]], request.app.state.push_tasks)
+    context = cast(dict[str, object], getattr(request.state, "log_context", {}))
+    authorization = request.headers.get("Authorization", "")
+
+    def register(messages: Sequence[PushMessage]) -> None:
+        register_push(callbacks, tasks, sender, messages, context, authorization)
+
+    return register
 
 
 def poke_after_commit(

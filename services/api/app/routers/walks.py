@@ -3,7 +3,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from app.deps import push_after_commit
 from app.idempotency import IdempotentMutation, idempotent
+from app.push import PushAfterCommit
 from app.routers.auth import Database, RequestClock, User
 from app.schemas.rows import Walk
 from app.schemas.walks import WalkCreate, WalkFinish, WalkRoute
@@ -14,11 +16,15 @@ WalkMutation = Annotated[IdempotentMutation, Depends(idempotent("walk_sessions")
 
 
 @router.post("/walks", response_model=Walk)
-async def create_walk(body: WalkCreate, mutation: WalkMutation) -> Walk:
+async def create_walk(
+    body: WalkCreate,
+    mutation: WalkMutation,
+    push: Annotated[PushAfterCommit, Depends(push_after_commit)],
+) -> Walk:
     return cast(
         Walk,
         await mutation(
-            lambda: walks.create_walk(mutation.session, mutation.user, body)
+            lambda: walks.create_walk(mutation.session, mutation.user, body, push)
         ),
     )
 
