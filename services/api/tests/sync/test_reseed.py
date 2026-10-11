@@ -759,6 +759,7 @@ async def test_rs5_stub_is_member_and_cannot_log_in(
 
 
 @pytest.mark.parametrize("actor", [0, 1], ids=["leader", "member"])
+@pytest.mark.parametrize("entity", ["pets", "family"])
 async def test_rs10_other_family_id_is_refused_without_disclosure_or_write(
     app: FastAPI,
     reseed_base: TestFamily,
@@ -766,16 +767,20 @@ async def test_rs10_other_family_id_is_refused_without_disclosure_or_write(
     client_for: ClientFor,
     frozen_clock: FrozenClock,
     actor: int,
+    entity: str,
 ) -> None:
     other = await make_family()
     row = await one_row(
         app,
         reseed_base,
         frozen_clock,
+        entity,
         id=str(other.pets[0].id),
         name="Attempted replacement",
         deleted_at=frozen_clock.now().isoformat(),
     )
+    if entity == "family":
+        cast(Values, row["row"]).update(id=str(other.id), timezone="Pacific/Auckland")
     before = await database_rows(app)
     response = await client_for(reseed_base.users[actor]).post(
         "/api/v1/reseed", json={"rows": [row]}
@@ -793,7 +798,10 @@ async def test_rs10_other_family_id_is_refused_without_disclosure_or_write(
         str(other.id),
         str(other.pets[0].id),
         other.pets[0].name,
+        other.family.name,
+        other.family.timezone,
         "Attempted replacement",
+        "Pacific/Auckland",
     ):
         assert value not in response.text
 
@@ -1017,13 +1025,28 @@ class CommittedDuplicateSender(FakeSender):
 
 
 @pytest.mark.parametrize(
-    "name,same_author",
+    "name,same_author,disabled_author",
     [
-        ("duplicate-completion-the-earlier-stays", False),
-        ("duplicate-completion-the-incoming-is-earlier", False),
-        ("three-completions-one-live", False),
+        ("duplicate-completion-the-earlier-stays", False, None),
+        ("duplicate-completion-the-incoming-is-earlier", False, None),
+        ("three-completions-one-live", False, None),
         pytest.param(
-            "duplicate-completion-the-earlier-stays", True, id="same-author-no-push"
+            "duplicate-completion-the-earlier-stays",
+            True,
+            None,
+            id="same-author-no-push",
+        ),
+        pytest.param(
+            "duplicate-completion-the-earlier-stays",
+            False,
+            0,
+            id="disabled-winner-no-push",
+        ),
+        pytest.param(
+            "duplicate-completion-the-earlier-stays",
+            False,
+            1,
+            id="disabled-loser-no-push",
         ),
     ],
 )
@@ -1034,6 +1057,7 @@ async def test_rs4_duplicate_push_names_other_author_after_commit_once_per_loser
     frozen_clock: FrozenClock,
     name: str,
     same_author: bool,
+    disabled_author: int | None,
 ) -> None:
     vector = deepcopy(next(item for item in VECTORS if item["name"] == name))
     if same_author:
@@ -1063,13 +1087,21 @@ async def test_rs4_duplicate_push_names_other_author_after_commit_once_per_loser
         (user, secrets.token_urlsafe(24)) for user in [*users, reseed_base.users[0]]
     ]
     await seed_devices(app, devices)
+    if disabled_author is not None:
+        async with app.state.session_factory() as session:
+            await session.execute(
+                update(AppUser)
+                .where(AppUser.id == reseed_base.users[disabled_author].id)
+                .values(disabled_at=frozen_clock.now())
+            )
+            await session.commit()
     sender = CommittedDuplicateSender(app, reseed_base.id)
     app.state.push_sender = sender
     app.state.settings.push_enabled = True
     rows = await incoming_rows(
         app, reseed_base, cast(list[Values], vector["incoming"]), frozen_clock
     )
-    http = client_for(reseed_base.users[0])
+    http = client_for(reseed_base.users[1 if disabled_author == 0 else 0])
     try:
         response = await http.post("/api/v1/reseed", json={"rows": rows})
         assert response.status_code == 200, response.text
@@ -1115,6 +1147,11 @@ async def test_rs4_duplicate_push_names_other_author_after_commit_once_per_loser
                 (winner_author, loser_author),
                 (loser_author, winner_author),
             ):
+                if (
+                    disabled_author is not None
+                    and recipient == reseed_base.users[disabled_author].id
+                ):
+                    continue
                 expected_messages.extend(
                     completion_duplicate_message(
                         token, names[other_author], completions[winner]
@@ -1130,6 +1167,14 @@ async def test_rs4_duplicate_push_names_other_author_after_commit_once_per_loser
             for message in expected_messages
         )
         assert_messages(sender.messages, expected_messages)
+        if disabled_author is not None:
+            disabled_tokens = set(targets[reseed_base.users[disabled_author].id])
+            assert disabled_tokens
+            assert sender.messages
+            assert (
+                not {str(message["to"]) for message in sender.messages}
+                & disabled_tokens
+            )
         assert not {str(message["to"]) for message in sender.messages} & set(
             targets[third_id]
         )
