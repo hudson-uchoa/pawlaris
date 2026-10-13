@@ -213,3 +213,24 @@ packages check shared source with the same compiler. This replaces the
 shared scaffold's TypeScript 5.9.3 entry above. No runtime dependency is
 added; the licence and local-tool fallback remain Apache-2.0 and the
 pinned lockfile installation.
+
+## P3-1 — SQLite layer (2026-10-13)
+
+The mobile manifest and workspace lockfile pin these exact versions.
+Licences below come from each installed package's own `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-sqlite` | 57.0.4 | Synchronous on-device SQLite storage | MIT |
+| `sql.js` | 1.14.2 | WebAssembly SQLite driver for Jest tests only | MIT |
+| `@types/sql.js` | 1.4.11 | Strict type declarations for the test driver | MIT |
+| `@types/react` | 19.2.18 | React declarations aligned with the SDK's expected range | MIT |
+
+`expo-sqlite` is within the installed Expo SDK 57's bundled `~57.0.3`
+range. React declarations replace 19.2.2 with a version in the SDK's expected
+`~19.2.4` range. `sql.js` and its declarations are development dependencies
+and do not enter the production app's runtime dependencies.
+
+All four packages are local, open-source software without accounts or
+billing. The fallback is the pinned lockfile installation and local
+SQLite tooling; no hosted service is required.
