@@ -710,7 +710,10 @@ of `07` §10 for the directories it creates.
 - [ ] **P3-1 — SQLite layer**
   **Depends:** P0-5 · **Read:** `03` §10, §11 · `10` §1 · `07` §6 · `11` §2.2, §4.1, §4.3
   **Build:** first, set `@types/react` in `apps/mobile` to the range the SDK
-  expects (`npx expo install --check` reports it; noticed in P0-6).
+  expects (`npx expo install --check` reports it; noticed in P0-6), and add
+  `expo-sqlite` at the version the SDK bundles and, for the tests only,
+  `sql.js` with `@types/sql.js` — exact versions, recorded in
+  `docs/versions.md` with their licences.
   `db/driver.ts` (`SqlDriver`; `expoSqliteDriver()` on the synchronous
   API, with the re-entrant `transaction`); `db/migrations.ts` + `db/open.ts`
   (`openDatabase(driver)` applies pending migrations in a transaction and sets
