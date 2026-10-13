@@ -31,7 +31,7 @@
 | Secrets | `expo-secure-store` | The refresh token only |
 | Device | `expo-haptics`, `expo-device`, `expo-battery`, `expo-intent-launcher`, `expo-sharing`, `expo-clipboard` | |
 | Date/time input | `@react-native-community/datetimepicker` | |
-| Tests | Jest (`jest-expo`) + React Native Testing Library; `sql.js` as the SQLite test driver | |
+| Tests | Jest (`jest-expo`) + React Native Testing Library; `sql.js` (typed by `@types/sql.js`) as the SQLite test driver | |
 
 Not used, on purpose: Lottie (or any pre-rendered animation format), TanStack
 Query, AsyncStorage, any date library, any form library, any charting library,
