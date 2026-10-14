@@ -729,7 +729,7 @@ CREATE TABLE replica (
   revision INTEGER,            -- NULL until a server acknowledges the row (10 §3, 11 §4.3)
   pending  INTEGER NOT NULL DEFAULT 0,   -- 1 = has unacknowledged local changes
   deleted  INTEGER NOT NULL DEFAULT 0,   -- 1 = a tombstone: kept on disk, never hydrated (11 §2.2)
-  pull_gen INTEGER NOT NULL DEFAULT 0,   -- the full pull that last wrote this row (11 §4.3)
+  pull_gen INTEGER NOT NULL DEFAULT 0,   -- kv.pull_gen when the row was last written (10 §2.3, 11 §4.3)
   sort_key TEXT,               -- per-entity range key, see table below
   json     TEXT NOT NULL,
   PRIMARY KEY (entity, id)
