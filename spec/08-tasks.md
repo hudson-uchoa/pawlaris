@@ -769,7 +769,9 @@ of `07` §10 for the directories it creates.
 
 - [ ] **P3-3 — API client and session**
   **Depends:** P3-2, P2-3 · **Read:** `10` §1, §4.1, §8.1 · `04` §1.1, §3 · `11` §4.1, §4.5
-  **Build:** `config/servers.ts` (the primary's address from
+  **Build:** first, add `expo-secure-store` and `expo-crypto` at the versions
+  the SDK bundles, exact, recorded in `docs/versions.md` with their
+  licences. `config/servers.ts` (the primary's address from
   `EXPO_PUBLIC_API_URL`, the reserve's from the optional
   `EXPO_PUBLIC_RESERVE_API_URL`); `api/client.ts` (`createApi({http, session,
   servers, activeServer})` →
