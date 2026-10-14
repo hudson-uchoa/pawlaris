@@ -4,6 +4,6 @@ export interface Clock {
 
 export const systemClock: Clock = {
   now(): number {
-    throw new Error('Clock.now is not implemented');
+    return Date.now();
   },
 };
