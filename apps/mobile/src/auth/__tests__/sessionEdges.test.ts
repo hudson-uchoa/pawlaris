@@ -89,3 +89,50 @@ test('API-AUTH-HEADER / RS-9: caller headers cannot send a different bearer toke
   expect(sent?.headers).toEqual({ Authorization: 'Bearer fake-primary-access-initial' });
   expect(JSON.stringify(sent)).not.toContain('fake-reserve-');
 });
+
+test.each([503, 429])('SE-REFRESH-TRANSIENT / RS-9: a %i preserves stored session state', async (status) => {
+  const ctx = current();
+  const session = ctx.makeSession();
+  await session.adopt(wireSession('reserve'), 'reserve');
+  await signIn(ctx, session);
+  ctx.kv.set(serverKey('signed_out', 'reserve'), '1');
+  const secrets = ctx.secretBox.snapshot();
+  const user = ctx.kv.get('session_user');
+  const primaryFlag = ctx.kv.get(serverKey('signed_out', 'primary'));
+  const reserveFlag = ctx.kv.get(serverKey('signed_out', 'reserve'));
+  ctx.http.enqueue(response(status, { code: 'fake_refresh_failure' }));
+  expect(await session.refresh()).toEqual({
+    ok: false, ...response(status, { code: 'fake_refresh_failure' }),
+  });
+  expect(ctx.secretBox.snapshot()).toEqual(secrets);
+  expect(ctx.kv.get('session_user')).toBe(user);
+  expect(ctx.kv.get(serverKey('signed_out', 'primary'))).toBe(primaryFlag);
+  expect(ctx.kv.get(serverKey('signed_out', 'reserve'))).toBe(reserveFlag);
+  ctx.http.enqueue(response(200, wireSession('primary', 'recovered')));
+  expect(await ctx.makeSession().refresh()).toEqual({
+    ok: true, ...response(200, wireSession('primary', 'recovered')),
+  });
+  expect(ctx.http.requests.slice(-2)).toEqual([
+    {
+      method: 'POST', url: `${servers.primary}/auth/refresh`,
+      body: { refresh_token: 'fake-primary-refresh-initial' }, timeoutMs: 15_000,
+    },
+    {
+      method: 'POST', url: `${servers.primary}/auth/refresh`,
+      body: { refresh_token: 'fake-primary-refresh-initial' }, timeoutMs: 15_000,
+    },
+  ]);
+});
+
+test('SE-REDEEM-ACTIVE / RS-9: redeem uses the reserve address when it is active', async () => {
+  const ctx = current();
+  const session = ctx.makeSession();
+  ctx.select('reserve');
+  const body = { ...credentials, code: 'FAKECODE01', display_name: 'Test member' };
+  const wire = wireSession('reserve', 'redeemed');
+  ctx.http.enqueue(response(200, wire));
+  expect(await session.redeem(body)).toEqual({ ok: true, ...response(200, wire) });
+  expect(ctx.http.requests).toEqual([{
+    method: 'POST', url: `${servers.reserve}/auth/redeem`, body, timeoutMs: 15_000,
+  }]);
+});
