@@ -561,7 +561,7 @@ taken from the `Server-Timing` response header. p95 must be under 100 ms.
 | `services/api/app` | 85% | P0-4 (in the gate command) |
 | `apps/mobile/src/db`, `src/replica` | **90%** | P3-1, P3-2 |
 | `apps/mobile/src/api`, `src/auth`, `src/sync`, `src/assets` | **90%** | P3-3, P3-4, P3-8 |
-| `apps/mobile/src/notifications`, `src/walks` | 80% | P5-7, P6-2 |
+| `apps/mobile/src/notifications`, `src/walks` | 80% | P5-7, P3-8 (it creates `src/walks` with the route loader) |
 | `apps/mobile/src/features` | 60% | P4-3 |
 | `apps/mobile/src/ui`, `app/` | no floor — judged by the named state tests | — |
 
