@@ -247,3 +247,17 @@ The licence below comes from the installed package's own `package.json`.
 Zustand is local, open-source software without accounts or billing.
 The fallback is the pinned lockfile installation; no hosted service is
 required.
+
+## P3-3 — API client and session (2026-10-13)
+
+The mobile manifest and workspace lockfile pin these exact versions.
+The licences below come from each installed package's own `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-secure-store` | 57.0.4 | Persist each server's refresh token, access token and access expiry | MIT |
+| `expo-crypto` | 57.0.3 | Generate UUIDs through the production IdGen seam | MIT |
+
+Both packages are local, open-source software without accounts or billing.
+The fallback is the pinned lockfile installation; no hosted service is
+required.
