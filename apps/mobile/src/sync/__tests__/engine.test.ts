@@ -9,6 +9,9 @@ import { petMutation, seedMutation, syncContext, type SyncContext } from './supp
 import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
 import { AppState, type AppStateStatus } from 'react-native';
 import { createWiredEngine } from '../wiring';
+import { fakeWebSocket } from '../../testing/fakeWebSocket';
+import { createSocket } from '../socket';
+import { createServerSelect, type ServerSelect } from '../serverSelect';
 
 jest.mock('@react-native-community/netinfo', () => ({
   __esModule: true, default: { addEventListener: jest.fn() },
@@ -74,6 +77,125 @@ async function advance(milliseconds: number) {
   c.clock.advance(milliseconds);
   await jest.advanceTimersByTimeAsync(milliseconds);
 }
+
+test('ENGINE-MOVE-SOCKET / RS-9: a move closes the old socket and authenticates at the new address', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const wire = fakeWebSocket();
+  const { engine: created, select } = makeEngine({
+    foreground: true,
+    createSocket: (server, onRevision) => createSocket({
+      url: `${servers[server].replace(/^https:/, 'wss:')}/ws`,
+      session: {
+        accessToken: () => c.session.accessToken(server),
+        refresh: () => c.session.refresh(server),
+      },
+      clock: c.clock, random: fakeRandom(), WebSocketImpl: wire.WebSocketImpl,
+      lastRevision: () => Number(c.kv.get(`last_revision.${server}`) ?? '0'),
+      onRevision,
+    }),
+  });
+  c.http.enqueue(page(), page(8));
+  await created.kick('start');
+  const primary = wire.instances[0];
+  if (primary === undefined) throw new Error('Expected the primary socket');
+  primary.open();
+  expect(primary.url).toBe(`${servers.primary.replace(/^https:/, 'wss:')}/ws`);
+  expect(primary.sent.map((frame): unknown => JSON.parse(frame))).toEqual([
+    { type: 'auth', access_token: wireSession('primary').access_token },
+  ]);
+  select('reserve');
+  await created.kick('refresh');
+  const reserve = wire.instances[1];
+  if (reserve === undefined) throw new Error('Expected the reserve socket');
+  expect(primary.readyState).toBe(3);
+  expect(primary.closes).toHaveLength(1);
+  expect(reserve.url).toBe(`${servers.reserve.replace(/^https:/, 'wss:')}/ws`);
+  reserve.open();
+  expect(reserve.sent.map((frame): unknown => JSON.parse(frame))).toEqual([
+    { type: 'auth', access_token: wireSession('reserve').access_token },
+  ]);
+  expect(wire.instances).toHaveLength(2);
+});
+
+test('ENGINE-MOVE-STATE / RS-8: cycle failures move the selector and the next cycle names the reserve', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
+  const { engine: created } = makeEngine({ serverSelect, arrive });
+  const states: ConnectionState[] = [];
+  created.state.subscribe((state) => { states.push(state); });
+  c.http.enqueue(new Error('simulated primary network failure'));
+  await created.kick('start');
+  c.clock.advance(30_000);
+  c.http.enqueue(response(502));
+  await created.kick('refresh');
+  expect(created.state.getState().server).toBe('primary');
+  c.clock.advance(30_000);
+  c.http.enqueue(response(504), response(200, { status: 'ok', role: 'reserve',
+    db: true, disk_free_mb: 1_000, version: 'test', uptime_s: 60 }));
+  await created.kick('refresh');
+  expect(serverSelect.current()).toBe('reserve');
+  c.http.enqueue(page(11));
+  await created.kick('refresh');
+  expect(arrive).toHaveBeenCalledWith('reserve');
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
+  expect(states).toEqual(expect.arrayContaining([
+    { status: 'syncing', server: 'reserve', outboxCount: 0 },
+    { status: 'synced', server: 'reserve', outboxCount: 0 },
+  ]));
+  expect(c.http.requests.at(-1)?.url).toBe(`${servers.reserve}/sync?since=0&limit=500`);
+});
+
+test('ENGINE-PROBE / RS-8: an open reserve socket still probes the primary every sixty seconds', async () => {
+  c.kv.set('active_server', 'reserve');
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  const { engine: created, sockets } = makeEngine({ serverSelect, foreground: true });
+  c.http.enqueue(page());
+  await created.kick('start');
+  const reserve = sockets.at(-1);
+  if (reserve === undefined) throw new Error('Expected the reserve socket');
+  reserve.open();
+  for (let count = 1; count <= 2; count += 1) {
+    await advance(59_999);
+    expect(c.http.requests.filter((request) => request.url.endsWith('/health'))).toHaveLength(count - 1);
+    c.http.enqueue(response(200, { status: 'ok', role: 'primary',
+      db: true, disk_free_mb: 1_000, version: 'test', uptime_s: 60 }));
+    await advance(1);
+    expect(c.http.requests.filter((request) => request.url.endsWith('/health'))
+      .map((request) => request.url)).toEqual(Array.from({ length: count }, () => `${servers.primary}/health`));
+    expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
+  }
+  c.http.enqueue(response(200, { status: 'ok', role: 'primary',
+    db: true, disk_free_mb: 1_000, version: 'test', uptime_s: 60 }), page(8));
+  await advance(60_000);
+  expect(reserve.close).toHaveBeenCalled();
+  expect(sockets.at(-1)?.server).toBe('primary');
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'primary', outboxCount: 0 });
+});
+
+test.each(['success', 'network failure', 'HTTP 503', 'HTTP 500', 'offline'] as const)(
+  'ENGINE-REPORT / RS-8: the engine reports a cycle outcome of %s', async (outcome) => {
+    const report = jest.fn<ReturnType<ServerSelect['report']>, Parameters<ServerSelect['report']>>()
+      .mockResolvedValue(undefined);
+    const serverSelect: ServerSelect = {
+      current: () => 'primary', report, tick: async () => {},
+    };
+    if (outcome !== 'offline') {
+      c.http.enqueue(outcome === 'network failure' ? new Error('simulated cycle network failure')
+        : outcome === 'HTTP 503' ? response(503)
+          : outcome === 'HTTP 500' ? response(500) : page());
+    }
+    const { engine: created } = makeEngine({ serverSelect, online: outcome !== 'offline' });
+    await created.kick('start');
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(report).toHaveBeenCalledWith(outcome === 'offline' ? 'offline'
+      : outcome === 'network failure' ? { networkError: true }
+        : outcome === 'HTTP 503' || outcome === 'HTTP 500'
+          ? { ok: false, status: outcome === 'HTTP 503' ? 503 : 500, body: null, headers: {} }
+          : null);
+  },
+);
 
 test('ENGINE-ORDER: drain acknowledgements land before the pull starts', async () => {
   const mutation = petMutation(c, 'Queued pet');
