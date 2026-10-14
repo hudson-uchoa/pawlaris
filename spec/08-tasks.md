@@ -843,7 +843,7 @@ of `07` §10 for the directories it creates.
   listed in `07` §6.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/socket.test.ts`
 
-- [ ] **P3-7 — Engine and session lifecycle**
+- [~] **P3-7 — Engine and session lifecycle**
   **Depends:** P3-6 · **Read:** `10` §8 · `11` §4.5, §4.6
   **Build:** `sync/engine.ts` — `createEngine(deps)` with `kick(reason)`,
   observable `state` (which carries the active server), the cycle, retry
