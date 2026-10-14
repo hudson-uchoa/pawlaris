@@ -99,6 +99,24 @@ test('WS-1: state starts closed, becomes connecting, then open, then closed', as
   expect(socket.state).toBe('closed');
 });
 
+test.each(['connecting', 'open'] as const)(
+  'WS-1: repeated connect while %s creates only one transport', async (state) => {
+    makeSocket();
+    await socket.connect();
+    const wire = connection();
+    if (state === 'open') wire.open();
+    expect(socket.state).toBe(state);
+    await socket.connect();
+    expect(transport.instances).toEqual([wire]);
+    expect(socket.state).toBe(state);
+    if (state === 'connecting') wire.open();
+    expect(wire.sent).toEqual([JSON.stringify({
+      type: 'auth', access_token: wireSession('primary').access_token,
+    })]);
+    expect(socket.state).toBe('open');
+  },
+);
+
 test('WS-1: the first frame authenticates within five seconds and the token never enters the URL', async () => {
   makeSocket();
   const wire = await openSocket();
@@ -369,6 +387,29 @@ test.each([200, 'network'] as const)(
   },
 );
 
+test('WS-1: an old refresh completing after close and reconnect leaves only the new run active', async () => {
+  const session = makeSocket();
+  const oldWire = await openSocket();
+  const refreshed = deferred<HttpResponse>();
+  c.http.enqueue(() => refreshed.promise);
+  oldWire.serverClose(4401);
+  await advance(0);
+  expect(c.http.requests).toHaveLength(1);
+  socket.close();
+  const current = wireSession('primary', 'new-run');
+  await session.adopt(current);
+  await socket.connect();
+  const newWire = connection();
+  newWire.open();
+  refreshed.resolve(response(200, wireSession('primary', 'old-refresh')));
+  await advance(0);
+  expect(transport.instances).toEqual([oldWire, newWire]);
+  expect(transport.instances.filter((wire) => wire.readyState !== 3)).toEqual([newWire]);
+  expect(newWire.sent).toEqual([JSON.stringify({ type: 'auth', access_token: current.access_token })]);
+  expect(socket.state).toBe('open');
+  expect(c.http.requests).toHaveLength(1);
+});
+
 test('WS-1: close while connecting closes the transport and clears all work', async () => {
   makeSocket();
   await socket.connect();
@@ -405,6 +446,33 @@ test('WS-1: close during token lookup prevents opening a transport after the loo
   expect(socket.state).toBe('closed');
   expect(transport.instances).toHaveLength(0);
   expect(jest.getTimerCount()).toBe(0);
+});
+
+test('WS-1: an old token lookup completing after close and reconnect leaves only the new run active', async () => {
+  const lookup = deferred<string | null>();
+  const oldTokens = c.secretBox.snapshot()['session_tokens.primary'] ?? null;
+  const get = jest.fn(c.secretBox.get).mockImplementationOnce(() => lookup.promise);
+  const session = createSession({ ...c, secretBox: { ...c.secretBox, get } });
+  socket = createSocket({
+    url, session, clock: c.clock, random: fakeRandom(),
+    WebSocketImpl: transport.WebSocketImpl, lastRevision: () => 10, onRevision,
+  });
+  const oldConnecting = socket.connect();
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(transport.instances).toHaveLength(0);
+  socket.close();
+  const current = wireSession('primary', 'new-run');
+  await session.adopt(current);
+  await socket.connect();
+  const newWire = connection();
+  newWire.open();
+  lookup.resolve(oldTokens);
+  await oldConnecting;
+  await advance(0);
+  expect(get).toHaveBeenCalledTimes(2);
+  expect(transport.instances).toEqual([newWire]);
+  expect(newWire.sent).toEqual([JSON.stringify({ type: 'auth', access_token: current.access_token })]);
+  expect(socket.state).toBe('open');
 });
 
 test('WS-1: late transport events after close trigger neither revisions nor reconnections', async () => {
