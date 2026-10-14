@@ -261,3 +261,16 @@ The licences below come from each installed package's own `package.json`.
 Both packages are local, open-source software without accounts or billing.
 The fallback is the pinned lockfile installation; no hosted service is
 required.
+
+## P3-7 — Engine and session lifecycle (2026-10-14)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's own `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `@react-native-community/netinfo` | 12.0.1 | Network reachability input for the sync engine | MIT |
+
+NetInfo is local, open-source software without accounts or billing.
+The fallback is the pinned lockfile installation; no hosted service is
+required.
