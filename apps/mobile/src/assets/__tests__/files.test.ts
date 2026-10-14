@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { createElement, type ReactNode } from 'react';
-import { deferred, response, servers } from '../../auth/__tests__/support';
+import { deferred, response, servers, wireSession } from '../../auth/__tests__/support';
 import { AssetRepo } from '../../db/assetRepo';
 import { serverKey } from '../../db/kv';
 import type { HttpResponse } from '../../platform/http';
@@ -388,4 +388,185 @@ test('fakeFileSystem: failed downloads store no bytes and upload uses the file l
   fake.write(uri, new Uint8Array([1, 2, 3]));
   await fake.upload('https://files.invalid/photo', uri, { 'X-Content-SHA256': sha256 });
   expect(fake.requests[1]).toMatchObject({ method: 'PUT', uri, headers: { 'Content-Length': '3' } });
+});
+
+test('upload auth refresh: retry the same id and hash once with the rotated access token', async () => {
+  const id = seedUpload();
+  fileSystem.enqueue(response(401), response(201));
+  c.http.enqueue(response(200, wireSession('primary', 'rotated')));
+  await files.uploads.kick();
+  expect(repo.get(id)?.state).toBe('uploaded');
+  expect(fileSystem.requests.map((request) => request.headers.Authorization)).toEqual([
+    'Bearer fake-primary-access-initial', 'Bearer fake-primary-access-rotated',
+  ]);
+  expect(fileSystem.requests.map((request) => request.headers['X-Content-SHA256'])).toEqual([sha256, sha256]);
+  expect(new Set(fileSystem.requests.map((request) => request.url)).size).toBe(1);
+  expect(c.http.requests.map((request) => request.url)).toEqual([`${servers.primary}/auth/refresh`]);
+});
+
+test('upload auth expiry: keep the queued photo without an automatic retry loop', async () => {
+  const id = seedUpload();
+  fileSystem.enqueue(response(401));
+  c.http.enqueue(response(401));
+  await files.uploads.kick();
+  expect(repo.get(id)?.state).toBe('to_upload');
+  expect(c.kv.get('signed_out.primary')).toBe('1');
+  expect(jest.getTimerCount()).toBe(0);
+  await c.session.adopt(wireSession('primary', 'new-login'));
+  fileSystem.enqueue(response(201));
+  await files.uploads.kick();
+  expect(repo.get(id)?.state).toBe('uploaded');
+});
+
+test('upload missing session: keep the file and make no transfer request or retry timer', async () => {
+  const id = seedUpload();
+  await c.session.clear();
+  await files.uploads.kick();
+  expect(repo.get(id)?.state).toBe('to_upload');
+  expect(fileSystem.requests).toHaveLength(0);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test('upload refresh offline: use upload backoff after refresh fails on the network', async () => {
+  const id = seedUpload();
+  fileSystem.enqueue(response(401));
+  c.http.enqueue(new Error('Simulated refresh network failure'));
+  await files.uploads.kick();
+  expect(repo.get(id)).toMatchObject({ state: 'to_upload', attempts: 1,
+    nextRetryAt: c.clock.now() + 1_000 });
+  expect(c.kv.get('signed_out.primary')).toBeNull();
+});
+
+test.each(['future', 'past', 'invalid'])('upload Retry-After %s: parse HTTP dates with the injected clock', async (value) => {
+  const id = seedUpload();
+  const deadline = value === 'future' ? c.clock.now() + 10_000 : c.clock.now() - 10_000;
+  const header = value === 'invalid' ? 'invalid-date' : new Date(deadline).toUTCString();
+  fileSystem.enqueue({ ...response(503), headers: { 'retry-after': header } });
+  await files.uploads.kick();
+  expect(repo.get(id)?.nextRetryAt).toBe(c.clock.now()
+    + (value === 'future' ? 10_000 : value === 'past' ? 0 : 1_000));
+});
+
+test('upload disposal: a pending transfer cannot write metadata or install another timer', async () => {
+  const id = seedUpload();
+  const pending = deferred<HttpResponse>();
+  fileSystem.enqueue(() => pending.promise);
+  const running = files.uploads.kick();
+  await advance(0);
+  files.uploads.dispose();
+  pending.resolve(response(201));
+  await running;
+  await files.uploads.kick();
+  expect(repo.get(id)?.state).toBe('to_upload');
+  expect(fileSystem.requests).toHaveLength(1);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test('upload disposal before run: a disposed loop makes no request', async () => {
+  seedUpload();
+  const running = files.uploads.kick();
+  files.uploads.dispose();
+  await running;
+  expect(fileSystem.requests).toHaveLength(0);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test('upload capture during flight: the next photo drains after the pending photo', async () => {
+  const firstId = seedUpload();
+  const pending = deferred<HttpResponse>();
+  fileSystem.enqueue(() => pending.promise, response(201));
+  const running = files.uploads.kick();
+  await advance(0);
+  const next = capture();
+  files.registerCapture(next);
+  pending.resolve(response(201));
+  await running;
+  expect(repo.get(firstId)?.state).toBe('uploaded');
+  expect(repo.get(next.id)?.state).toBe('uploaded');
+  expect(fileSystem.requests.map((request) => request.url)).toEqual([
+    `${servers.primary}/assets/${firstId}?kind=task_proof`,
+    `${servers.primary}/assets/${next.id}?kind=task_proof`,
+  ]);
+});
+
+test.each(['localUri', 'sha256'] as const)('upload missing %s: fail incomplete metadata and continue the queue', async (field) => {
+  const missing = seedUpload({ [field]: null });
+  const valid = seedUpload();
+  fileSystem.enqueue(response(201));
+  await files.uploads.kick();
+  expect(repo.get(missing)?.state).toBe('failed');
+  expect(repo.get(valid)?.state).toBe('uploaded');
+  expect(fileSystem.requests).toHaveLength(1);
+});
+
+test('retryUpload: missing and already uploaded ids make no transfer', async () => {
+  const uploaded = seedUpload({ state: 'uploaded' });
+  files.retryUpload(c.ids.uuid());
+  files.retryUpload(uploaded);
+  await advance(0);
+  expect(repo.get(uploaded)?.state).toBe('uploaded');
+  expect(fileSystem.requests).toHaveLength(0);
+});
+
+test('ensureFile single-flight: simultaneous consumers share one download', async () => {
+  const asset = c.factory.assets();
+  c.apply.applyServerRows([{ entity: 'assets', row: asset }]);
+  const pending = deferred<HttpResponse>();
+  fileSystem.enqueue(() => pending.promise);
+  const first = files.ensureFile(asset.id);
+  const second = files.ensureFile(asset.id);
+  await advance(0);
+  expect(fileSystem.requests).toHaveLength(1);
+  pending.resolve(response(200));
+  const expected = { status: 'ready', uri: `${documentDirectory}assets/${asset.id}.jpg` };
+  expect(await first).toEqual(expected);
+  expect(await second).toEqual(expected);
+  expect(await files.ensureFile(asset.id)).toEqual(expected);
+  expect(fileSystem.requests).toHaveLength(1);
+});
+
+test('ensureFile unavailable metadata: an unknown MIME makes no download request', async () => {
+  const asset = c.factory.assets({ mime: 'invalid/type' });
+  c.apply.applyServerRows([{ entity: 'assets', row: asset }]);
+  expect(await files.ensureFile(asset.id)).toEqual({ status: 'failed' });
+  expect(fileSystem.requests).toHaveLength(0);
+});
+
+test('ensureFile null local URI: download a replica asset with incomplete local metadata', async () => {
+  const asset = c.factory.assets();
+  c.apply.applyServerRows([{ entity: 'assets', row: asset }]);
+  repo.upsert(c.factory.assetFile({ id: asset.id, localUri: null, state: 'downloaded' }));
+  fileSystem.enqueue(response(200));
+  expect(await files.ensureFile(asset.id)).toEqual({
+    status: 'ready', uri: `${documentDirectory}assets/${asset.id}.jpg`,
+  });
+});
+
+test('useAssetFile missing provider: report the missing file service', async () => {
+  await expect(renderHook(() => useAssetFile(c.ids.uuid())))
+    .rejects.toThrow('useAssetFile requires an AssetFilesProvider');
+});
+
+test('useAssetFile changed id: ignore the old pending download and render the new file', async () => {
+  const first = c.factory.assets();
+  const next = c.factory.assets();
+  c.apply.applyServerRows([{ entity: 'assets', row: first }, { entity: 'assets', row: next }]);
+  const pending = deferred<HttpResponse>();
+  fileSystem.enqueue(() => pending.promise, response(200));
+  function Wrapper({ children }: { children: ReactNode }) {
+    const props = { store: c.store, children: createElement(AssetFilesProvider, { files }, children) };
+    return createElement(ReplicaProvider, props);
+  }
+  const rendered = await renderHook(({ id }: { id: string }) => useAssetFile(id), {
+    initialProps: { id: first.id }, wrapper: Wrapper,
+  });
+  try {
+    await rendered.rerender({ id: next.id });
+    expect(rendered.result.current).toEqual({ status: 'ready', uri: `${documentDirectory}assets/${next.id}.jpg` });
+    await act(async () => { pending.resolve(response(200)); });
+    expect(rendered.result.current).toEqual({ status: 'ready', uri: `${documentDirectory}assets/${next.id}.jpg` });
+  } finally {
+    pending.resolve(response(200));
+    await rendered.unmount();
+  }
 });

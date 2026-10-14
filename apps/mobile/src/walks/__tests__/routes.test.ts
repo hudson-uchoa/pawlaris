@@ -105,3 +105,32 @@ test('useWalkRoute offline: expose unavailable while leaving walk metrics in the
     await rendered.unmount();
   }
 });
+
+test('useWalkRoute missing provider: report the missing route service', async () => {
+  await expect(renderHook(() => useWalkRoute(c.ids.uuid())))
+    .rejects.toThrow('useWalkRoute requires a WalkRoutesProvider');
+});
+
+test('useWalkRoute changed id: ignore an old pending request after moving to another walk', async () => {
+  const firstId = c.ids.uuid();
+  const nextId = c.ids.uuid();
+  const oldPoints = points();
+  const nextPoints: RoutePoint[] = [[1, 1, c.clock.now(), 5]];
+  const pending = deferred<HttpResponse>();
+  c.http.enqueue(() => pending.promise, response(200, { points: nextPoints }));
+  function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(WalkRoutesProvider, { routes }, children);
+  }
+  const rendered = await renderHook(({ id }: { id: string }) => useWalkRoute(id), {
+    initialProps: { id: firstId }, wrapper: Wrapper,
+  });
+  try {
+    await rendered.rerender({ id: nextId });
+    expect(rendered.result.current).toEqual({ status: 'ready', points: nextPoints });
+    await act(async () => { pending.resolve(response(200, { points: oldPoints })); });
+    expect(rendered.result.current).toEqual({ status: 'ready', points: nextPoints });
+  } finally {
+    pending.resolve(response(200, { points: oldPoints }));
+    await rendered.unmount();
+  }
+});

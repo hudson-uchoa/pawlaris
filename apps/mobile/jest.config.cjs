@@ -12,6 +12,8 @@ module.exports = {
     './src/api/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/auth/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/sync/': { statements: 90, branches: 90, functions: 90, lines: 90 },
+    './src/assets/': { statements: 90, branches: 90, functions: 90, lines: 90 },
+    './src/walks/': { statements: 80, branches: 80, functions: 80, lines: 80 },
   },
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*))',

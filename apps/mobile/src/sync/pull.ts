@@ -20,6 +20,7 @@ export interface PullDependencies {
   apply: ReplicaApply;
   api: Api;
   arrive(server: Server): Promise<PullResult>;
+  prefetchAvatars?(): Promise<void>;
 }
 
 interface PullPage {
@@ -29,28 +30,34 @@ interface PullPage {
   epoch: string;
 }
 
-export function createPull({ driver, apply, api, arrive }: PullDependencies): Pull {
+export function createPull({ driver, apply, api, arrive, prefetchAvatars }: PullDependencies): Pull {
   const kv = new Kv(driver);
   let lastFailure: ApiFailure | null = null;
   return {
     get lastFailure() { return lastFailure; },
     async pull(options = {}) {
       lastFailure = null;
-      for (;;) {
-        const server = kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
-        const since = kv.get(serverKey('last_revision', server)) ?? '0';
-        const result = await api.request('GET', `/sync?since=${since}&limit=500`);
-        if ('networkError' in result || !result.ok) {
-          lastFailure = result;
-          return classify(result);
+      let applied = false;
+      try {
+        for (;;) {
+          const server = kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
+          const since = kv.get(serverKey('last_revision', server)) ?? '0';
+          const result = await api.request('GET', `/sync?since=${since}&limit=500`);
+          if ('networkError' in result || !result.ok) {
+            lastFailure = result;
+            return classify(result);
+          }
+          // The successful /sync body has the page shape specified in 04 section 6.
+          const page = result.body as PullPage;
+          if (page.epoch !== kv.get(serverKey('reseeded_epoch', server))) return arrive(server);
+          const epochKey = serverKey('sync_epoch', server);
+          if (kv.get(epochKey) === null) kv.set(epochKey, page.epoch);
+          apply.applyServerRows(page.changes, { ...options, cursor: page.revision });
+          applied ||= page.changes.length > 0;
+          if (!page.has_more) return 'ok';
         }
-        // The successful /sync body has the page shape specified in 04 section 6.
-        const page = result.body as PullPage;
-        if (page.epoch !== kv.get(serverKey('reseeded_epoch', server))) return arrive(server);
-        const epochKey = serverKey('sync_epoch', server);
-        if (kv.get(epochKey) === null) kv.set(epochKey, page.epoch);
-        apply.applyServerRows(page.changes, { ...options, cursor: page.revision });
-        if (!page.has_more) return 'ok';
+      } finally {
+        if (applied) void prefetchAvatars?.();
       }
     },
   };
