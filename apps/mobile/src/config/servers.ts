@@ -6,9 +6,12 @@ export interface Servers {
 }
 
 export function readServers(): Servers {
-  throw new Error('readServers is not implemented');
+  const primary = process.env.EXPO_PUBLIC_API_URL;
+  const reserve = process.env.EXPO_PUBLIC_RESERVE_API_URL;
+  if (!primary) throw new Error('EXPO_PUBLIC_API_URL is required');
+  return { primary, ...(reserve ? { reserve } : {}) };
 }
 
 export function activeServer(): Server {
-  throw new Error('activeServer is not implemented');
+  return 'primary';
 }

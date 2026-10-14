@@ -4,6 +4,6 @@ export interface Random {
 
 export const systemRandom: Random = {
   next(): number {
-    throw new Error('Random.next is not implemented');
+    return Math.random();
   },
 };

@@ -1,7 +1,7 @@
 import type { Session } from '../auth/session';
 import type { Servers } from '../config/servers';
 import type { Server } from '../db/kv';
-import type { Http, HttpHeaders, HttpMethod } from '../platform/http';
+import type { Http, HttpHeaders, HttpMethod, HttpRequest } from '../platform/http';
 
 export interface HttpFailure {
   ok: false;
@@ -35,6 +35,37 @@ export interface ApiDependencies {
   activeServer(): Server;
 }
 
-export function createApi(_dependencies: ApiDependencies): Api {
-  throw new Error('createApi is not implemented');
+export async function requestHttp(http: Http, request: HttpRequest): Promise<ApiResult> {
+  try {
+    const response = await http.request(request);
+    return { ok: response.status >= 200 && response.status < 300, ...response };
+  } catch {
+    return { networkError: true };
+  }
+}
+
+export function createApi({ http, session, servers, activeServer }: ApiDependencies): Api {
+  return {
+    async request(method, path, body, headers) {
+      const server = activeServer();
+      const base = servers[server];
+      if (base === undefined) throw new Error('The active server has no configured address');
+      const token = await session.accessToken(server);
+      if (typeof token !== 'string') return token;
+      const callerHeaders = Object.fromEntries(
+        Object.entries(headers ?? {}).filter(([key]) => key.toLowerCase() !== 'authorization'),
+      );
+      const send = (accessToken: string) => requestHttp(http, {
+        method, url: `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`,
+        ...(body === undefined ? {} : { body }),
+        headers: { ...callerHeaders, Authorization: `Bearer ${accessToken}` },
+        timeoutMs: 15_000,
+      });
+      const result = await send(token);
+      if ('networkError' in result || result.status !== 401) return result;
+      const refreshed = await session.refresh(server);
+      if ('networkError' in refreshed || !refreshed.ok) return refreshed;
+      return send(refreshed.body.access_token);
+    },
+  };
 }
