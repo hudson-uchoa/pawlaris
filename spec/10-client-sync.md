@@ -385,9 +385,11 @@ notification layer to reconcile reminders (`09` §9).
 ```
 connect when: signed in AND app in foreground AND network reachable
 on open:      send {type:'auth', access_token}
-on 'ready', 'poke' or 'pong':  if msg.revision > kv.last_revision: engine.kick('poke')
+on 'ready', 'poke' or 'pong':  if msg.revision > kv.last_revision.<server>: engine.kick('poke')
 every 30 s:   send {type:'ping'}; no 'pong' within 10 s → close and reconnect
-on close 4401: refresh the access token (single-flight), then reconnect
+on close 4401: refresh the access token (single-flight), then reconnect —
+              a refresh that fails at the network level waits backoff(n) and
+              tries again; one answered 401 leaves the socket closed (§8.1)
 on any other close or error: reconnect after backoff(n) (1 s … 60 s, with jitter); n resets on 'ready'
 on app background: close; on foreground: connect and engine.kick('foreground')
 ```
@@ -397,6 +399,12 @@ caught within 30 seconds. While the app is in the foreground and the socket is
 **not** open, the engine pulls every 60 seconds. Together they keep the app
 correct with the socket unreliable or permanently down *(R5.5)*. These are
 plain JS timers; they drive data, not animation.
+
+The socket is made for one server, the active one, and knows nothing of the
+engine: it asks `lastRevision()` for that server's cursor and calls
+`onRevision(revision)` only when a frame carries a higher one. The engine
+wires that to `kick('poke')`, and makes a new socket when the active server
+changes *(`11` §4.2)*.
 
 ---
 
