@@ -1,6 +1,38 @@
 import type { DateKey } from './dates';
 import type { Recurrence } from './recurrence';
 
+export type AuthUser = {
+  id: string;
+  family_id: string;
+  email: string;
+  display_name: string;
+  role: 'leader' | 'member';
+  color: string;
+};
+
+export type AuthSession = {
+  access_token: string;
+  refresh_token: string;
+  access_expires_at: string;
+  user: AuthUser;
+};
+
+export type AuthLoginBody = {
+  email: string;
+  password: string;
+};
+
+export type AuthRedeemBody = {
+  code: string;
+  email: string;
+  password: string;
+  display_name: string;
+};
+
+export type AuthRefreshBody = {
+  refresh_token: string;
+};
+
 type SyncRow = {
   id: string;
   revision: number | null;

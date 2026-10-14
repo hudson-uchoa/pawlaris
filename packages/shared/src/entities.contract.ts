@@ -6,6 +6,14 @@ type Assert<T extends true> = T;
 type Assignable<L, W> = [L] extends [W] ? true : false;
 type Mutual<L, W> = Assignable<L, W> extends true ? Assignable<W, L> : false;
 
+type AuthContract<L, W> = Mutual<keyof L, keyof W> extends true
+  ? {
+      [K in keyof L & keyof W]: Mutual<L[K], W[K]>;
+    }[keyof L & keyof W] extends true
+    ? true
+    : false
+  : false;
+
 // Pending phone rows have no server revision yet (10 §3). Compare the
 // non-null local revision with the wire revision, in both directions.
 type EntityContract<
@@ -25,6 +33,11 @@ type EntityContract<
   : false;
 
 export type EntityContracts = [
+  Assert<AuthContract<Local.AuthUser, Wire['Me']>>,
+  Assert<AuthContract<Local.AuthSession, Wire['Session']>>,
+  Assert<AuthContract<Local.AuthLoginBody, Wire['Login']>>,
+  Assert<AuthContract<Local.AuthRedeemBody, Wire['Redeem']>>,
+  Assert<AuthContract<Local.AuthRefreshBody, Wire['Refresh']>>,
   Assert<EntityContract<Local.Family, Wire['Family']>>,
   Assert<EntityContract<Local.Member, Wire['Member']>>,
   Assert<EntityContract<Local.Pet, Wire['Pet']>>,
@@ -47,3 +60,12 @@ export type RejectMissingKey = Assert<EntityContract<Omit<Local.Family, 'name'>,
 export type RejectScalarDrift = Assert<EntityContract<Omit<Local.Family, 'name'> & { name: number }, Wire['Family']>>;
 // @ts-expect-error One-sided nullability must fail bidirectional compatibility.
 export type RejectNullableDrift = Assert<EntityContract<Omit<Local.Family, 'name'> & { name: string | null }, Wire['Family']>>;
+
+// @ts-expect-error An added auth key must fail the exact-key check.
+export type RejectAuthAddedKey = Assert<AuthContract<Local.AuthLoginBody & { extra?: string }, Wire['Login']>>;
+// @ts-expect-error A missing auth key must fail the exact-key check.
+export type RejectAuthMissingKey = Assert<AuthContract<Omit<Local.AuthRedeemBody, 'code'>, Wire['Redeem']>>;
+// @ts-expect-error An auth scalar type change must fail field compatibility.
+export type RejectAuthScalarDrift = Assert<AuthContract<{ refresh_token: number }, Wire['Refresh']>>;
+// @ts-expect-error Auth nullability drift must fail bidirectional compatibility.
+export type RejectAuthNullableDrift = Assert<AuthContract<Omit<Local.AuthSession, 'user'> & { user: Local.AuthUser | null }, Wire['Session']>>;
