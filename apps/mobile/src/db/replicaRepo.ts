@@ -113,7 +113,7 @@ export class ReplicaRepo {
   }
   pageForReseed(after: ReseedCursor | null, limit: number): ReplicaRecord[] {
     // Rank on disk: only this page's JSON is decoded into JavaScript.
-    // Keep protected rows in the ranking so they can still locate a cursor.
+    // Keep filtered rows in the ranking so they can still locate a cursor.
     return this.driver.all<StoredReplica>(`
       WITH RECURSIVE template_depth (id, depth) AS (
         SELECT r.id, 0 FROM replica r WHERE r.entity = 'task_templates'
@@ -147,9 +147,9 @@ export class ReplicaRepo {
       SELECT * FROM ranked r
       WHERE position > COALESCE((
         SELECT position FROM ranked WHERE entity = ? AND id = ?
-      ), 0) AND NOT EXISTS (
+      ), 0) AND r.revision IS NOT NULL AND NOT (r.entity = 'walk_sessions' AND EXISTS (
         SELECT 1 FROM outbox WHERE outbox.entity = r.entity AND outbox.entity_id = r.id
-      )
+      ))
       ORDER BY position LIMIT ?
     `, [after?.entity ?? null, after?.id ?? null, limit]).map((stored) => decode(stored));
   }

@@ -204,6 +204,8 @@ describe('replica repository', () => {
       const protectedPet = factory.pets();
       replica.upsert('pets', protectedPet, metadata);
       outbox.insert(factory.outbox({ entityId: protectedPet.id }));
+      const petIndex = expected.findLastIndex((entry) => entry.entity === 'pets');
+      expected.splice(petIndex + 1, 0, { entity: 'pets', id: protectedPet.id });
       const old = factory.task_completions({ occurrence_key: '2020-01-01' });
       replica.upsert('task_completions', old, metadata);
       const completionIndex = expected.findLastIndex((entry) => entry.entity === 'task_completions');
@@ -213,6 +215,29 @@ describe('replica repository', () => {
       expect(new Set(result.map((entry) => `${entry.entity}:${entry.id}`)).size).toBe(expected.length);
     },
   );
+
+  test.each(entities.filter((entity) => entity !== 'assets'))(
+    'RS-1: pageForReseed excludes unacknowledged %s with or without an outbox entry',
+    (entity) => {
+      const row = factory[entity]({ revision: null });
+      replica.upsert(entity, row, { ...metadata, pending: true });
+      expect(replica.pageForReseed(null, 500)).toEqual([]);
+      outbox.insert(factory.outbox({ entity, entityId: row.id }));
+      expect(replica.pageForReseed(null, 500)).toEqual([]);
+    },
+  );
+
+  test('RS-11: pageForReseed excludes a queued walk but includes another entity with its id', () => {
+    const walk = factory.walk_sessions({ status: 'finished' });
+    const pet = factory.pets({ id: walk.id });
+    replica.upsert('walk_sessions', walk, { ...metadata, pending: true });
+    replica.upsert('pets', pet, metadata);
+    outbox.insert(factory.outbox({
+      entity: 'walk_sessions', entityId: walk.id, path: `/walks/${walk.id}/finish`,
+    }));
+    expect(reseedAll(1).map(({ entity, row }) => ({ entity, row })))
+      .toEqual([{ entity: 'pets', row: pet }]);
+  });
 
   test('pageForReseed puts replaced templates and original completions before their dependents', () => {
     const successor = factory.task_templates();
