@@ -234,3 +234,16 @@ and do not enter the production app's runtime dependencies.
 All four packages are local, open-source software without accounts or
 billing. The fallback is the pinned lockfile installation and local
 SQLite tooling; no hosted service is required.
+
+## P3-2 — Replica store (2026-10-13)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's own `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `zustand` | 5.0.15 | In-memory replica store and React selector hook | MIT |
+
+Zustand is local, open-source software without accounts or billing.
+The fallback is the pinned lockfile installation; no hosted service is
+required.
