@@ -1,4 +1,5 @@
-import { activeServer, readServers } from '../../config/servers';
+import { readServers } from '../../config/servers';
+import { syncContext } from '../../sync/__tests__/support';
 
 const originalPrimary = process.env.EXPO_PUBLIC_API_URL;
 const originalReserve = process.env.EXPO_PUBLIC_RESERVE_API_URL;
@@ -25,8 +26,10 @@ test('API-CONFIG-TWO: read both build-time addresses', () => {
   });
 });
 
-test('API-CONFIG-ACTIVE: the production selector stays primary until P3-9', () => {
-  expect(activeServer()).toBe('primary');
+test('API-CONFIG-ACTIVE: the production selector defaults to primary', async () => {
+  const c = await syncContext();
+  try { expect(c.serverSelect.current()).toBe('primary'); }
+  finally { c.driver.close(); }
 });
 
 test('API-CONFIG-REQUIRED: a missing primary build-time address throws', () => {

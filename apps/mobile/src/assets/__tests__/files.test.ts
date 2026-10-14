@@ -194,7 +194,8 @@ test('AF-4: a real sync cycle completes while a photo upload promise is pending'
   };
   const engine = createEngine({
     driver: c.driver, session: c.session, clock: c.clock, random: c.random,
-    serverSelect: { current: () => 'primary' }, arrive, outbox: c.drain,
+    serverSelect: { current: () => 'primary', report: async () => {}, tick: async () => {} },
+    arrive, outbox: c.drain,
     pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     createSocket: () => socket, online: true, foreground: false,
   });

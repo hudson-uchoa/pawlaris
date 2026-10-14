@@ -213,7 +213,7 @@ test('RS-9: probes carry no token, cursor or epoch and moves preserve both serve
   }
   const secrets = c.secretBox.snapshot();
   await moveToReserve(select);
-  const api = createApi({ ...c, servers, activeServer: () => select.current() });
+  const api = createApi({ ...c, servers, serverSelect: select });
   const arrive = jest.fn<Promise<PullResult>, [Server]>().mockResolvedValue('ok');
   const pull = createPull({ ...c, api, arrive });
   c.http.enqueue(response(200, { changes: [], revision: 6, has_more: false, epoch: reserveEpoch }));
@@ -249,5 +249,37 @@ test('RS-9: probes carry no token, cursor or epoch and moves preserve both serve
     expect(request.headers ?? {}).toEqual({});
     expect(request.body).toBeUndefined();
     expect(request.url).toBe(request.url.includes('reserve.') ? `${servers.reserve}/health` : `${servers.primary}/health`);
+  }
+});
+
+test.each([null, 'invalid health', {}, { role: 'reserve' }, { status: 'ok' }])(
+  'RS-8: an incomplete health body %j cannot authorize a move', async (body) => {
+    const select = selector();
+    await eligibleFailures(select);
+    c.http.enqueue(response(200, body));
+    await select.report({ networkError: true });
+    expect(select.current()).toBe('primary');
+  },
+);
+
+test('RS-8: a later consecutive failure may complete the sixty-second span', async () => {
+  const select = selector();
+  for (let count = 0; count < 3; count += 1) await cycle(select, response(503));
+  expect(probes()).toEqual([]);
+  await advance(60_000);
+  c.http.enqueue(health('reserve'));
+  await select.report({ networkError: true });
+  expect(select.current()).toBe('reserve');
+});
+
+test('RS-8: reserve cycle failures do not replace the healthy primary probe streak', async () => {
+  const select = selector();
+  await moveToReserve(select);
+  for (let count = 0; count < 3; count += 1) {
+    await select.report({ networkError: true });
+    c.http.enqueue(health('primary'));
+    await advance(60_000);
+    await select.tick();
+    expect(select.current()).toBe(count === 2 ? 'primary' : 'reserve');
   }
 });

@@ -10,10 +10,11 @@ import type { Outbox } from './outbox';
 import type { Pull, PullResult } from './pull';
 import type { Socket } from './socket';
 import { backoff } from './backoff';
+import type { ServerSelect, ServerOutcome } from './serverSelect';
 
 export type KickReason =
   | 'start' | 'foreground' | 'online' | 'poke' | 'mutation'
-  | 'refresh' | 'retry' | 'fallback' | 'login';
+  | 'refresh' | 'retry' | 'fallback' | 'probe' | 'login';
 
 export interface ConnectionState {
   status: 'synced' | 'syncing' | 'offline' | 'signed_out';
@@ -39,7 +40,7 @@ export interface EngineDependencies {
   session: Pick<Session, 'hasSession'>;
   clock: Clock;
   random: Random;
-  serverSelect: { current(): Server };
+  serverSelect: ServerSelect;
   arrive(server: Server): Promise<PullResult>;
   outbox: Pick<Outbox, 'drain' | 'lastFailure'>;
   pull: Pull;
@@ -59,6 +60,7 @@ export function createEngine(deps: EngineDependencies): Engine {
   let arrivalPending = false;
   let pullFailures = 0;
   let rerun = false;
+  let nextReason: KickReason = 'start';
   let running: Promise<void> | null = null;
   let socket: Socket | null = null;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
@@ -93,6 +95,7 @@ export function createEngine(deps: EngineDependencies): Engine {
     clearRetry();
     clearFallback();
     closeSocket();
+    manageFallback();
   };
   const endSession = (): void => {
     if (kv.get('session_user') !== null && kv.get(serverKey('signed_out', server)) !== '1') {
@@ -103,11 +106,12 @@ export function createEngine(deps: EngineDependencies): Engine {
   const valid = (run: number): boolean => !disposed && generation === run;
 
   const manageFallback = (): void => {
-    if (disposed || !foreground || !online || state.status === 'signed_out') {
+    if (disposed || !foreground || !online || (state.status === 'signed_out' && server === 'primary')) {
       clearFallback();
     } else if (fallbackTimer === null) {
       fallbackTimer = setInterval(() => {
-        if (socket?.state !== 'open') void kick('fallback');
+        if (server === 'reserve') void kick('probe');
+        else if (socket?.state !== 'open') void kick('fallback');
       }, 60_000);
     }
   };
@@ -145,15 +149,19 @@ export function createEngine(deps: EngineDependencies): Engine {
     }
   };
 
-  const cycle = async (): Promise<void> => {
+  const cycle = async (reason: KickReason): Promise<void> => {
     const run = generation;
+    if (online && foreground) await deps.serverSelect.tick();
+    if (!valid(run)) return;
     const selected = deps.serverSelect.current();
+    const moved = selected !== server;
     if (selected !== server) {
       closeSocket();
       socket = null;
       server = selected;
       arrivalPending = true;
     }
+    if (reason === 'probe' && !moved && socket?.state === 'open') return;
     if (arrivalPending) {
       publish('syncing');
       const result = await deps.arrive(server);
@@ -170,36 +178,69 @@ export function createEngine(deps: EngineDependencies): Engine {
     const hasSession = await deps.session.hasSession(server);
     if (!valid(run)) return;
     if (!hasSession) { endSession(); return; }
-    if (!online) { publish('offline'); return; }
-    if ((kv.get('active_server') ?? 'primary') !== server) kv.set('active_server', server);
+    if (!online) {
+      publish('offline');
+      await deps.serverSelect.report('offline');
+      return;
+    }
     publish('syncing', true);
     await connectSocket();
     if (!valid(run)) return;
     const r1 = await deps.outbox.drain();
+    if (r1 === 'signed_out') {
+      if (!disposed) await deps.serverSelect.report(deps.outbox.lastFailure);
+      if (valid(run)) endSession();
+      return;
+    }
     if (!valid(run)) return;
-    if (r1 === 'signed_out') { endSession(); return; }
     const drainFailed = networkFailure(deps.outbox.lastFailure);
-    if (!online) { publish('offline'); return; }
+    const drainFailure = deps.outbox.lastFailure;
+    if (!online) {
+      publish('offline');
+      await deps.serverSelect.report('offline');
+      return;
+    }
     const r2 = await deps.pull.pull();
+    if (r2 === 'auth') {
+      if (!disposed) await deps.serverSelect.report(deps.pull.lastFailure);
+      if (valid(run)) endSession();
+      return;
+    }
     if (!valid(run)) return;
-    if (r2 === 'auth') { endSession(); return; }
     if (r2 === 'ok') pullFailures = 0;
     publish(!online || drainFailed || networkFailure(deps.pull.lastFailure)
       || (r2 === 'transient' && deps.pull.lastFailure === null) ? 'offline'
       : outbox.count() > 0 ? 'syncing' : 'synced');
     if (online) scheduleRetry(r2 === 'transient');
+    const outcome: ServerOutcome = !online ? 'offline'
+      : drainFailed ? drainFailure : deps.pull.lastFailure ?? drainFailure;
+    await deps.serverSelect.report(outcome);
+    if (!valid(run)) return;
+    if (deps.serverSelect.current() !== server) {
+      closeSocket();
+      socket = null;
+      clearRetry();
+      retryTimer = setTimeout(() => {
+        retryTimer = null;
+        void kick('retry');
+      }, 0);
+    }
     manageFallback();
   };
 
   function kick(reason: KickReason): Promise<void> {
-    void reason;
     if (disposed) return Promise.resolve();
-    if (running !== null) { rerun = true; return running; }
+    if (running !== null) {
+      if (!rerun || reason !== 'probe') nextReason = reason;
+      rerun = true;
+      return running;
+    }
+    nextReason = reason;
     clearRetry();
     running = Promise.resolve().then(async () => {
       do {
         rerun = false;
-        await cycle();
+        await cycle(nextReason);
       } while (rerun && !disposed);
     }).finally(() => { running = null; });
     return running;

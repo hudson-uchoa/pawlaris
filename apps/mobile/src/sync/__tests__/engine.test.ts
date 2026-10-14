@@ -56,21 +56,19 @@ function makeEngine(options: Partial<EngineDependencies> = {}) {
       open() { state = 'open'; }, disconnect() { state = 'closed'; } });
     return socket;
   };
-  const arrive = jest.fn<Promise<PullResult>, [Server]>(async (server) => {
-    c.kv.set('active_server', server);
-    return 'ok';
-  });
+  const arrive = jest.fn<Promise<PullResult>, [Server]>(async (_server) => 'ok');
   const dependencies: EngineDependencies = {
     driver: c.driver, session: c.session, clock: c.clock,
     random: fakeRandom(...Array.from({ length: 12 }, () => 0.5)),
-    serverSelect: { current: () => selected }, arrive, outbox: c.drain,
+    serverSelect: { current: () => selected, report: async () => {}, tick: async () => {} },
+    arrive, outbox: c.drain,
     pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     createSocket, online: true, foreground: false, ...options,
   };
   const created = createEngine(dependencies);
   engine = created;
   return { engine: created, dependencies, sockets, arrive,
-    select(server: Server) { selected = server; } };
+    select(server: Server) { selected = server; c.kv.set('active_server', server); } };
 }
 
 async function advance(milliseconds: number) {
@@ -467,7 +465,7 @@ test('ENGINE-ARRIVE / RS-9: moving servers completes arrive before draining and 
   const started = deferred<void>();
   const finish = deferred<PullResult>();
   const arrive = jest.fn(async (server: Server): Promise<PullResult> => {
-    c.kv.set('active_server', server);
+    void server;
     started.resolve();
     return finish.promise;
   });
@@ -697,7 +695,7 @@ test('ENGINE-ARRIVE-RETRY: a failed arrival retries before any drain on the new 
   await c.session.adopt(wireSession('reserve'), 'reserve');
   const results: PullResult[] = ['transient', 'ok'];
   const arrive = jest.fn(async (server: Server): Promise<PullResult> => {
-    c.kv.set('active_server', server);
+    void server;
     return results.shift() ?? 'ok';
   });
   c.http.enqueue(page());
@@ -744,7 +742,7 @@ test('ENGINE-WIRING: NetInfo and AppState feed the primary selector and dispose 
   }));
   const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
   const wired = createWiredEngine({
-    driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(),
+    driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(), serverSelect: c.serverSelect,
     outbox: c.drain, pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     arrive, createSocket,
   });
@@ -785,4 +783,115 @@ test('ENGINE-WIRING: NetInfo and AppState feed the primary selector and dispose 
     AppState.currentState = originalState;
     jest.mocked(NetInfo.addEventListener).mockReset();
   }
+});
+
+test('ENGINE-AUTO-MOVE / RS-8: a reported move closes the socket and starts the new cycle without the old backoff', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  const { engine: created, sockets } = makeEngine({ serverSelect, foreground: true });
+  c.http.enqueue(response(502));
+  await created.kick('start');
+  const primary = sockets.at(-1);
+  if (primary === undefined) throw new Error('Expected the primary socket');
+  c.clock.advance(30_000);
+  c.http.enqueue(response(503));
+  await created.kick('refresh');
+  c.clock.advance(30_000);
+  c.http.enqueue(response(504), response(200, { status: 'ok', role: 'reserve' }), page(11));
+  await created.kick('refresh');
+  expect(primary.close).toHaveBeenCalledTimes(1);
+  await advance(0);
+  expect(sockets.at(-1)?.server).toBe('reserve');
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
+  expect(c.http.requests.at(-1)?.url).toBe(`${servers.reserve}/sync?since=0&limit=500`);
+});
+
+test('ENGINE-RESERVE-SIGNED-OUT / RS-8: primary probes continue without a reserve session and recover the primary session', async () => {
+  c.kv.set('active_server', 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  const { engine: created } = makeEngine({ serverSelect, foreground: true });
+  await created.kick('start');
+  expect(created.state.getState()).toEqual({ status: 'signed_out', server: 'reserve', outboxCount: 0 });
+  expect(c.http.requests).toEqual([]);
+  for (let count = 0; count < 2; count += 1) {
+    c.http.enqueue(response(200, { status: 'ok', role: 'primary' }));
+    await advance(60_000);
+    expect(created.state.getState().status).toBe('signed_out');
+    expect(serverSelect.current()).toBe('reserve');
+  }
+  c.http.enqueue(response(200, { status: 'ok', role: 'primary' }), page());
+  await advance(60_000);
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'primary', outboxCount: 0 });
+  expect(c.http.requests.at(-1)).toMatchObject({ url: `${servers.primary}/sync?since=0&limit=500`,
+    headers: { Authorization: `Bearer ${wireSession('primary').access_token}` } });
+});
+
+test('ENGINE-PROBE-IN-FLIGHT / RS-9: a primary recovery probe waits until the reserve pull and cursor commit', async () => {
+  c.kv.set('active_server', 'reserve');
+  c.kv.set('last_revision.primary', '900');
+  c.kv.set('last_revision.reserve', '5');
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  for (let count = 0; count < 2; count += 1) {
+    c.clock.advance(60_000);
+    c.http.enqueue(response(200, { status: 'ok', role: 'primary' }));
+    await serverSelect.tick();
+  }
+  const started = deferred<void>();
+  const held = deferred<HttpResponse>();
+  const { engine: created, sockets } = makeEngine({ serverSelect, foreground: true });
+  c.http.enqueue(() => { started.resolve(); return held.promise; });
+  const cycle = created.kick('start');
+  await started.promise;
+  const reserve = sockets.at(-1);
+  if (reserve === undefined) throw new Error('Expected the reserve socket');
+  reserve.open();
+  c.http.enqueue(response(200, { status: 'ok', role: 'primary' }), page(901));
+  await advance(60_000);
+  expect(c.http.requests).toHaveLength(3);
+  expect(c.kv.get('active_server')).toBe('reserve');
+  expect(c.kv.get('last_revision.reserve')).toBe('5');
+  expect(c.kv.get('last_revision.primary')).toBe('900');
+  held.resolve(page(9));
+  await cycle;
+  expect(c.kv.get('last_revision.reserve')).toBe('9');
+  expect(c.kv.get('last_revision.primary')).toBe('901');
+  expect(c.http.requests.filter((request) => request.url.includes('/sync?'))).toMatchObject([
+    { url: `${servers.reserve}/sync?since=5&limit=500`,
+      headers: { Authorization: `Bearer ${wireSession('reserve').access_token}` } },
+    { url: `${servers.primary}/sync?since=900&limit=500`,
+      headers: { Authorization: `Bearer ${wireSession('primary').access_token}` } },
+  ]);
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'primary', outboxCount: 0 });
+});
+
+test('ENGINE-PROBE-MUTATION / RS-9: a due probe cannot replace a mutation kick queued during a pull', async () => {
+  c.kv.set('active_server', 'reserve');
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const serverSelect = createServerSelect({ ...c, servers });
+  const { engine: created, sockets } = makeEngine({ serverSelect, foreground: true });
+  const started = deferred<void>();
+  const held = deferred<HttpResponse>();
+  c.http.enqueue(() => { started.resolve(); return held.promise; });
+  const cycle = created.kick('start');
+  await started.promise;
+  const reserve = sockets.at(-1);
+  if (reserve === undefined) throw new Error('Expected the reserve socket');
+  reserve.open();
+  const mutation = petMutation(c, 'Queued during pull');
+  seedMutation(c, mutation);
+  const kicked = created.kick('mutation');
+  await advance(60_000);
+  c.http.enqueue(response(200, { status: 'ok', role: 'primary' }),
+    response(200, { ...mutation.localRow, revision: 8 }), page(9));
+  held.resolve(page());
+  await Promise.all([cycle, kicked]);
+  expect(c.outbox.count()).toBe(0);
+  expect(c.http.requests.map(({ method, url }) => ({ method, url }))).toEqual([
+    { method: 'GET', url: `${servers.reserve}/sync?since=0&limit=500` },
+    { method: 'GET', url: `${servers.primary}/health` },
+    { method: 'POST', url: `${servers.reserve}/pets` },
+    { method: 'GET', url: `${servers.reserve}/sync?since=7&limit=500` },
+  ]);
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
 });

@@ -19,7 +19,7 @@ function clientContext() {
   return {
     http, session,
     select(next: Server) { server = next; },
-    makeApi: () => createApi({ http, session, servers, activeServer: () => server }),
+    makeApi: () => createApi({ http, session, servers, serverSelect: { current: () => server } }),
   };
 }
 
