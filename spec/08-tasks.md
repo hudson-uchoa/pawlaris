@@ -781,7 +781,9 @@ of `07` §10 for the directories it creates.
   `session.refresh()` once and retries once; maps results to
   `{ok, status, body, headers} | {networkError}`); `api/errors.ts`
   (`classify(result, entry?)` per `10` §4.1); `auth/secretBox.ts`
-  (`expo-secure-store`); `auth/session.ts` (`login`, `redeem`, `accessToken()`,
+  (`expo-secure-store`); `auth/session.ts` (`login` and `redeem`, which
+  answer with the session and store nothing; `adopt(session)`, which stores
+  it; `accessToken()`,
   single-flight `refresh()`, `clear()`, each for the active server, with one
   pair of tokens and one `signed_out` flag per server, persisted as in `10`
   §8.1);
@@ -792,7 +794,9 @@ of `07` §10 for the directories it creates.
   with a network error leaves the session intact; a 401 on refresh ends it and
   sets `kv.signed_out`; a login, a refresh and a 401 on one server leave the
   other server's tokens and flag as they were, and no request to one server
-  carries a token of the other (RS-9);
+  carries a token of the other (RS-9); `login` and `redeem` write no token
+  and no `kv.session_user`, and `adopt` writes both and clears that
+  server's `signed_out`;
   `api/__tests__/classify.test.ts` — every row of
   `10` §4.1, including the eighth 5xx.
   **Gate:** `pnpm -C apps/mobile exec jest src/api src/auth`
@@ -843,7 +847,8 @@ of `07` §10 for the directories it creates.
   observable `state` (which carries the active server), the cycle, retry
   scheduling for the outbox and for a
   failed pull, the 60 s foreground fallback, and inputs `setOnline(bool)`,
-  `setForeground(bool)`; `auth/lifecycle.ts` — `onLogin(user, {confirmDiscard})`,
+  `setForeground(bool)`; `auth/lifecycle.ts` — `onLogin(session, {confirmDiscard})`, which adopts
+  the session only after any wipe *(`10` §8.1)*,
   `logout({confirmDiscard})`, `wipe()` (both servers' tokens and per-server
   keys); production wiring of NetInfo and
   AppState in `sync/wiring.ts`. `deps.serverSelect` and `deps.arrive` are
@@ -854,8 +859,11 @@ of `07` §10 for the directories it creates.
   before it drains; no session on that server → `signed_out`, with the
   replica and the outbox intact;
   `auth/__tests__/lifecycle.test.ts` — SE-2, SE-3; a different-user login with a
-  non-empty outbox asks for confirmation first; a wipe leaves no token and
-  no per-server key of either server.
+  non-empty outbox asks for confirmation first, and a refusal leaves the
+  previous user's tokens, replica and outbox as they were; a process killed
+  between the wipe and the adoption starts at the login screen holding
+  nothing of either user; a wipe leaves no token and no per-server key of
+  either server.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/engine.test.ts src/auth`
 
 - [ ] **P3-8 — Files: uploads, downloads, routes**

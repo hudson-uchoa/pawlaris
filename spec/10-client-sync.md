@@ -281,6 +281,7 @@ drain():
 | 5xx — the entry's 8th HTTP 5xx response | `permanent` — a request the server can never handle must not block the queue forever |
 | 401 after one refresh and one retry | `auth` |
 | any other 4xx (400, 403, 404, 409, 410, 413, 422) | `permanent` |
+| anything else — a 1xx or 3xx that reached the app | `permanent`; `classify` never throws, or one odd answer would stop the queue |
 
 `outbox` has a `server_errors` counter beside `attempts` for this (`03` §10).
 
@@ -535,10 +536,22 @@ pull-to-refresh; the scheduled retry; the 60-second fallback of §6.
   Network failure → the caller treats it as transient. `401` → the session is
   over: set `kv.signed_out`, state `signed_out`, the login screen appears,
   **the outbox and replica are kept** *(R1.11)*.
-- **Login:** clear `kv.signed_out`. If the user id equals the previous
-  `kv.session_user` → keep everything and `kick('login')`. If it differs → when
-  the outbox is non-empty, first confirm that N unsynced changes of the previous
-  user will be discarded; then **wipe** (below) before the first pull.
+- **Login** (and redeem): `session.login` asks the server and answers with
+  the session. **It stores nothing**: whose session it is decides what
+  happens to what the phone holds, and nothing of the new session is written
+  before that is settled.
+  - The same user as `kv.session_user`, or no previous user →
+    `session.adopt(session)`: that server's tokens into `SecretBox`,
+    `kv.session_user` written, that server's `kv.signed_out` cleared. Keep
+    everything and `kick('login')`.
+  - A different user → when the outbox is non-empty, first confirm that N
+    unsynced changes of the previous user will be discarded; then **wipe**
+    (below), then `adopt`, then the first pull. A refusal adopts nothing and
+    the phone stays as it was.
+
+  A process killed anywhere in between leaves the previous user's phone
+  untouched or an empty one at the login screen — never one person's tokens
+  over another's data.
 - **Logout:** if the outbox is non-empty, confirm *(R1.11)*. Then
   `DELETE /me/push-token`, `POST /auth/logout` (both best effort), and wipe.
 
