@@ -1,4 +1,4 @@
-import type { components } from '../../../../packages/shared/src/api-types';
+import type { AuthLoginBody, AuthRedeemBody, AuthRefreshBody, AuthSession } from '@pawlaris/shared';
 import { requestHttp, type ApiFailure, type ApiResult } from '../api/client';
 import type { Servers } from '../config/servers';
 import { serverKey, type Kv, type Server } from '../db/kv';
@@ -6,9 +6,9 @@ import type { Clock } from '../platform/clock';
 import type { Http } from '../platform/http';
 import type { SecretBox } from './secretBox';
 
-export type WireSession = components['schemas']['Session'];
-export type Login = components['schemas']['Login'];
-export type Redeem = components['schemas']['Redeem'];
+export type WireSession = AuthSession;
+export type Login = AuthLoginBody;
+export type Redeem = AuthRedeemBody;
 
 export interface Session {
   login(body: Login): Promise<ApiResult<WireSession>>;
@@ -62,7 +62,7 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
   };
 
   const authenticate = async (
-    server: Server, path: string, body: Login | Redeem | components['schemas']['Refresh'],
+    server: Server, path: string, body: Login | Redeem | AuthRefreshBody,
   ): Promise<ApiResult<WireSession>> => {
     const base = servers[server];
     if (base === undefined) throw new Error('The active server has no configured address');
