@@ -1,5 +1,7 @@
 import type { SQLiteBindParams } from 'expo-sqlite';
 import { expoSqliteDriver, type SqlDriver } from '../driver';
+import { migrations } from '../migrations';
+import { openDatabase } from '../open';
 import { memoryDriver, type MemoryDriver } from '../../testing/memoryDriver';
 
 interface NativeBridge {
@@ -16,18 +18,24 @@ describe.each(['memory', 'expo'] as const)('%s SqlDriver', (kind) => {
   let memory: MemoryDriver;
   let driver: SqlDriver;
   let commands: string[];
+  let execCommands: string[];
 
   beforeEach(async () => {
     memory = await memoryDriver();
     commands = [];
-    const run = (sql: string, params: unknown[] = []) => {
+    execCommands = [];
+    const run = (sql: string, params?: unknown[]) => {
       commands.push(sql);
       memory.run(sql, params);
     };
     mockOpenDatabase.mockReset();
     mockOpenDatabase.mockReturnValue({
-      execSync: (sql) => run(sql),
+      execSync: (sql) => {
+        execCommands.push(sql);
+        run(sql);
+      },
       runSync: (sql, params) => {
+        // Passing params makes sql.js prepare and run only the first statement.
         run(sql, Array.isArray(params) ? params : Object.values(params));
         return { changes: 1, lastInsertRowId: 1 };
       },
@@ -38,6 +46,28 @@ describe.each(['memory', 'expo'] as const)('%s SqlDriver', (kind) => {
     driver.run('CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT, blob BLOB)');
   });
   afterEach(() => memory.close());
+
+  test('opening through the driver reaches the latest version with every schema table', () => {
+    openDatabase(driver);
+    expect(driver.all('PRAGMA user_version')).toEqual([{ user_version: migrations.length }]);
+    expect(driver.all(`
+      SELECT name FROM sqlite_master
+      WHERE type = 'table' AND name NOT IN ('sample', 'sqlite_sequence') ORDER BY name
+    `)).toEqual([
+      { name: 'asset_file' }, { name: 'dead_letter' }, { name: 'kv' }, { name: 'local_walk' },
+      { name: 'outbox' }, { name: 'replica' }, { name: 'walk_point' }, { name: 'walk_route_cache' },
+    ]);
+    if (kind === 'expo') {
+      expect(execCommands).toEqual(expect.arrayContaining(migrations));
+    }
+  });
+
+  test('a bound read selects exactly one of two stored rows', () => {
+    driver.run('INSERT INTO sample (id, value) VALUES (?, ?)', [1, 'first']);
+    driver.run('INSERT INTO sample (id, value) VALUES (?, ?)', [2, 'second']);
+    expect(driver.all('SELECT id, value FROM sample WHERE value = ?', ['second']))
+      .toEqual([{ id: 2, value: 'second' }]);
+  });
 
   test('bound values round-trip without interpolating SQL', () => {
     driver.run('INSERT INTO sample (id, value, blob) VALUES (?, ?, ?)',
