@@ -28,3 +28,14 @@ test('API-CONFIG-TWO: read both build-time addresses', () => {
 test('API-CONFIG-ACTIVE: the production selector stays primary until P3-9', () => {
   expect(activeServer()).toBe('primary');
 });
+
+test('API-CONFIG-REQUIRED: a missing primary build-time address throws', () => {
+  const previous = process.env.EXPO_PUBLIC_API_URL;
+  try {
+    delete process.env.EXPO_PUBLIC_API_URL;
+    expect(() => readServers()).toThrow('EXPO_PUBLIC_API_URL is required');
+  } finally {
+    if (previous === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+    else process.env.EXPO_PUBLIC_API_URL = previous;
+  }
+});

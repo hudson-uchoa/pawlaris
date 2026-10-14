@@ -162,3 +162,13 @@ test('API-SERVER-CAPTURE / RS-9: a retry stays on its original server after a mo
     [`${servers.primary}/me`, 'Bearer fake-primary-access-rotated'],
   ]);
 });
+
+test('API-REDIRECT: a 302 maps to an unsuccessful result', async () => {
+  const ctx = clientContext();
+  const headers = { location: `${servers.primary}/me` };
+  ctx.http.enqueue({ ...response(302), headers });
+  expect(await ctx.makeApi().request('GET', '/sync')).toEqual({
+    ok: false, ...response(302), headers,
+  });
+  expect(ctx.session.refresh).not.toHaveBeenCalled();
+});
