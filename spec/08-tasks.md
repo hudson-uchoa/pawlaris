@@ -868,7 +868,7 @@ of `07` §10 for the directories it creates.
   either server.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/engine.test.ts src/auth`
 
-- [~] **P3-8 — Files: uploads, downloads, routes**
+- [x] **P3-8 — Files: uploads, downloads, routes**
   **Depends:** P3-7, P2-13 · **Read:** `10` §7 · `04` §12, §13
   **Build:** `assets/files.ts` — `registerCapture({id, kind, localUri, sha256})`,
   the upload loop (`uploads.kick()`, single-flight, its own retry timer),
