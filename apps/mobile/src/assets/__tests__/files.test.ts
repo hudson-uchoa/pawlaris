@@ -133,6 +133,48 @@ test('AF-3: an upload retries on its own timer while the outbox remains empty', 
   expect(jest.getTimerCount()).toBe(0);
 });
 
+test('AF-3: the retry timer sends the earliest file and rearms for the later deadline', async () => {
+  const initial = c.clock.now();
+  const later = seedUpload({ attempts: 1, createdAt: initial - 1 });
+  const earlier = seedUpload({ createdAt: initial });
+  const laterUrl = `${servers.primary}/assets/${later}?kind=task_proof`;
+  const earlierUrl = `${servers.primary}/assets/${earlier}?kind=task_proof`;
+  fileSystem.enqueue(response(500), response(500), response(201), response(201));
+  await files.uploads.kick();
+  expect(repo.get(later)).toMatchObject({
+    state: 'to_upload', attempts: 2, nextRetryAt: initial + 2_000,
+  });
+  expect(repo.get(earlier)).toMatchObject({
+    state: 'to_upload', attempts: 1, nextRetryAt: initial + 1_000,
+  });
+  expect(fileSystem.requests.map((request) => request.url)).toEqual([laterUrl, earlierUrl]);
+  expect(c.outbox.count()).toBe(0);
+  expect(jest.getTimerCount()).toBe(1);
+
+  await advance(999);
+  expect(fileSystem.requests).toHaveLength(2);
+  await advance(1);
+  expect(fileSystem.requests.map((request) => request.url)).toEqual([
+    laterUrl, earlierUrl, earlierUrl,
+  ]);
+  expect(repo.get(earlier)?.state).toBe('uploaded');
+  expect(repo.get(later)).toMatchObject({
+    state: 'to_upload', attempts: 2, nextRetryAt: initial + 2_000,
+  });
+  expect(jest.getTimerCount()).toBe(1);
+
+  await advance(999);
+  expect(fileSystem.requests).toHaveLength(3);
+  await advance(1);
+  expect(fileSystem.requests.map((request) => request.url)).toEqual([
+    laterUrl, earlierUrl, earlierUrl, laterUrl,
+  ]);
+  expect(repo.get(later)?.state).toBe('uploaded');
+  expect(c.outbox.count()).toBe(0);
+  expect(c.http.requests).toHaveLength(0);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
 test('AF-4: a real sync cycle completes while a photo upload promise is pending', async () => {
   const id = seedUpload();
   const pending = deferred<HttpResponse>();
