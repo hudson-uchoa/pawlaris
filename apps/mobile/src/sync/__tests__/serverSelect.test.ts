@@ -149,6 +149,32 @@ test('RS-8: two healthy primary probes stay on the reserve and the third returns
 });
 
 test.each([
+  ['two failures more than a minute apart', [0, 60_001]],
+  ['three failures inside a minute', [0, 30_000, 29_999]],
+] as const)('RS-8: returning to the primary starts a new streak for %s', async (_name, delays) => {
+  const select = selector();
+  await moveToReserve(select);
+  for (let count = 0; count < 3; count += 1) {
+    c.http.enqueue(health('primary'));
+    await advance(60_000);
+    await select.tick();
+    expect(select.current()).toBe(count === 2 ? 'primary' : 'reserve');
+  }
+  expect(c.kv.get('active_server')).toBe('primary');
+  expect(probes()).toHaveLength(4);
+
+  // A healthy reserve would accept a premature move if the old streak survived.
+  c.http.enqueue(health('reserve'));
+  for (const delay of delays) {
+    await advance(delay);
+    await select.report({ networkError: true });
+    expect(select.current()).toBe('primary');
+    expect(c.kv.get('active_server')).toBe('primary');
+    expect(probes()).toHaveLength(4);
+  }
+});
+
+test.each([
   ['other role', health('reserve')],
   ['degraded', health('primary', 'degraded')],
   ['non-200', response(503)],
