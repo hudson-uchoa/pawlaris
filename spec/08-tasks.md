@@ -832,7 +832,7 @@ of `07` §10 for the directories it creates.
   read nor written.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/pull.test.ts`
 
-- [ ] **P3-6 — Socket**
+- [~] **P3-6 — Socket**
   **Depends:** P3-5, P2-14 · **Read:** `10` §6 · `04` §7
   **Build:** `sync/socket.ts` — `createSocket({url, session, clock, random,
   WebSocketImpl, lastRevision, onRevision})` with `connect()`, `close()`,
