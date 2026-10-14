@@ -44,6 +44,7 @@ interface SqlDriver {
   run(sql: string, params?: unknown[]): void;
   all<T>(sql: string, params?: unknown[]): T[];
   transaction<T>(fn: () => T): T;     // re-entrant: an inner call joins the outer transaction
+  onTransactionEnd(listener: (committed: boolean) => void): void;
 }
 interface Clock      { now(): number }                       // epoch ms
 interface Random     { next(): number }                      // [0, 1)
@@ -64,6 +65,14 @@ the production implementations of `Clock`, `Random` and `IdGen`. Tests use
 `COMMIT` (or `ROLLBACK` if `fn` throws); a call made while one is open just
 runs `fn`. Every multi-step state change below says "one transaction": that
 means one outermost `transaction`, with nothing that can fail left outside it.
+
+**`onTransactionEnd`** registers a listener for the life of the driver. The
+listener is called once for every outermost `transaction`: with `true` after
+its `COMMIT`, with `false` after its `ROLLBACK`, and before `transaction`
+returns or rethrows. An inner call ends nothing and calls nobody. It is the
+one way a module learns that what it wrote inside someone else's transaction
+is now durable — `apply.ts` flushes or discards on it (§2.3). No module
+replaces or wraps a method of a seam it was given.
 
 ---
 
@@ -99,7 +108,10 @@ type ReplicaState = {
 - `hydrate()` runs synchronously at startup, before the first render: it reads
   every `replica` row except `task_completions` with
   `sort_key < (today − 120 days)`. Older completions stay on disk and are read
-  on demand by history screens through `replicaRepo.range()`.
+  on demand by history screens through `replicaRepo.range()`. It runs
+  before the first frame, so its cost is that of reading the rows and no
+  more: a fixed number of SQL statements whatever the replica holds, and
+  each slice of the state built once *(pillar 2)*.
 - Soft-deleted rows (`deleted_at` set) are removed from memory and **kept on
   disk as tombstones** (`deleted = 1`): never hydrated, never returned by a
   selector or by `range()`, and sent in a reseed *(`11` §2.2)*.
@@ -117,8 +129,11 @@ removeRow(entity, id): void
 Each does its SQLite work inside a `transaction`. **The store is updated only
 after the outermost transaction commits**, in a single `setState`: the module
 collects the changes made during the transaction and flushes them once on
-commit, or discards them on rollback. React therefore renders once per batch
-and never sees a state that was rolled back.
+commit, or discards them on rollback — it hears both through the driver's
+`onTransactionEnd` (§1). React therefore renders once per batch and never
+sees a state that was rolled back. The flush copies each slice it changed
+once, not once per row: a page of 500 rows costs the store one copy of the
+slices it touches.
 
 `applyServerRows` rule, per change, in order:
 
@@ -159,6 +174,26 @@ later revision, which then replaces whatever is there.
 > **RP-3** A transaction that throws leaves SQLite **and** the store exactly as
 > they were. Gate: throw after `applyLocalRow` inside an outer transaction; the
 > row is in neither place and no subscriber was notified.
+
+### 2.4 Reading — `useReplica`
+
+```ts
+useReplica<T>(selector: (state: ReplicaState) => T): T
+```
+
+The selector is any pure function of the state: one that picks a row, or one
+that builds a list or a view — `selectPets`, `selectDayView` — written
+inline or not. A built value is a new object every time it is built, and
+React loops on a store that answers the same state with a new object. So the
+hook runs the selector once for each state it sees, and again only when the
+selector itself changes; and when the new value is shallowly equal to the
+one it last returned, it returns that one. A component re-renders when what
+it selected changed, and not when another slice did.
+
+> **RP-4** A component that reads a built value neither loops nor re-renders
+> for nothing. Gate: one component on `useReplica(selectPets)` and one on an
+> inline `selectDayView` both render; a change to a pet re-renders the first
+> with the new list; a change to another slice does not re-render it.
 
 ---
 

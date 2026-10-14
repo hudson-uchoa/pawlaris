@@ -445,8 +445,9 @@ factories (P3-1); `fakeHttp`, `fakeRandom`, `fakeSecretBox` (P3-3);
 | Code | Test file | Asserts |
 |---|---|---|
 | — | `db/__tests__/migrations.test.ts` | from version 0 and from each intermediate version to latest |
-| — | `db/__tests__/driver.test.ts` | `transaction` is re-entrant; an inner throw rolls back the outer |
+| — | `db/__tests__/driver.test.ts` | `transaction` is re-entrant; an inner throw rolls back the outer; `onTransactionEnd` hears every outermost end once, with its outcome, and no inner one |
 | RP-1, RP-2, RP-3 | `replica/__tests__/apply.test.ts` | `10` §2 |
+| RP-4 | `replica/__tests__/useReplica.test.tsx` | `10` §2.4 |
 | OB-1 … OB-6 | `sync/__tests__/outbox.test.ts` | `10` §4 |
 | PL-1, PL-2, PL-4 | `sync/__tests__/pull.test.ts` | `10` §5; a changed epoch hands over to `arrive` and the pull itself writes nothing |
 | WS-1 (client half) | `sync/__tests__/socket.test.ts` | `ready`, `poke` and `pong` with a newer revision kick; older ones do not; 4401 refreshes then reconnects; missed pong reconnects |
