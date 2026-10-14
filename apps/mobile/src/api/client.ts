@@ -1,6 +1,6 @@
 import type { Session } from '../auth/session';
 import type { Servers } from '../config/servers';
-import type { Server } from '../db/kv';
+import type { ServerSelect } from '../sync/serverSelect';
 import type { Http, HttpHeaders, HttpMethod, HttpRequest } from '../platform/http';
 
 export interface HttpFailure {
@@ -32,7 +32,7 @@ export interface ApiDependencies {
   http: Http;
   session: Pick<Session, 'accessToken' | 'refresh'>;
   servers: Servers;
-  activeServer(): Server;
+  serverSelect: Pick<ServerSelect, 'current'>;
 }
 
 export async function requestHttp(http: Http, request: HttpRequest): Promise<ApiResult> {
@@ -44,10 +44,10 @@ export async function requestHttp(http: Http, request: HttpRequest): Promise<Api
   }
 }
 
-export function createApi({ http, session, servers, activeServer }: ApiDependencies): Api {
+export function createApi({ http, session, servers, serverSelect }: ApiDependencies): Api {
   return {
     async request(method, path, body, headers) {
-      const server = activeServer();
+      const server = serverSelect.current();
       const base = servers[server];
       if (base === undefined) throw new Error('The active server has no configured address');
       const token = await session.accessToken(server);

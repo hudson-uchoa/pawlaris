@@ -54,7 +54,8 @@ function makeEngine() {
   const socket: Socket = { state: 'closed', connect: async () => {}, close: () => {} };
   const created = createEngine({
     driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(0.5),
-    serverSelect: { current: activeServer }, arrive, outbox: c.drain,
+    serverSelect: { current: activeServer, report: async () => {}, tick: async () => {} },
+    arrive, outbox: c.drain,
     pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     createSocket: () => socket, online: true, foreground: false,
   });
@@ -147,11 +148,12 @@ async function restart(data: Uint8Array, secretBox: FakeSecretBox = c.secretBox)
   const apply = createReplicaApply({ driver, store, clock: c.clock });
   const selected = (): Server => kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
   const session = createSession({ http: c.http, secretBox, clock: c.clock, kv, servers, activeServer: selected });
-  const api = createApi({ http: c.http, session, servers, activeServer: selected });
+  const api = createApi({ http: c.http, session, servers, serverSelect: { current: selected } });
   if (kv.get('session_user') !== null && kv.get(serverKey('signed_out', selected())) !== '1') {
     hydrateReplica({ driver, store, clock: c.clock });
   }
-  const dependencies = { ...c, driver, kv, store, apply, secretBox, session, api };
+  const dependencies = { ...c, driver, kv, store, apply, secretBox, session, api,
+    serverSelect: { current: selected, report: async () => {}, tick: async () => {} } };
   return { ...dependencies,
     replica: new ReplicaRepo(driver), outbox: new OutboxRepo(driver), deadLetter: new DeadLetterRepo(driver),
     drain: createOutbox(dependencies), mutations: createMutations(dependencies) };
@@ -293,7 +295,7 @@ test('SE-WIPE-ADOPT-CRASH: death after wipe and before the first new token write
     snapshot: () => Object.fromEntries(values),
   };
   const session = createSession({ http: c.http, secretBox, clock: c.clock, kv: c.kv, servers, activeServer });
-  const api = createApi({ http: c.http, session, servers, activeServer });
+  const api = createApi({ http: c.http, session, servers, serverSelect: { current: activeServer } });
   const { lifecycle, files, notifications, tracking, kick } = makeLifecycle({ session, api });
   const next = differentUser();
   killed = true;

@@ -18,6 +18,7 @@ import { sequentialIds } from '../../testing/sequentialIds';
 import { createSyncEvents } from '../events';
 import { createMutations, type Mutation } from '../mutations';
 import { createOutbox } from '../outbox';
+import { createServerSelect } from '../serverSelect';
 
 export async function syncContext(data?: Uint8Array, randomValues: number[] = []) {
   const driver = await memoryDriver(data);
@@ -27,12 +28,13 @@ export async function syncContext(data?: Uint8Array, randomValues: number[] = []
   const factory = rowFactories(clock, ids);
   const sessionUser = wireSession('primary').user;
   const kv = new Kv(driver);
-  const activeServer = (): Server => kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
   const http = fakeHttp();
   const secretBox = fakeSecretBox();
+  const serverSelect = createServerSelect({ http, clock, kv, servers });
+  const activeServer = (): Server => serverSelect.current();
   const session = createSession({ http, secretBox, clock, kv, servers, activeServer });
   await session.adopt(wireSession(activeServer()));
-  const api = createApi({ http, session, servers, activeServer });
+  const api = createApi({ http, session, servers, serverSelect });
   const random = fakeRandom(...randomValues);
   const store = createReplicaStore();
   const apply = createReplicaApply({ driver, store, clock });
@@ -42,7 +44,7 @@ export async function syncContext(data?: Uint8Array, randomValues: number[] = []
   const mutations = createMutations({ driver, apply, clock, ids, sessionUser, kick });
   const drain = createOutbox({ driver, apply, api, clock, random, sessionUser, events });
   return {
-    driver, clock, ids, factory, sessionUser, kv, http, secretBox, session, api,
+    driver, clock, ids, factory, sessionUser, kv, http, secretBox, session, api, serverSelect,
     random, store, apply, kick, events, mutations, drain,
     replica: new ReplicaRepo(driver), outbox: new OutboxRepo(driver),
     deadLetter: new DeadLetterRepo(driver),

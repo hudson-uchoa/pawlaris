@@ -45,7 +45,7 @@ test('SE-1: five simultaneous 401s share one refresh and all succeed on retry', 
     () => { started.resolve(); return rotated.promise; },
     ...Array.from({ length: 5 }, () => response(200, { id: 'fake-row' })),
   );
-  const api = createApi({ http: ctx.http, session, servers, activeServer: ctx.activeServer });
+  const api = createApi({ http: ctx.http, session, servers, serverSelect: { current: ctx.activeServer } });
   const all = Promise.all(Array.from({ length: 5 }, () => api.request('GET', '/me')));
   await started.promise;
   const refreshCalls = ctx.http.requests.filter((req) => req.url.endsWith('/auth/refresh'));

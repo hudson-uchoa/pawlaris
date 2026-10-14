@@ -4,7 +4,7 @@ import type { Uploads } from '../assets/files';
 import { createEngine, type Engine, type EngineDependencies } from './engine';
 
 export type EngineWiringDependencies = Omit<EngineDependencies,
-  'serverSelect' | 'online' | 'foreground'> & { uploads?: Uploads };
+  'online' | 'foreground'> & { uploads?: Uploads };
 
 export interface EngineWiring {
   engine: Engine;
@@ -16,7 +16,7 @@ export function createWiredEngine(deps: EngineWiringDependencies): EngineWiring 
   let foreground = AppState.currentState === 'active';
   let disposed = false;
   const engine = createEngine({
-    ...deps, serverSelect: { current: () => 'primary' },
+    ...deps,
     online, foreground,
   });
   const unsubscribeNetwork = NetInfo.addEventListener((network) => {

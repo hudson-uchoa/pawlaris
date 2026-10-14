@@ -81,7 +81,7 @@ test('API-AUTH-HEADER / RS-9: caller headers cannot send a different bearer toke
   const session = ctx.makeSession();
   await signIn(ctx, session);
   ctx.http.enqueue(response(200));
-  const api = createApi({ http: ctx.http, session, servers, activeServer: ctx.activeServer });
+  const api = createApi({ http: ctx.http, session, servers, serverSelect: { current: ctx.activeServer } });
   await api.request('GET', '/me', undefined, {
     authorization: 'Bearer fake-reserve-access', Authorization: 'Bearer fake-reserve-access',
   });
