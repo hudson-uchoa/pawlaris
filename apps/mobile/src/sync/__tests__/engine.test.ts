@@ -6,6 +6,14 @@ import { createEngine, type ConnectionState, type Engine, type EngineDependencie
 import { createPull, type PullResult } from '../pull';
 import type { Socket, SocketState } from '../socket';
 import { petMutation, seedMutation, syncContext, type SyncContext } from './support';
+import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
+import { AppState, type AppStateStatus } from 'react-native';
+import { createWiredEngine } from '../wiring';
+
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true, default: { addEventListener: jest.fn() },
+  NetInfoStateType: { unknown: 'unknown', other: 'other' },
+}));
 
 const syncEpoch = '00000000-0000-4000-8000-000000000031';
 let c: SyncContext;
@@ -399,4 +407,167 @@ test('ENGINE-DISPOSE: stopping the engine clears retries and fallback and closes
   expect(jest.getTimerCount()).toBe(0);
   await advance(180_000);
   expect(c.http.requests).toHaveLength(1);
+});
+
+test('ENGINE-AUTH-COMMIT / SE-2: a socket-side refresh 401 immediately publishes signed_out through the commit hook', async () => {
+  c.http.enqueue(page());
+  const { engine: created, sockets } = makeEngine({ foreground: true });
+  await created.kick('start');
+  const queued = seedMutation(c, petMutation(c, 'Preserved after refresh'));
+  c.http.enqueue(response(401));
+  expect(await c.session.refresh()).toMatchObject({ ok: false, status: 401 });
+  expect(created.state.getState()).toEqual({ status: 'signed_out', server: 'primary', outboxCount: 1 });
+  expect(sockets.every((socket) => socket.socket.state === 'closed')).toBe(true);
+  expect(c.outbox.head(c.sessionUser.id)).toEqual(queued);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test('ENGINE-AUTH-ROLLBACK: an auth flag rolled back by its enclosing transaction never signs out the engine', async () => {
+  c.http.enqueue(page());
+  const { engine: created } = makeEngine();
+  await created.kick('start');
+  const before = created.state.getState();
+  const listener = jest.fn();
+  created.state.subscribe(listener);
+  expect(() => c.driver.transaction(() => {
+    c.kv.set('signed_out.primary', '1');
+    throw new Error('simulated auth rollback');
+  })).toThrow('simulated auth rollback');
+  expect(created.state.getState()).toBe(before);
+  expect(listener).not.toHaveBeenCalled();
+  expect(c.kv.get('signed_out.primary')).toBeNull();
+});
+
+test.each(['drain', 'pull'] as const)(
+  'ENGINE-AUTH-RETRY / SE-2: a final 401 from %s persists signed_out after a successful refresh', async (operation) => {
+    if (operation === 'drain') seedMutation(c, petMutation(c, 'Preserved final 401'));
+    const before = c.driver.all('SELECT * FROM replica');
+    const queued = c.driver.all('SELECT * FROM outbox');
+    c.http.enqueue(response(401), response(200, wireSession('primary', 'refreshed')), response(401));
+    const { engine: created } = makeEngine();
+    await created.kick('start');
+    expect(created.state.getState().status).toBe('signed_out');
+    expect(c.kv.get('signed_out.primary')).toBe('1');
+    expect(c.driver.all('SELECT * FROM replica')).toEqual(before);
+    expect(c.driver.all('SELECT * FROM outbox')).toEqual(queued);
+    expect(c.http.requests).toHaveLength(3);
+    expect(jest.getTimerCount()).toBe(0);
+  },
+);
+
+test.each([429, 500, 502, 503, 504])(
+  'ENGINE-HTTP-FAILURE: pull status %i retries while reporting only network-level failures as offline', async (status) => {
+    c.http.enqueue(response(status), page());
+    const { engine: created } = makeEngine();
+    await created.kick('start');
+    expect(created.state.getState().status).toBe([502, 503, 504].includes(status) ? 'offline' : 'synced');
+    await advance(1_500);
+    expect(c.http.requests).toHaveLength(2);
+    expect(created.state.getState().status).toBe('synced');
+  },
+);
+
+test('ENGINE-WAITING-RECOVERY: a clean pull while the head waits does not repeat an earlier network failure', async () => {
+  seedMutation(c, petMutation(c, 'Waiting for retry'));
+  c.http.enqueue(new Error('simulated drain failure'), page(), page(8));
+  const { engine: created } = makeEngine();
+  await created.kick('start');
+  expect(created.state.getState().status).toBe('offline');
+  await created.kick('refresh');
+  expect(c.http.requests.map((request) => request.method)).toEqual(['POST', 'GET', 'GET']);
+  expect(created.state.getState()).toEqual({ status: 'syncing', server: 'primary', outboxCount: 1 });
+});
+
+test('ENGINE-ARRIVE-RETRY: a failed arrival retries before any drain on the new server', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  const results: PullResult[] = ['transient', 'ok'];
+  const arrive = jest.fn(async (server: Server): Promise<PullResult> => {
+    c.kv.set('active_server', server);
+    return results.shift() ?? 'ok';
+  });
+  c.http.enqueue(page());
+  const { engine: created, select } = makeEngine({ arrive });
+  await created.kick('start');
+  const mutation = petMutation(c, 'Reserved pet');
+  seedMutation(c, mutation);
+  select('reserve');
+  c.http.enqueue(response(200, { ...mutation.localRow, revision: 8 }), page(9));
+  await created.kick('refresh');
+  expect(created.state.getState().status).toBe('offline');
+  expect(c.outbox.count()).toBe(1);
+  expect(c.http.requests).toHaveLength(1);
+  await advance(1_499);
+  expect(arrive).toHaveBeenCalledTimes(1);
+  await advance(1);
+  expect(arrive.mock.calls).toEqual([['reserve'], ['reserve']]);
+  expect(c.http.requests.slice(1).map((request) => request.url)).toEqual([
+    `${servers.reserve}/pets`, `${servers.reserve}/sync?since=0&limit=500`,
+  ]);
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
+});
+
+test('ENGINE-WIRING: NetInfo and AppState feed the primary selector and dispose removes both subscriptions', async () => {
+  const originalState = AppState.currentState;
+  AppState.currentState = 'background';
+  let networkListener: Parameters<typeof NetInfo.addEventListener>[0] | undefined;
+  let appStateListener: ((state: AppStateStatus) => void) | undefined;
+  const unsubscribe = jest.fn();
+  const remove = jest.fn();
+  jest.mocked(NetInfo.addEventListener).mockImplementation((listener) => {
+    networkListener = listener;
+    return unsubscribe;
+  });
+  const nativeState = jest.spyOn(AppState, 'addEventListener').mockImplementation((event, listener) => {
+    expect(event).toBe('change');
+    appStateListener = listener;
+    return { remove };
+  });
+  const connect = jest.fn(async () => {});
+  const close = jest.fn();
+  const createSocket = jest.fn((_server: Server, _onRevision: (revision: number) => void): Socket => ({
+    state: 'closed', connect, close,
+  }));
+  const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
+  const wired = createWiredEngine({
+    driver: c.driver, secretBox: c.secretBox, clock: c.clock, random: fakeRandom(),
+    outbox: c.drain, pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
+    arrive, createSocket,
+  });
+  engine = wired.engine;
+  try {
+    if (networkListener === undefined || appStateListener === undefined) {
+      throw new Error('Expected both native subscriptions');
+    }
+    networkListener({ type: NetInfoStateType.unknown,
+      isConnected: true, isInternetReachable: null, details: null });
+    await advance(0);
+    expect(c.http.requests).toHaveLength(0);
+    c.http.enqueue(page(), page(8));
+    networkListener({ type: NetInfoStateType.other,
+      isConnected: true, isInternetReachable: true, details: { isConnectionExpensive: false } });
+    await advance(0);
+    expect(c.http.requests).toHaveLength(1);
+    expect(createSocket).not.toHaveBeenCalled();
+    appStateListener('active');
+    await advance(0);
+    expect(c.http.requests).toHaveLength(2);
+    expect(createSocket).toHaveBeenCalledWith('primary', expect.any(Function));
+    expect(connect).toHaveBeenCalledTimes(1);
+    appStateListener('inactive');
+    expect(close).toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+    wired.dispose();
+    expect(unsubscribe).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledTimes(1);
+    networkListener({ type: NetInfoStateType.other,
+      isConnected: true, isInternetReachable: true, details: { isConnectionExpensive: false } });
+    appStateListener('active');
+    await advance(0);
+    expect(c.http.requests).toHaveLength(2);
+  } finally {
+    wired.dispose();
+    nativeState.mockRestore();
+    AppState.currentState = originalState;
+    jest.mocked(NetInfo.addEventListener).mockReset();
+  }
 });
