@@ -722,7 +722,8 @@ of `07` §10 for the directories it creates.
   `allExceptOldCompletions(cutoff)` and `range(entity, from, to)`, neither of
   which returns a tombstone, `clearSynced()` — every row with no outbox
   entry — `sweepUnmarked(pullGen)` — every row of another `pull_gen` with no
-  outbox entry — and `pageForReseed(after, limit)` — the rows with no outbox
+  outbox entry — and `pageForReseed(after, limit)` — whose filter P3-10
+  replaces *(ADR-039)*; built here as the rows with no outbox
   entry, tombstones included, in the entity order of `11` §3),
   `db/outboxRepo.ts` (`insert`,
   `head(userId)`, `remove`, `update`, `count`, `hasEntryFor(entity, id)`,
@@ -797,7 +798,9 @@ of `07` §10 for the directories it creates.
   `04` and a local row that type-checks as the server shape; `enqueue` is
   atomic across replica, outbox **and store** (a throw in the middle leaves all
   three unchanged); `forkTask` enqueues the create before the patch, as one
-  atomic change.
+  atomic change; the local row of a create has `revision: null`, and that of
+  an edit, an archive, an undo, a cancel or a finish keeps the `revision` its
+  replica row had.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/outbox.test.ts src/sync/__tests__/mutations.test.ts`
 
 - [ ] **P3-5 — Pull**
@@ -880,7 +883,12 @@ of `07` §10 for the directories it creates.
 
 - [ ] **P3-10 — Arriving at a server: reseed, full pull, sweep**
   **Depends:** P3-9, P2-17 · **Read:** `11` §3 (the body, the order, the limits), §4.3, §4.4 · `10` §5, §7 · `04` §6.1
-  **Build:** `sync/arrive.ts` — `arrive(server)` exactly as written in `11`
+  **Build:** first, `replicaRepo.pageForReseed` takes the filter of `11`
+  §4.3 in place of the one P3-1 built: every row whose `revision` is not
+  null, except a `walk_sessions` row that has an outbox entry; its tests in
+  `db/__tests__/repos.test.ts` follow, and gain a row of another entity
+  with the id of such a walk *(ADR-039)*. Then
+  `sync/arrive.ts` — `arrive(server)` exactly as written in `11`
   §4.3: the epoch read; the reseed, in batches of 500, of
   `replicaRepo.pageForReseed` and then of the cached routes;
   `kv.reseeded_epoch` and the cursor set in one transaction; the full pull
@@ -888,13 +896,16 @@ of `07` §10 for the directories it creates.
   server does not list back to `to_upload` (§4.4). The failures of a
   `/reseed` call as §4.3 lists them. Wired into the pull and the engine in
   place of the seams of P3-5 and P3-7.
-  **Tests:** `sync/__tests__/arrive.test.ts` — RS-1, RS-7, PL-3 and the
-  cases of `07` §6, against a fake server that keeps what it is sent; rows
-  that have an outbox entry are not in any `/reseed` call and are sent by
-  the outbox after the pull; a network failure in the second batch stops
+  **Tests:** `sync/__tests__/arrive.test.ts` — RS-1, RS-7, RS-11, PL-3 and
+  the cases of `07` §6, against a fake server that keeps what it is sent
+  and answers `404` to a mutation of a row it lacks; a row no server has
+  acknowledged, and a walk with a queued mutation, are in no `/reseed` call
+  and are sent by the outbox after the pull; an acknowledged row with a
+  queued edit is in one, with the edit; a network failure in the second
+  batch stops
   `arrive` with `kv.reseeded_epoch` unchanged, and the next run sends
   everything again.
-  **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/arrive.test.ts src/sync/__tests__/pull.test.ts src/sync/__tests__/engine.test.ts`
+  **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/arrive.test.ts src/sync/__tests__/pull.test.ts src/sync/__tests__/engine.test.ts src/db`
   **Not here:** anything on a screen (P4-3, P4-4, P4-9).
 
 ---

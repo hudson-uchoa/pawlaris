@@ -182,7 +182,9 @@ The merge is specified by vectors, not by prose alone:
 rows and the expected state *(`07` §3)*.
 
 > **RS-1** After a reseed and the full pull that follows, every row the phone
-> held without an outbox entry is on the server, or was counted as refused.
+> held that a server had acknowledged is on the server, or was counted as
+> refused. What it does not send — a row no server has acknowledged yet, and
+> a walk with a queued mutation — is in the outbox *(§4.3)*.
 >
 > **RS-2** The merge is idempotent and independent of order. Gate: every
 > vector gives the expected state when its rows are sent once, twice, in
@@ -264,9 +266,11 @@ arrive(server):
   kv.active_server = server
   if no usable session for this server: state = signed_out      -- §4.5
   read the server's epoch (GET /sync?since=<its cursor>&limit=1)
-  reseed:  send every replica row that has no outbox entry — tombstones and
-           rows older than 120 days included — and every cached walk route,
-           in batches of 500, in the entity order of §3
+  reseed:  send every replica row a server has acknowledged (`revision` not
+           null) — rows with a queued mutation, tombstones and rows older
+           than 120 days included; a walk with a queued mutation excepted —
+           and every cached walk route, in batches of 500, in the entity
+           order of §3
   kv.reseeded_epoch.<server> = epoch;  kv.last_revision.<server> = 0
   full pull, marking each row it writes with this pull's generation
   when the pull has ended: remove the synced rows this pull did not mark
@@ -274,8 +278,23 @@ arrive(server):
   then drain the outbox, as in any cycle
 ```
 
-- Rows with an outbox entry are not reseeded: their mutation is sent to the
-  new server by the outbox, which is what its idempotency is for.
+- A row no server has acknowledged (`revision` null) is not reseeded: its
+  create is in the outbox, which sends it to the new server — that is what
+  its idempotency is for.
+- A row a server has acknowledged **is** reseeded even while a mutation of
+  it is queued — an edit, an archive, an undo, a cancel — and as the phone
+  holds it, the local change included *(ADR-039)*. Left to the outbox alone,
+  that mutation is a `404` on a server that lacks the row *(04 §1.2)*,
+  `reject` then removes the row from the phone *(10 §4.3)*, and no server
+  holds it any more; before that, every row naming it was refused. Sent
+  first, the row is there when its mutation arrives, and the mutation finds
+  its work done or does it again.
+- A walk with a queued mutation is the one exception: `finish` creates the
+  walk if it must and carries the route *(04 §12)*, and a walk reseeded as
+  finished would turn that `finish` into a no-op and lose the route.
+- A row the person deleted is no longer on the phone, so only its queued
+  `DELETE` travels. On a server that never had the row it is a `404`, a
+  rejected mutation like any other *(§7)*.
 - **Nothing is removed before the pull has ended.** This replaces the
   "discard, then pull from zero" of `10` §5 and of PL-3: the result is the
   same replica, reached without ever holding less than before.
@@ -291,6 +310,14 @@ arrive(server):
 > **RS-7** An interruption anywhere in `arrive` — between two reseed batches,
 > between two pull pages, before the sweep — leaves the replica holding
 > everything it held, and running `arrive` again completes it.
+>
+> **RS-11** A queued mutation never costs the phone its row. Gate: a pet
+> with a queued `PATCH`, a completion with a queued undo, a timer with a
+> queued cancel and a walk with a queued `finish`, all acknowledged by one
+> server, arrive at a server that holds none of them. After `arrive` and the
+> drain that follows, that server holds the edited pet, the undone
+> completion, the cancelled timer and the finished walk with its route;
+> the phone holds the same; `dead_letter` is empty.
 
 ### 4.4 Photos and routes
 
@@ -375,6 +402,10 @@ Detailed in `05` §4.7 and §6, and built in P8; in outline:
 - **It does not show one phone the other's work while they are on different
   servers.** That is the offline case, and the indicator says which server.
 - **It does not protect a photo that no phone and no backup holds.**
+- **It does not carry a delete to a server that never had the row.** That
+  `DELETE` is rejected and the person is told a change could not be applied.
+  If the other phone still holds the row, its reseed brings it back, and it
+  is deleted again by hand.
 - **It trusts the family.** A member can reseed rows attributed to another
   member. For two people who share five pets that is acceptable; it is
   decided, not overlooked *(ADR-038)*.
