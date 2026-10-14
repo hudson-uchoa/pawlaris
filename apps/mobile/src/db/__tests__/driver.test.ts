@@ -150,4 +150,80 @@ describe.each(['memory', 'expo'] as const)('%s SqlDriver', (kind) => {
       reopened.close();
     }
   });
+
+  test('onTransactionEnd reports the committed rows before transaction returns', () => {
+    const listener = jest.fn((committed: boolean) => {
+      expect(committed).toBe(true);
+      expect(driver.all('SELECT id FROM sample')).toEqual([{ id: 1 }]);
+      // The outer transaction is already closed when listeners run.
+      driver.run('BEGIN IMMEDIATE');
+      driver.run('ROLLBACK');
+    });
+    driver.onTransactionEnd(listener);
+    driver.transaction(() => {
+      driver.run('INSERT INTO sample (id) VALUES (?)', [1]);
+      expect(listener).not.toHaveBeenCalled();
+    });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(true);
+  });
+
+  test('onTransactionEnd reports rolled-back rows before transaction rethrows', () => {
+    const listener = jest.fn((committed: boolean) => {
+      expect(committed).toBe(false);
+      expect(driver.all('SELECT id FROM sample')).toEqual([]);
+      driver.run('BEGIN IMMEDIATE');
+      driver.run('ROLLBACK');
+    });
+    driver.onTransactionEnd(listener);
+    const failure = new Error('Injected rollback');
+    expect(() => driver.transaction(() => {
+      driver.run('INSERT INTO sample (id) VALUES (?)', [1]);
+      expect(listener).not.toHaveBeenCalled();
+      throw failure;
+    })).toThrow(failure);
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(listener).toHaveBeenCalledWith(false);
+  });
+
+  test('onTransactionEnd never notifies for an inner call, including a caught throw', () => {
+    const listener = jest.fn();
+    driver.onTransactionEnd(listener);
+    driver.transaction(() => {
+      driver.transaction(() => driver.run('INSERT INTO sample (id) VALUES (?)', [1]));
+      expect(listener).not.toHaveBeenCalled();
+      const failure = new Error('Caught inner failure');
+      expect(() => driver.transaction(() => { throw failure; })).toThrow(failure);
+      expect(listener).not.toHaveBeenCalled();
+    });
+    expect(listener.mock.calls).toEqual([[true]]);
+  });
+
+  test('onTransactionEnd notifies once when an inner throw rolls back the outer call', () => {
+    const listener = jest.fn();
+    driver.onTransactionEnd(listener);
+    const failure = new Error('Uncaught inner failure');
+    expect(() => driver.transaction(() => {
+      driver.transaction(() => {
+        driver.run('INSERT INTO sample (id) VALUES (?)', [1]);
+        throw failure;
+      });
+    })).toThrow(failure);
+    expect(listener.mock.calls).toEqual([[false]]);
+    expect(driver.all('SELECT id FROM sample')).toEqual([]);
+  });
+
+  test('onTransactionEnd retains every listener across commits and rollbacks', () => {
+    const first = jest.fn();
+    const second = jest.fn();
+    driver.onTransactionEnd(first);
+    driver.onTransactionEnd(second);
+    driver.transaction(() => driver.run('INSERT INTO sample (id) VALUES (?)', [1]));
+    const failure = new Error('Injected rollback');
+    expect(() => driver.transaction(() => { throw failure; })).toThrow(failure);
+    driver.transaction(() => driver.run('INSERT INTO sample (id) VALUES (?)', [2]));
+    expect(first.mock.calls).toEqual([[true], [false], [true]]);
+    expect(second.mock.calls).toEqual([[true], [false], [true]]);
+    expect(driver.all('SELECT id FROM sample ORDER BY id')).toEqual([{ id: 1 }, { id: 2 }]);
+  });
 });

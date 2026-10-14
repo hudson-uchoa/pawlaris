@@ -20,6 +20,7 @@ export async function memoryDriver(data?: Uint8Array): Promise<MemoryDriver> {
   const sqlite = await initSqlJs();
   const database = new sqlite.Database(data);
   let inTransaction = false;
+  const listeners: ((committed: boolean) => void)[] = [];
   return {
     run(sql, params) {
       if (params === undefined) database.run(sql);
@@ -40,16 +41,22 @@ export async function memoryDriver(data?: Uint8Array): Promise<MemoryDriver> {
       if (inTransaction) return fn();
       database.run('BEGIN IMMEDIATE');
       inTransaction = true;
+      let committed = false;
       try {
         const result = fn();
         database.run('COMMIT');
+        committed = true;
         return result;
       } catch (error) {
         database.run('ROLLBACK');
         throw error;
       } finally {
         inTransaction = false;
+        for (const listener of listeners) listener(committed);
       }
+    },
+    onTransactionEnd(listener) {
+      listeners.push(listener);
     },
     export: () => database.export(),
     close: () => database.close(),

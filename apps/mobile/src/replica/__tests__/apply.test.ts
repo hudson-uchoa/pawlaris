@@ -1,5 +1,6 @@
 import { ReplicaRepo } from '../../db/replicaRepo';
 import { memoryDriver } from '../../testing/memoryDriver';
+import { createReplicaApply } from '../apply';
 import { hydrate } from '../hydrate';
 import { createReplicaStore } from '../store';
 import { selectPet } from '../selectors';
@@ -13,6 +14,24 @@ function current(): ReplicaContext {
   if (context === undefined) throw new Error('Replica test context is missing');
   return context;
 }
+
+test('R3: restoring a transaction spy leaves the store following the disk', async () => {
+  const ctx = current();
+  const driver = await memoryDriver(ctx.driver.export());
+  const spy = jest.spyOn(driver, 'transaction');
+  try {
+    const store = createReplicaStore();
+    const apply = createReplicaApply({ driver, store, clock: ctx.clock });
+    spy.mockRestore();
+    const pet = ctx.factory.pets();
+    apply.applyServerRows([{ entity: 'pets', row: pet }]);
+    expect(new ReplicaRepo(driver).get('pets', pet.id)?.row).toEqual(pet);
+    expect(store.getState().pets[pet.id]).toEqual(pet);
+  } finally {
+    spy.mockRestore();
+    driver.close();
+  }
+});
 
 test('RP-1: a restart reproduces every slice and pending key after mixed applies', async () => {
   const ctx = current();

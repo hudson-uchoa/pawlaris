@@ -31,62 +31,38 @@ export interface ReplicaApply {
   removeRow(entity: SyncEntity, id: string): void;
 }
 
-const writers = new WeakMap<ReplicaStore, StoreApi<ReplicaState>>();
+type StateUpdate = (state: ReplicaState) => ReplicaState;
+interface ReplicaWriter {
+  api: StoreApi<ReplicaState>;
+  batches: Map<SqlDriver, StateUpdate[]>;
+}
+const writers = new WeakMap<ReplicaStore, ReplicaWriter>();
 
 // Keep the vanilla setter private to this module; React receives only readers.
 export function registerReplicaStore(api: StoreApi<ReplicaState>): ReplicaStore {
   const store = { getState: api.getState, getInitialState: api.getInitialState, subscribe: api.subscribe };
-  writers.set(store, api);
+  writers.set(store, { api, batches: new Map() });
   return store;
 }
 
-type StateUpdate = (state: ReplicaState) => ReplicaState;
-interface Batch {
-  updates: Map<ReplicaStore, StateUpdate[]>;
-}
-const batches = new WeakMap<SqlDriver, Batch>();
-
-function coordinateTransactions(driver: SqlDriver): Batch {
-  const existing = batches.get(driver);
+function transactionUpdates({ driver, store }: ReplicaDependencies): StateUpdate[] {
+  const writer = writers.get(store);
+  if (writer === undefined) throw new Error('Replica store is not registered');
+  const existing = writer.batches.get(driver);
   if (existing !== undefined) return existing;
-  const batch: Batch = { updates: new Map() };
-  const transaction = driver.transaction.bind(driver);
-  let depth = 0;
-  driver.transaction = <T>(fn: () => T): T => {
-    const outermost = depth === 0;
-    depth += 1;
-    const prepared: { api: StoreApi<ReplicaState>; state: ReplicaState }[] = [];
-    let result: T;
-    try {
-      result = transaction(() => {
-        const value = fn();
-        if (outermost) {
-          for (const [store, updates] of batch.updates) {
-            const api = writers.get(store);
-            if (api === undefined) throw new Error('Replica store is not registered');
-            const state = updates.reduce((previous, update) => update(previous), store.getState());
-            prepared.push({ api, state });
-          }
-        }
-        return value;
-      });
-    } finally {
-      depth -= 1;
-      if (outermost) batch.updates.clear();
-    }
-    // The underlying outer transaction has returned only after COMMIT succeeds.
-    for (const { api, state } of prepared) api.setState(state, true);
-    return result;
-  };
-  batches.set(driver, batch);
-  return batch;
+  const updates: StateUpdate[] = [];
+  writer.batches.set(driver, updates);
+  driver.onTransactionEnd((committed) => {
+    const pending = updates.splice(0);
+    if (!committed || pending.length === 0) return;
+    const state = pending.reduce((previous, update) => update(previous), store.getState());
+    writer.api.setState(state, true);
+  });
+  return updates;
 }
 
 function collect(dependencies: ReplicaDependencies, update: StateUpdate): void {
-  const batch = coordinateTransactions(dependencies.driver);
-  const updates = batch.updates.get(dependencies.store) ?? [];
-  updates.push(update);
-  batch.updates.set(dependencies.store, updates);
+  transactionUpdates(dependencies).push(update);
 }
 
 const slices = {
@@ -137,7 +113,7 @@ function queueRecord(dependencies: ReplicaDependencies, record: ReplicaRecord): 
 
 export function createReplicaApply(dependencies: ReplicaDependencies): ReplicaApply {
   const { driver } = dependencies;
-  coordinateTransactions(driver);
+  transactionUpdates(dependencies);
   const replica = new ReplicaRepo(driver);
   const outbox = new OutboxRepo(driver);
   const kv = new Kv(driver);
@@ -177,7 +153,7 @@ export function createReplicaApply(dependencies: ReplicaDependencies): ReplicaAp
 }
 
 export function hydrateReplica(dependencies: ReplicaDependencies): void {
-  coordinateTransactions(dependencies.driver);
+  transactionUpdates(dependencies);
   dependencies.driver.transaction(() => {
     const rows = new ReplicaRepo(dependencies.driver).allExceptOldCompletions(completionCutoff(dependencies));
     collect(dependencies, () => ({ ...dependencies.store.getInitialState(), ready: true }));
