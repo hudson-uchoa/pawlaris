@@ -14,8 +14,16 @@ export interface SyncEvents {
 }
 
 export function createSyncEvents(): SyncEvents {
+  const listeners: {
+    [E in keyof SyncEventPayloads]: Set<(payload: SyncEventPayloads[E]) => void>
+  } = { completion_lost: new Set(), mutation_rejected: new Set() };
   return {
-    on(_event, _listener) { throw new Error('not implemented'); },
-    emit(_event, _payload) { throw new Error('not implemented'); },
+    on(event, listener) {
+      listeners[event].add(listener);
+      return () => { listeners[event].delete(listener); };
+    },
+    emit(event, payload) {
+      for (const listener of [...listeners[event]]) listener(payload);
+    },
   };
 }

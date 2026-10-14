@@ -27,6 +27,7 @@ export interface ServerApplyOptions {
 
 export interface ReplicaApply {
   applyServerRows(changes: readonly ServerChange[], opts?: ServerApplyOptions): void;
+  applyAcknowledgedRow<E extends SyncEntity>(entity: E, row: EntityRows[E]): void;
   applyLocalRow<E extends SyncEntity>(entity: E, row: EntityRows[E]): void;
   removeRow(entity: SyncEntity, id: string): void;
 }
@@ -187,6 +188,12 @@ export function createReplicaApply(dependencies: ReplicaDependencies): ReplicaAp
           const server = kv.get('active_server') ?? 'primary';
           kv.set(`last_revision.${server}`, String(opts.cursor));
         }
+      });
+    },
+    applyAcknowledgedRow(entity, row) {
+      // An ack answers the queued mutation itself (10 section 4.2).
+      driver.transaction(() => {
+        write(entity, row, false, Number(kv.get('pull_gen') ?? 0));
       });
     },
     applyLocalRow(entity, row) {
