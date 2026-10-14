@@ -844,3 +844,36 @@ restored from before their arrival; the private `age` key also lives on
 the owner's computer; that computer pulls the backup at logon and every six
 hours; and a tombstone takes the earlier of two instants, so that a merge
 does not depend on the order of arrival.
+
+### ADR-039 — A queued mutation does not keep its row out of a reseed *(2026-10-13)*
+**Context:** `11` §4.3 left every row with an outbox entry out of the
+reseed, on the ground that the outbox would send its mutation to the new
+server. That holds for a create. An edit, an archive, an undo or a cancel
+of a row that one server had acknowledged is a `404` on a server that
+lacks the row; `reject` then removes the row from the phone, and nothing
+brings it back. Meanwhile every row naming it — a pet's weights, its health
+events, its completions — is refused by the reseed and swept after the
+pull. A pet renamed while the primary was down could take its history with
+it on arriving at a reserve restored from before the pet existed. Found
+while reviewing P3-1, before any code of `arrive` was written.
+**Decision (the orchestrator):** what keeps a row out of the reseed is that
+no server has acknowledged it — `revision` is null — not that a mutation is
+queued. An acknowledged row is sent as the phone holds it, the local change
+included; the merge of `11` §3.1 takes it like any other, and the queued
+mutation then finds its work done (`04` makes each of them idempotent in
+effect). One exception: a walk with a queued mutation waits for the outbox,
+because `finish` creates the walk and carries its route, and a walk
+reseeded as finished would make that `finish` a no-op.
+**Rejected:** treating a `404` as success for those mutations — the row
+would stay on one phone and on no server. Keeping the server's last answer
+beside the local row, to send that instead — a second copy of every edited
+row for a case the merge already handles. Leaving a tombstone on the phone
+for every delete the person makes, so that a reseed could carry it — it
+turns an edit followed by a delete into a rejected `PATCH` on every
+arrival, to save a rarer case that costs one repeated tap *(`11` §7)*.
+**Cost:** `replicaRepo.pageForReseed`, built by P3-1 to the earlier rule,
+changes its filter in P3-10. A local row keeps the `revision` its replica
+row had, which `10` §3 now says.
+**Consequence:** RS-1 reworded, RS-11 added; `11` §4.3 and §7, `10` §2.3
+and §3, `03` §10, the `arrive` row of `07` §6, and tasks P3-1, P3-4 and
+P3-10.

@@ -110,7 +110,7 @@ type ReplicaState = {
 
 ```ts
 applyServerRows(changes: {entity, row}[], opts?: {cursor?: number}): void
-applyLocalRow(entity, row): void            // upsert with pending = 1, revision untouched
+applyLocalRow(entity, row): void            // upsert with pending = 1; the row keeps its revision (§3)
 removeRow(entity, id): void
 ```
 
@@ -195,7 +195,9 @@ makes them one atomic local change.
 | `startTimer` / `cancelTimer` | `/timers…` | upsert |
 | `startWalk` / `finishWalk` / `discardWalk` | `/walks…` | upsert / upsert / remove |
 
-Local rows are complete server-shaped rows with `revision: null` and
+Local rows are complete server-shaped rows with the `revision` their replica
+row already has — `null` until a server acknowledges the row, which is how
+the phone tells a row it alone holds from the rest *(`11` §4.3)* — and
 `updated_at` = now. Fields the server assigns are filled with the best local
 value so the UI needs no special case.
 
