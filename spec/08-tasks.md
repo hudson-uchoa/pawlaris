@@ -817,7 +817,7 @@ of `07` §10 for the directories it creates.
   replica row had.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/outbox.test.ts src/sync/__tests__/mutations.test.ts`
 
-- [~] **P3-5 — Pull**
+- [x] **P3-5 — Pull**
   **Depends:** P3-4, P2-6 · **Read:** `10` §5 · `04` §6 · `11` §4.1, §4.3
   **Build:** `sync/pull.ts` — `pull({pullGen})`, on the cursor and the epoch
   of the active server. An epoch that is not that server's
