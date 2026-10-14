@@ -835,8 +835,10 @@ of `07` §10 for the directories it creates.
 - [ ] **P3-6 — Socket**
   **Depends:** P3-5, P2-14 · **Read:** `10` §6 · `04` §7
   **Build:** `sync/socket.ts` — `createSocket({url, session, clock, random,
-  WebSocketImpl, onRevision})` with `connect()`, `close()`, state
-  `closed | connecting | open`.
+  WebSocketImpl, lastRevision, onRevision})` with `connect()`, `close()`,
+  state `closed | connecting | open`, exactly as `10` §6: `onRevision` only
+  for a revision above `lastRevision()`; the timers are plain JS timers,
+  driven in the tests by Jest's fake timers.
   **Tests:** `sync/__tests__/socket.test.ts` with a fake `WebSocket` — the cases
   listed in `07` §6.
   **Gate:** `pnpm -C apps/mobile exec jest src/sync/__tests__/socket.test.ts`
