@@ -368,3 +368,16 @@ test('P3-2 removal: removing a row scopes the entity key and can be repeated', (
   expect(store.getState().members[member.id]).toEqual(member);
   expect(store.getState().pending).toEqual({ [`members:${member.id}`]: true });
 });
+
+test('P3-2 family removal: another id leaves the family intact and its own id removes it', () => {
+  const { apply, factory, store, replica, ids } = current();
+  const family = factory.family();
+  apply.applyLocalRow('family', family);
+  apply.removeRow('family', ids.uuid());
+  expect(store.getState().family).toEqual(family);
+  expect(replica.get('family', family.id)?.row).toEqual(family);
+  apply.removeRow('family', family.id);
+  expect(store.getState().family).toBeNull();
+  expect(replica.get('family', family.id)).toBeNull();
+  expect(store.getState().pending[`family:${family.id}`]).toBeUndefined();
+});

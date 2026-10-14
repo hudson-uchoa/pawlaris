@@ -2,7 +2,8 @@ import type {
   Asset, Completion, Family, HealthEvent, Member, Pet, TaskTemplate,
   Timer, Walk, WeightEntry,
 } from '@pawlaris/shared';
-import type { StoreApi } from 'zustand/vanilla';
+import { createStore, type StoreApi } from 'zustand/vanilla';
+import { registerReplicaStore } from './apply';
 
 export interface ReplicaState {
   ready: boolean;
@@ -23,5 +24,8 @@ export type ReplicaStore = Pick<StoreApi<ReplicaState>,
   'getState' | 'getInitialState' | 'subscribe'>;
 
 export function createReplicaStore(): ReplicaStore {
-  throw new Error('Replica store not implemented');
+  return registerReplicaStore(createStore<ReplicaState>(() => ({
+    ready: false, family: null, members: {}, pets: {}, weightEntries: {}, healthEvents: {},
+    taskTemplates: {}, completions: {}, timers: {}, walks: {}, assets: {}, pending: {},
+  })));
 }
