@@ -28,7 +28,7 @@
 | Location | `expo-location` + `expo-task-manager` | Foreground service, type `location` |
 | Maps | `@maplibre/maplibre-react-native` | No API key *(ADR-005)* |
 | Notifications | `expo-notifications` | Local + Expo Push |
-| Secrets | `expo-secure-store` | The refresh token only |
+| Secrets | `expo-secure-store` | The tokens of each server, and nothing else *(`10` §8.1)* |
 | Device | `expo-haptics`, `expo-device`, `expo-battery`, `expo-intent-launcher`, `expo-sharing`, `expo-clipboard` | |
 | Date/time input | `@react-native-community/datetimepicker` | |
 | Tests | Jest (`jest-expo`) + React Native Testing Library; `sql.js` (typed by `@types/sql.js`) as the SQLite test driver | |

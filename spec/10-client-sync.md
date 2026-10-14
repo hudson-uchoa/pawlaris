@@ -57,8 +57,8 @@ interface FileSystem { exists(uri: string): Promise<boolean>;
                        remove(uri: string): Promise<void> }
 ```
 
-`Date.now()`, `Math.random()` and `crypto.randomUUID()` are called only inside
-the production implementations of `Clock`, `Random` and `IdGen`. Tests use
+`Date.now()`, `Math.random()` and the `randomUUID()` of `expo-crypto` *(`05`
+§1)* are called only inside the production implementations of `Clock`, `Random` and `IdGen`. Tests use
 `sql.js` (WebAssembly SQLite, no native build) behind `SqlDriver`.
 
 **`transaction` is re-entrant.** The outermost call issues `BEGIN IMMEDIATE` …
