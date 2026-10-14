@@ -715,7 +715,8 @@ of `07` §10 for the directories it creates.
   `sql.js` with `@types/sql.js` — exact versions, recorded in
   `docs/versions.md` with their licences.
   `db/driver.ts` (`SqlDriver`; `expoSqliteDriver()` on the synchronous
-  API, with the re-entrant `transaction`); `db/migrations.ts` + `db/open.ts`
+  API, with the re-entrant `transaction`; `onTransactionEnd` came with the
+  review of P3-2); `db/migrations.ts` + `db/open.ts`
   (`openDatabase(driver)` applies pending migrations in a transaction and sets
   `user_version`); `db/replicaRepo.ts` (`get`, `upsert` — which takes the
   row's `deleted` and `pullGen` — `remove`,
@@ -742,15 +743,17 @@ of `07` §10 for the directories it creates.
   **Gate:** `pnpm -C apps/mobile exec jest src/db`
 
 - [~] **P3-2 — Replica store**
-  **Depends:** P3-1, P1-3 · **Read:** `10` §2 · `11` §2.2
+  **Depends:** P3-1, P1-3 · **Read:** `10` §1, §2 · `11` §2.2
   **Build:** `replica/store.ts` (`createReplicaStore()`), `replica/hydrate.ts`,
   `replica/apply.ts` (`applyServerRows(rows, {cursor, pullGen})`,
   `applyLocalRow`, `removeRow`, with the
-  commit-time flush of `10` §2.3), `replica/selectors.ts` (`selectPets`,
+  commit-time flush of `10` §2.3 on the driver's `onTransactionEnd`, which
+  this task adds to `db/driver.ts` and to `testing/memoryDriver.ts`),
+  `replica/selectors.ts` (`selectPets`,
   `selectPet`, `selectMembers`, `selectMe`, `selectTemplates`,
   `selectCompletionsForRange`, `selectTimerFor`, `selectWalks`, `selectDayView`
   wrapping `buildDayView` and passing the pending completion ids, …), and the
-  hook `useReplica(selector)`.
+  hook `useReplica(selector)` of `10` §2.4.
   **Tests:** `replica/__tests__/apply.test.ts` — RP-1, RP-2 (both halves), RP-3;
   a tombstone leaves memory and stays on disk with `deleted = 1`, and a
   restart does not hydrate it; a row applied with a `pullGen` carries it on
@@ -758,8 +761,11 @@ of `07` §10 for the directories it creates.
   functions; the cursor is written under `kv.active_server`, and under
   `primary` when that key is absent; one `setState` per batch (subscribe
   and count); completions older than 120 days are on disk and not in memory;
-  `replica/__tests__/timers.test.ts` — TM-1 client half.
-  **Gate:** `pnpm -C apps/mobile exec jest src/replica`
+  `hydrate` issues the same number of SQL statements for ten rows as for a
+  thousand; `replica/__tests__/useReplica.test.tsx` — RP-4;
+  `replica/__tests__/timers.test.ts` — TM-1 client half;
+  `db/__tests__/driver.test.ts` — `onTransactionEnd`, for both drivers.
+  **Gate:** `pnpm -C apps/mobile exec jest src/replica src/db`
 
 - [ ] **P3-3 — API client and session**
   **Depends:** P3-2, P2-3 · **Read:** `10` §1, §4.1, §8.1 · `04` §1.1, §3 · `11` §4.1, §4.5
