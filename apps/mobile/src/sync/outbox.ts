@@ -1,5 +1,5 @@
 import type { AuthUser } from '@pawlaris/shared';
-import type { Api, ApiResult } from '../api/client';
+import type { Api, ApiFailure, ApiResult } from '../api/client';
 import { classify } from '../api/errors';
 import { DeadLetterRepo } from '../db/deadLetterRepo';
 import type { SqlDriver } from '../db/driver';
@@ -15,6 +15,7 @@ import { backoff } from './backoff';
 export type DrainResult = 'empty' | 'waiting' | 'signed_out';
 
 export interface Outbox {
+  readonly lastFailure: ApiFailure | null;
   drain(): Promise<DrainResult>;
   onAck(entry: OutboxEntry, row: EntityRows[SyncEntity]): void;
   reject(entry: OutboxEntry, result: ApiResult): void;
@@ -48,6 +49,7 @@ export function createOutbox({ driver, apply, api, clock, random, sessionUser, e
   const deadLetter = new DeadLetterRepo(driver);
   const kv = new Kv(driver);
   const effects: (() => void)[] = [];
+  let lastFailure: ApiFailure | null = null;
   driver.onTransactionEnd((committed) => {
     const pending = effects.splice(0);
     if (committed) for (const effect of pending) effect();
@@ -88,7 +90,9 @@ export function createOutbox({ driver, apply, api, clock, random, sessionUser, e
   };
 
   return {
+    get lastFailure() { return lastFailure; },
     async drain() {
+      lastFailure = null;
       for (;;) {
         const entry = outbox.head(sessionUser.id);
         if (entry === null) return 'empty';
@@ -96,6 +100,7 @@ export function createOutbox({ driver, apply, api, clock, random, sessionUser, e
         const result = await api.request(entry.method, entry.path, entry.body, {
           'Idempotency-Key': entry.clientMutationId,
         });
+        lastFailure = 'networkError' in result || !result.ok ? result : null;
         switch (classify(result, entry)) {
           case 'ok':
             driver.transaction(() => {

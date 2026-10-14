@@ -475,3 +475,24 @@ test('SE-LOGOUT-EMPTY: an empty outbox logs out without discard confirmation', a
   expect(c.secretBox.snapshot()).toEqual({});
   expect(c.kv.get('session_user')).toBeNull();
 });
+
+test('SE-LOGIN-REHYDRATE: same-user login after a signed-out restart hydrates preserved rows before kicking sync', async () => {
+  seedPreviousUser();
+  const previous = c.store.getState();
+  c.kv.set('signed_out.primary', '1');
+  const data = c.driver.export();
+  c.driver.close();
+  c = await restart(data);
+  expect(c.store.getState().ready).toBe(false);
+  const kick = jest.fn(() => {
+    expect(c.store.getState()).toEqual(previous);
+    expect(c.outbox.count()).toBe(2);
+  });
+  const { lifecycle, removeAssetFiles } = makeLifecycle({ kick });
+  const confirmDiscard = jest.fn(async () => false);
+  expect(await lifecycle.onLogin(wireSession('primary', 'same-user-restart'), { confirmDiscard })).toBe(true);
+  expect(kick).toHaveBeenCalledWith('login');
+  expect(confirmDiscard).not.toHaveBeenCalled();
+  expect(removeAssetFiles).not.toHaveBeenCalled();
+  expect(c.store.getState()).toEqual(previous);
+});

@@ -1,4 +1,4 @@
-import type { Api } from '../api/client';
+import type { Api, ApiFailure } from '../api/client';
 import { classify, type ResultClass } from '../api/errors';
 import type { SqlDriver } from '../db/driver';
 import { Kv, serverKey, type Server } from '../db/kv';
@@ -11,6 +11,7 @@ export interface PullOptions {
 }
 
 export interface Pull {
+  readonly lastFailure: ApiFailure | null;
   pull(options?: PullOptions): Promise<PullResult>;
 }
 
@@ -30,13 +31,19 @@ interface PullPage {
 
 export function createPull({ driver, apply, api, arrive }: PullDependencies): Pull {
   const kv = new Kv(driver);
+  let lastFailure: ApiFailure | null = null;
   return {
+    get lastFailure() { return lastFailure; },
     async pull(options = {}) {
+      lastFailure = null;
       for (;;) {
         const server = kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
         const since = kv.get(serverKey('last_revision', server)) ?? '0';
         const result = await api.request('GET', `/sync?since=${since}&limit=500`);
-        if ('networkError' in result || !result.ok) return classify(result);
+        if ('networkError' in result || !result.ok) {
+          lastFailure = result;
+          return classify(result);
+        }
         // The successful /sync body has the page shape specified in 04 section 6.
         const page = result.body as PullPage;
         if (page.epoch !== kv.get(serverKey('reseeded_epoch', server))) return arrive(server);

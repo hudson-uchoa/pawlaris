@@ -15,9 +15,13 @@ export class Kv {
     return this.driver.all<{ value: string }>('SELECT value FROM kv WHERE key = ?', [key])[0]?.value ?? null;
   }
   set(key: string, value: string): void {
-    this.driver.run('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', [key, value]);
+    this.driver.transaction(() => {
+      this.driver.run('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', [key, value]);
+    });
   }
   remove(key: string): void {
-    this.driver.run('DELETE FROM kv WHERE key = ?', [key]);
+    this.driver.transaction(() => {
+      this.driver.run('DELETE FROM kv WHERE key = ?', [key]);
+    });
   }
 }
