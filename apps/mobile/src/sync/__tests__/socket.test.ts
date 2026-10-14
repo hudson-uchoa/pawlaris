@@ -423,3 +423,14 @@ test('WS-1: late transport events after close trigger neither revisions nor reco
   expect(transport.instances).toHaveLength(1);
   expect(jest.getTimerCount()).toBe(0);
 });
+
+test('WS-1: only ready, poke and pong notify, and each checks the cursor rather than the last frame', async () => {
+  makeSocket();
+  const wire = await openSocket();
+  wire.receive({ type: 'auth', revision: 99 });
+  wire.receive({ type: 'ping', revision: 99 });
+  expect(onRevision).not.toHaveBeenCalled();
+  for (const type of ['ready', 'poke', 'pong']) wire.receive({ type, revision: 11 });
+  expect(onRevision.mock.calls).toEqual([[11], [11], [11]]);
+  expect(c.kv.get('last_revision.primary')).toBe('10');
+});
