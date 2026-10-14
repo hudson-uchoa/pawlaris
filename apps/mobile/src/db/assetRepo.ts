@@ -12,19 +12,33 @@ export interface AssetFile {
   createdAt: number;
 }
 
+const columns = `
+  id, kind, local_uri AS localUri, state, sha256, attempts,
+  next_retry_at AS nextRetryAt, created_at AS createdAt
+`;
+
 export class AssetRepo {
   constructor(private readonly driver: SqlDriver) {}
 
-  get(_id: string): AssetFile | null {
-    throw new Error('not implemented: AssetRepo.get');
+  get(id: string): AssetFile | null {
+    return this.driver.all<AssetFile>(
+      `SELECT ${columns} FROM asset_file WHERE id = ?`, [id],
+    )[0] ?? null;
   }
-  upsert(_file: AssetFile): void {
-    throw new Error('not implemented: AssetRepo.upsert');
+  upsert(file: AssetFile): void {
+    this.driver.run(`
+      INSERT OR REPLACE INTO asset_file (
+        id, kind, local_uri, state, sha256, attempts, next_retry_at, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [file.id, file.kind, file.localUri, file.state, file.sha256,
+      file.attempts, file.nextRetryAt, file.createdAt]);
   }
   list(): AssetFile[] {
-    throw new Error('not implemented: AssetRepo.list');
+    return this.driver.all<AssetFile>(`
+      SELECT ${columns} FROM asset_file ORDER BY created_at, id
+    `);
   }
-  remove(_id: string): void {
-    throw new Error('not implemented: AssetRepo.remove');
+  remove(id: string): void {
+    this.driver.run('DELETE FROM asset_file WHERE id = ?', [id]);
   }
 }

@@ -246,6 +246,18 @@ describe('replica repository', () => {
 });
 
 describe('outbox repository', () => {
+  test('a queued DELETE retains a SQL NULL body after reopening', async () => {
+    const entry = outbox.insert(factory.outbox({ method: 'DELETE', body: null }));
+    expect(driver.all('SELECT body FROM outbox WHERE seq = ?', [entry.seq]))
+      .toEqual([{ body: null }]);
+    const reopened = await memoryDriver(driver.export());
+    try {
+      expect(new OutboxRepo(reopened).head(entry.userId)).toEqual(entry);
+    } finally {
+      reopened.close();
+    }
+  });
+
   test('insert round-trips JSON with defaults and monotonically increasing seq after deletion', () => {
     const input = factory.outbox();
     const first = outbox.insert(input);

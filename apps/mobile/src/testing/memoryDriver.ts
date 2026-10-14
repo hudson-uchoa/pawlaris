@@ -21,8 +21,9 @@ export async function memoryDriver(data?: Uint8Array): Promise<MemoryDriver> {
   const database = new sqlite.Database(data);
   let inTransaction = false;
   return {
-    run(sql, params = []) {
-      database.run(sql, bindValues(params));
+    run(sql, params) {
+      if (params === undefined) database.run(sql);
+      else database.run(sql, bindValues(params));
     },
     all<T>(sql: string, params: unknown[] = []): T[] {
       const statement = database.prepare(sql);
