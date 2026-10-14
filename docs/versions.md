@@ -274,3 +274,16 @@ The licence below comes from the installed package's own `package.json`.
 NetInfo is local, open-source software without accounts or billing.
 The fallback is the pinned lockfile installation; no hosted service is
 required.
+
+## P3-8 — Files: uploads, downloads, routes (2026-10-14)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's own `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-file-system` | 57.0.7 | File seam behind photo uploads and the download cache | MIT |
+
+Expo FileSystem is local, open-source software without accounts or billing.
+The fallback is the pinned lockfile installation; no hosted service is
+required.
