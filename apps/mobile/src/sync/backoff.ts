@@ -1,5 +1,5 @@
 import type { Random } from '../platform/random';
 
-export function backoff(_attempts: number, _retryAfter: number | null, _random: Random): number {
-  throw new Error('not implemented');
+export function backoff(attempts: number, retryAfter: number | null, random: Random): number {
+  return retryAfter ?? Math.min(60_000, 1_000 * 2 ** attempts) * (0.5 + 0.5 * random.next());
 }

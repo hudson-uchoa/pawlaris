@@ -2,9 +2,11 @@ import type {
   AuthUser, Completion, DateKey, HealthEvent, Pet, TaskEdits, TaskTemplate,
   Timer, Walk, WeightEntry,
 } from '@pawlaris/shared';
+import { buildFork } from '@pawlaris/shared';
 import type { SqlDriver } from '../db/driver';
+import { OutboxRepo } from '../db/outboxRepo';
 import type { RoutePoint } from '../db/walkRepo';
-import type { EntityRows, SyncEntity } from '../db/replicaRepo';
+import { ReplicaRepo, type EntityRows, type SyncEntity } from '../db/replicaRepo';
 import type { Clock } from '../platform/clock';
 import type { IdGen } from '../platform/idGen';
 import type { ReplicaApply } from '../replica/apply';
@@ -84,28 +86,149 @@ export interface MutationDependencies {
   kick(reason: 'mutation'): void;
 }
 
-export function createMutations(_dependencies: MutationDependencies): Mutations {
+export function createMutations({ driver, apply, clock, ids, sessionUser, kick }: MutationDependencies): Mutations {
+  const replica = new ReplicaRepo(driver);
+  const outbox = new OutboxRepo(driver);
+  let needsKick = false;
+  driver.onTransactionEnd((committed) => {
+    const pending = needsKick;
+    needsKick = false;
+    if (committed && pending) kick('mutation');
+  });
+
+  const now = () => new Date(clock.now()).toISOString();
+  const base = (id: string, updated_at: string) => ({ id, revision: null, updated_at });
+  const current = <E extends SyncEntity>(entity: E, id: string): EntityRows[E] => {
+    const record = replica.get(entity, id);
+    if (record === null) throw new Error(`Missing local ${entity} row`);
+    return record.row;
+  };
+
+  const enqueue = (...mutations: Mutation[]): void => {
+    driver.transaction(() => {
+      for (const mutation of mutations) {
+        if (mutation.localRow === null) apply.removeRow(mutation.entity, mutation.entityId);
+        else apply.applyLocalRow(mutation.entity, mutation.localRow);
+        outbox.insert({ ...mutation, userId: sessionUser.id, createdAt: clock.now() });
+      }
+      needsKick = true;
+    });
+  };
+
+  const mutation = <E extends SyncEntity>(
+    entity: E, entityId: string, method: Mutation['method'], path: string,
+    body: unknown | null, localRow: EntityRows[E] | null,
+  ): Mutation => ({
+    clientMutationId: ids.uuid(), entity, entityId, method, path, body, localRow,
+    // E binds the row to its entity; TypeScript cannot expand the mapped union here.
+  } as Mutation);
+
+  const create = <E extends SyncEntity>(
+    entity: E, path: string, body: object,
+    buildRow: (id: string, updatedAt: string) => EntityRows[E],
+  ): string => driver.transaction(() => {
+    const id = ids.uuid();
+    enqueue(mutation(entity, id, 'POST', path, { id, ...body }, buildRow(id, now())));
+    return id;
+  });
+
+  const edit = <E extends SyncEntity>(
+    entity: E, id: string, path: string, fields: Partial<EntityRows[E]>,
+    body: unknown | null, method: 'POST' | 'PATCH' = 'POST',
+  ): void => {
+    driver.transaction(() => {
+      const row = { ...current(entity, id), ...fields, updated_at: now() };
+      enqueue(mutation(entity, id, method, path, body, row));
+    });
+  };
+
+  const remove = (entity: SyncEntity, id: string, path: string, method: 'DELETE' | 'POST' = 'DELETE'): void => {
+    driver.transaction(() => { enqueue(mutation(entity, id, method, path, null, null)); });
+  };
+
+  const taskRow = (id: string, body: TaskCreate, updatedAt: string): TaskTemplate => ({
+    description: null, category: 'other', assigned_to: null, requires_photo: false,
+    timer_seconds: null, reminder_class: 'routine', sort_order: 0, times_of_day: [],
+    completion_mode: 'together', ends_on: null, replaces_task_id: null,
+    ...body, ...base(id, updatedAt), created_by: sessionUser.id, deleted_at: null,
+  });
+
+  const walkRow = (id: string, body: WalkCreate, updatedAt: string): Walk => ({
+    pet_id: body.pet_id, started_at: body.started_at,
+    ...base(id, updatedAt), user_id: sessionUser.id, status: 'active',
+    ended_at: null, paused_ms: 0, distance_m: 0, duration_s: 0,
+    avg_pace_s_per_km: null, point_count: 0, has_route: false, preview: [], note: null, deleted_at: null,
+  });
+
   return {
-    enqueue(..._mutations) { throw new Error('not implemented'); },
-    createPet(_body) { throw new Error('not implemented'); },
-    patchPet(_id, _body) { throw new Error('not implemented'); },
-    archivePet(_id) { throw new Error('not implemented'); },
-    unarchivePet(_id) { throw new Error('not implemented'); },
-    createWeight(_body) { throw new Error('not implemented'); },
-    deleteWeight(_id) { throw new Error('not implemented'); },
-    createHealthEvent(_body) { throw new Error('not implemented'); },
-    patchHealthEvent(_id, _body) { throw new Error('not implemented'); },
-    deleteHealthEvent(_id) { throw new Error('not implemented'); },
-    createTask(_body) { throw new Error('not implemented'); },
-    patchTask(_id, _body) { throw new Error('not implemented'); },
-    deleteTask(_id) { throw new Error('not implemented'); },
-    forkTask(_id, _edits, _effectiveDate) { throw new Error('not implemented'); },
-    createCompletion(_body) { throw new Error('not implemented'); },
-    undoCompletion(_id) { throw new Error('not implemented'); },
-    startTimer(_body) { throw new Error('not implemented'); },
-    cancelTimer(_id) { throw new Error('not implemented'); },
-    startWalk(_body) { throw new Error('not implemented'); },
-    finishWalk(_id, _body) { throw new Error('not implemented'); },
-    discardWalk(_id) { throw new Error('not implemented'); },
+    enqueue,
+    createPet: (body) => create('pets', '/pets', body, (id, updatedAt) => ({
+      sex: 'unknown', breed: null, color: null, birthdate: null, microchip_id: null,
+      avatar_asset_id: null, notes: null, sort_order: 0, ...body, ...base(id, updatedAt),
+      archived_at: null, created_by: sessionUser.id, deleted_at: null,
+    })),
+    patchPet: (id, body) => edit('pets', id, `/pets/${id}`, body, body, 'PATCH'),
+    archivePet(id) {
+      driver.transaction(() => { edit('pets', id, `/pets/${id}/archive`, { archived_at: now() }, null); });
+    },
+    unarchivePet: (id) => edit('pets', id, `/pets/${id}/unarchive`, { archived_at: null }, null),
+    createWeight: (body) => create('weight_entries', '/weights', body, (id, updatedAt) => ({
+      note: null, ...body, ...base(id, updatedAt), created_by: sessionUser.id, deleted_at: null,
+    })),
+    deleteWeight: (id) => remove('weight_entries', id, `/weights/${id}`),
+    createHealthEvent: (body) => create('health_events', '/health-events', body, (id, updatedAt) => ({
+      notes: null, next_due_on: null, attachment_asset_id: null,
+      ...body, ...base(id, updatedAt), created_by: sessionUser.id, deleted_at: null,
+    })),
+    patchHealthEvent: (id, body) => edit('health_events', id, `/health-events/${id}`, body, body, 'PATCH'),
+    deleteHealthEvent: (id) => remove('health_events', id, `/health-events/${id}`),
+    createTask: (body) => create('task_templates', '/tasks', body, (id, updatedAt) => taskRow(id, body, updatedAt)),
+    patchTask: (id, body) => edit('task_templates', id, `/tasks/${id}`, body, body, 'PATCH'),
+    deleteTask: (id) => remove('task_templates', id, `/tasks/${id}`),
+    forkTask(id, edits, effectiveDate) {
+      return driver.transaction(() => {
+        const old = current('task_templates', id);
+        const newId = ids.uuid();
+        const { newTemplate, oldPatch } = buildFork(old, edits, effectiveDate, newId);
+        const updatedAt = now();
+        enqueue(
+          mutation('task_templates', newId, 'POST', '/tasks', newTemplate,
+            taskRow(newId, newTemplate, updatedAt)),
+          mutation('task_templates', id, 'PATCH', `/tasks/${id}`, oldPatch,
+            { ...old, ...oldPatch, updated_at: updatedAt }),
+        );
+        return newId;
+      });
+    },
+    createCompletion: (body) => create('task_completions', '/completions', body, (id, updatedAt) => ({
+      ...body, ...base(id, updatedAt), completed_by: sessionUser.id,
+      title_snapshot: current('task_templates', body.task_id).title,
+      undone_at: null, undone_by: null, duplicate_of: null,
+    })),
+    undoCompletion(id) {
+      driver.transaction(() => {
+        edit('task_completions', id, `/completions/${id}/undo`, { undone_at: now(), undone_by: sessionUser.id }, null);
+      });
+    },
+    startTimer: (body) => create('task_timers', '/timers', body, (id, updatedAt) => ({
+      pet_id: null, ...body, ...base(id, updatedAt), started_by: sessionUser.id, cancelled_at: null,
+    })),
+    cancelTimer(id) {
+      driver.transaction(() => { edit('task_timers', id, `/timers/${id}/cancel`, { cancelled_at: now() }, null); });
+    },
+    startWalk: (body) => create('walk_sessions', '/walks', body, (id, updatedAt) => walkRow(id, body, updatedAt)),
+    finishWalk(id, body) {
+      driver.transaction(() => {
+        const updatedAt = now();
+        const old = replica.get('walk_sessions', id)?.row ?? walkRow(id, body, updatedAt);
+        const { route, ...fields } = body;
+        const row: Walk = {
+          ...old, ...fields, note: body.note ?? null, status: 'finished',
+          point_count: route.length, has_route: route.length > 0, updated_at: updatedAt,
+        };
+        enqueue(mutation('walk_sessions', id, 'POST', `/walks/${id}/finish`, body, row));
+      });
+    },
+    discardWalk: (id) => remove('walk_sessions', id, `/walks/${id}/discard`, 'POST'),
   };
 }
