@@ -33,6 +33,13 @@ interface PullPage {
 export function createPull({ driver, apply, api, arrive, prefetchAvatars }: PullDependencies): Pull {
   const kv = new Kv(driver);
   let lastFailure: ApiFailure | null = null;
+  let arrivalPending: Server | null = null;
+  const finishArrival = async (server: Server): Promise<PullResult> => {
+    arrivalPending = server;
+    const result = await arrive(server);
+    if (result === 'ok') arrivalPending = null;
+    return result;
+  };
   return {
     get lastFailure() { return lastFailure; },
     async pull(options = {}) {
@@ -41,6 +48,8 @@ export function createPull({ driver, apply, api, arrive, prefetchAvatars }: Pull
       try {
         for (;;) {
           const server = kv.get('active_server') === 'reserve' ? 'reserve' : 'primary';
+          // Arrival's own full pull must enter the page loop, not delegate to itself.
+          if (arrivalPending === server && options.pullGen === undefined) return finishArrival(server);
           const since = kv.get(serverKey('last_revision', server)) ?? '0';
           const result = await api.request('GET', `/sync?since=${since}&limit=500`);
           if ('networkError' in result || !result.ok) {
@@ -49,12 +58,15 @@ export function createPull({ driver, apply, api, arrive, prefetchAvatars }: Pull
           }
           // The successful /sync body has the page shape specified in 04 section 6.
           const page = result.body as PullPage;
-          if (page.epoch !== kv.get(serverKey('reseeded_epoch', server))) return arrive(server);
+          if (page.epoch !== kv.get(serverKey('reseeded_epoch', server))) return finishArrival(server);
           const epochKey = serverKey('sync_epoch', server);
           if (kv.get(epochKey) === null) kv.set(epochKey, page.epoch);
           apply.applyServerRows(page.changes, { ...options, cursor: page.revision });
           applied ||= page.changes.length > 0;
-          if (!page.has_more) return 'ok';
+          if (!page.has_more) {
+            if (options.pullGen !== undefined) arrivalPending = null;
+            return 'ok';
+          }
         }
       } finally {
         if (applied) void prefetchAvatars?.();

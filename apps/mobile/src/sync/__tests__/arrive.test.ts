@@ -1,4 +1,6 @@
 import type { Pet } from '@pawlaris/shared';
+import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
+import { AppState } from 'react-native';
 import { deferred, response, servers, wireSession } from '../../auth/__tests__/support';
 import { AssetRepo } from '../../db/assetRepo';
 import { serverKey } from '../../db/kv';
@@ -7,11 +9,18 @@ import { WalkRepo, type RoutePoint } from '../../db/walkRepo';
 import type { HttpRequest, HttpResponse } from '../../platform/http';
 import type { ServerChange } from '../../replica/apply';
 import { fakeFileSystem } from '../../testing/fakeFileSystem';
+import { fakeRandom } from '../../testing/fakeRandom';
 import { createArrive, type Arrive } from '../arrive';
 import { createEngine, type Engine } from '../engine';
 import type { PetCreate, WalkFinish } from '../mutations';
 import { createPull, type Pull } from '../pull';
+import { createSyncEngine } from '../wiring';
 import { syncContext, type SyncContext } from './support';
+
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true, default: { addEventListener: jest.fn() },
+  NetInfoStateType: { other: 'other' },
+}));
 
 type ReseedRow = ServerChange | {
   entity: 'walk_routes'; row: { walk_id: string; points: RoutePoint[] };
@@ -682,4 +691,102 @@ test('RS-11 / PL-3: the first engine cycle arrives before draining edits against
   expect(editIndex).toBeGreaterThan(fullPullIndex);
   expect(engine.state.getState().status).toBe('synced');
   expectConverged();
+});
+
+test('RS-7 / PL-3: a failed full pull restarts arrival before an ordinary pull can skip its sweep', async () => {
+  seed(foundation());
+  const refused = c.factory.pets();
+  seed([{ entity: 'pets', row: refused }]);
+  server.refused.add(key('pets', refused.id));
+  c.kv.set('reseeded_epoch.primary', previousEpoch);
+  const before = diskKeys();
+  c.http.enqueue(server.handle, server.handle, server.handle, response(503));
+  const { pull } = makeArrival();
+  expect(await pull.pull()).toBe('transient');
+  expect(c.kv.get('reseeded_epoch.primary')).toBe(syncEpoch);
+  expect(diskKeys()).toEqual(before);
+  const requestCount = c.http.requests.length;
+  connectServer();
+  expect(await pull.pull()).toBe('ok');
+  expect(c.http.requests[requestCount]?.url).toBe(`${servers.primary}/sync?since=0&limit=1`);
+  expect(server.batches).toHaveLength(2);
+  expect(c.replica.get('pets', refused.id)).toBeNull();
+  expectConverged();
+});
+
+test('RS-7 / RS-11: an engine retry completes the delegated arrival before sending newly queued edits', async () => {
+  seed(foundation());
+  c.kv.set('reseeded_epoch.primary', previousEpoch);
+  c.http.enqueue(server.handle, server.handle, server.handle, response(503));
+  const { pull, arrival } = makeArrival();
+  engine = createEngine({ ...c, outbox: c.drain, pull, arrive: arrival.arrive,
+    random: fakeRandom(0.5),
+    createSocket: () => ({ state: 'closed', connect: async () => {}, close() {} }),
+    online: true, foreground: false,
+  });
+  await engine.kick('start');
+  expect(engine.state.getState().status).toBe('offline');
+  c.clock.advance(1_000);
+  c.mutations.patchPet(c.factory.petId, { name: 'Queued during failed arrival' });
+  connectServer();
+  await engine.kick('refresh');
+  expect(server.batches).toHaveLength(2);
+  expect(server.batches[1]).toEqual(expect.arrayContaining([
+    expect.objectContaining({ entity: 'pets', row: expect.objectContaining({
+      id: c.factory.petId, name: 'Queued during failed arrival',
+    }) }),
+  ]));
+  const editIndex = c.http.requests.findIndex((request) => request.method === 'PATCH');
+  const reseedIndex = c.http.requests.findLastIndex((request) => request.url.endsWith('/reseed'));
+  expect(editIndex).toBeGreaterThan(reseedIndex);
+  expect(engine.state.getState().status).toBe('synced');
+  expect(c.deadLetter.count()).toBe(0);
+  expectConverged();
+});
+
+test('RS-1 / RS-11: production wiring supplies arrival to pull and engine and wakes requeued uploads', async () => {
+  seed(foundation());
+  c.mutations.patchPet(c.factory.petId, { name: 'Production arrival' });
+  const files = new AssetRepo(c.driver);
+  const file = c.factory.assetFile({ state: 'uploaded' });
+  files.upsert(file);
+  if (file.localUri === null) throw new Error('Expected a held file');
+  fileSystem.write(file.localUri, new Uint8Array([1, 2, 3]));
+  const uploadStates: (string | undefined)[] = [];
+  const uploads = { kick: jest.fn(async () => { uploadStates.push(files.get(file.id)?.state); }),
+    dispose: jest.fn() };
+  let networkListener: Parameters<typeof NetInfo.addEventListener>[0] | undefined;
+  const unsubscribe = jest.fn();
+  jest.mocked(NetInfo.addEventListener).mockImplementation((listener) => {
+    networkListener = listener;
+    return unsubscribe;
+  });
+  const originalState = AppState.currentState;
+  AppState.currentState = 'background';
+  const appState = jest.spyOn(AppState, 'addEventListener').mockReturnValue({ remove: jest.fn() });
+  connectServer();
+  const wired = createSyncEngine({ ...c, outbox: c.drain, fileSystem, uploads,
+    logRejectedRow: jest.fn(),
+    createSocket: () => ({ state: 'closed', connect: async () => {}, close() {} }),
+  });
+  try {
+    if (networkListener === undefined) throw new Error('Expected a network subscription');
+    networkListener({ type: NetInfoStateType.other, isConnected: true,
+      isInternetReachable: true, details: { isConnectionExpensive: false } });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(wired.engine.state.getState().status).toBe('synced');
+    expect(server.get('pets', c.factory.petId)?.name).toBe('Production arrival');
+    expect(server.batches).toHaveLength(1);
+    expect(c.kv.get('reseeded_epoch.primary')).toBe(syncEpoch);
+    expect(c.deadLetter.count()).toBe(0);
+    expect(uploadStates).toEqual(['uploaded', 'to_upload']);
+    expectConverged();
+  } finally {
+    wired.dispose();
+    appState.mockRestore();
+    AppState.currentState = originalState;
+    jest.mocked(NetInfo.addEventListener).mockReset();
+  }
+  expect(uploads.dispose).toHaveBeenCalledTimes(1);
+  expect(unsubscribe).toHaveBeenCalledTimes(1);
 });
