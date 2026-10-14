@@ -454,6 +454,17 @@ describe('walk repository', () => {
     expect(repo.points(otherId)).toEqual([other]);
   });
 
+  test('WK-1: a taken point seq throws and preserves the first stored fix', () => {
+    const repo = new WalkRepo(driver);
+    const first = factory.walkPoint();
+    const second = factory.walkPoint({
+      walkId: first.walkId, seq: first.seq, lat: -23.551, lon: -46.631, t: epoch + 3_000,
+    });
+    repo.insertPoint(first);
+    expect(() => repo.insertPoint(second)).toThrow();
+    expect(repo.points(first.walkId)).toEqual([first]);
+  });
+
   test('cached routes round-trip all coordinate tuple fields and survive reopening', async () => {
     const repo = new WalkRepo(driver);
     const walkId = ids.uuid();
