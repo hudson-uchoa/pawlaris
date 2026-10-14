@@ -801,7 +801,7 @@ of `07` §10 for the directories it creates.
   `10` §4.1, including the eighth 5xx.
   **Gate:** `pnpm -C apps/mobile exec jest src/api src/auth`
 
-- [ ] **P3-4 — Mutations and outbox**
+- [~] **P3-4 — Mutations and outbox**
   **Depends:** P3-3, P1-4, P2-12 · **Read:** `10` §3, §4 · `04` §1.2, §8–§12
   **Build:** `sync/mutations.ts` — `enqueue(...mutations)` and every function of
   the catalogue in `10` §3, each building the request and the full local row;
