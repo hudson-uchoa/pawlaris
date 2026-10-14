@@ -58,8 +58,9 @@ interface FileSystem { exists(uri: string): Promise<boolean>;
 ```
 
 `Date.now()`, `Math.random()` and the `randomUUID()` of `expo-crypto` *(`05`
-§1)* are called only inside the production implementations of `Clock`, `Random` and `IdGen`. Tests use
-`sql.js` (WebAssembly SQLite, no native build) behind `SqlDriver`.
+§1)* are called only inside the production implementations of `Clock`,
+`Random` and `IdGen`. Tests use `sql.js` (WebAssembly SQLite, no native
+build) behind `SqlDriver`.
 
 **`transaction` is re-entrant.** The outermost call issues `BEGIN IMMEDIATE` …
 `COMMIT` (or `ROLLBACK` if `fn` throws); a call made while one is open just
@@ -311,7 +312,7 @@ if no other outbox entry targets (e.entity, e.entity_id):
     removeRow(e.entity, e.entity_id)                -- an optimistic create vanishes;
                                                     -- an optimistic edit is restored by the full pull
 delete e from the outbox
-kv.last_revision = 0                                -- the next pull is a full snapshot
+kv.last_revision.<server> = 0                       -- the active server's: its next pull is a full snapshot
 after commit: emit 'mutation_rejected' { entry: e } -- one toast: "Uma alteração não pôde ser aplicada"; log it
 ```
 
