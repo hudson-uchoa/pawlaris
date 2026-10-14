@@ -109,7 +109,7 @@ type ReplicaState = {
 ### 2.3 Writing — `apply.ts`
 
 ```ts
-applyServerRows(changes: {entity, row}[], opts?: {cursor?: number}): void
+applyServerRows(changes: {entity, row}[], opts?: {cursor?: number; pullGen?: number}): void
 applyLocalRow(entity, row): void            // upsert with pending = 1; the row keeps its revision (§3)
 removeRow(entity, id): void
 ```
@@ -131,6 +131,13 @@ else:
        upsert with pending = 0, revision = row.revision
 if opts.cursor is given: kv.last_revision.<server> = opts.cursor   -- same transaction
 ```
+
+`<server>` is the value of `kv.active_server`, and `primary` while that key
+has never been written *(`11` §4.1)*. Every row these three functions write
+carries a `pull_gen`: `opts.pullGen` when `arrive` gives one, otherwise the
+current `kv.pull_gen`, and 0 while that key has never been written. A row
+written by anything while a full pull is running is therefore marked as that
+pull's, and its sweep leaves it alone *(`11` §4.3)*.
 
 The skip test looks at the **outbox**, not at the replica row, so it also
 protects a local delete: a row removed locally, whose `DELETE` is still queued,

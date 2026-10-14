@@ -754,7 +754,9 @@ of `07` §10 for the directories it creates.
   **Tests:** `replica/__tests__/apply.test.ts` — RP-1, RP-2 (both halves), RP-3;
   a tombstone leaves memory and stays on disk with `deleted = 1`, and a
   restart does not hydrate it; a row applied with a `pullGen` carries it on
-  disk; one `setState` per batch (subscribe
+  disk, and one applied without carries `kv.pull_gen`, by all three
+  functions; the cursor is written under `kv.active_server`, and under
+  `primary` when that key is absent; one `setState` per batch (subscribe
   and count); completions older than 120 days are on disk and not in memory;
   `replica/__tests__/timers.test.ts` — TM-1 client half.
   **Gate:** `pnpm -C apps/mobile exec jest src/replica`
