@@ -1,4 +1,4 @@
-import type { SecretBox } from '../auth/secretBox';
+import type { Session } from '../auth/session';
 import type { AuthUser } from '@pawlaris/shared';
 import type { ApiFailure } from '../api/client';
 import type { SqlDriver } from '../db/driver';
@@ -36,7 +36,7 @@ export interface Engine {
 
 export interface EngineDependencies {
   driver: SqlDriver;
-  secretBox: SecretBox;
+  session: Pick<Session, 'hasSession'>;
   clock: Clock;
   random: Random;
   serverSelect: { current(): Server };
@@ -167,9 +167,9 @@ export function createEngine(deps: EngineDependencies): Engine {
       arrivalPending = false;
     }
     if (signedOut()) { enterSignedOut(); return; }
-    const tokens = await deps.secretBox.get(`session_tokens.${server}`);
+    const hasSession = await deps.session.hasSession(server);
     if (!valid(run)) return;
-    if (tokens === null) { endSession(); return; }
+    if (!hasSession) { endSession(); return; }
     if (!online) { publish('offline'); return; }
     if ((kv.get('active_server') ?? 'primary') !== server) kv.set('active_server', server);
     publish('syncing', true);

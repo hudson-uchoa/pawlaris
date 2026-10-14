@@ -53,7 +53,7 @@ function makeEngine() {
   const arrive = async () => 'ok' as const;
   const socket: Socket = { state: 'closed', connect: async () => {}, close: () => {} };
   const created = createEngine({
-    driver: c.driver, secretBox: c.secretBox, clock: c.clock, random: fakeRandom(0.5),
+    driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(0.5),
     serverSelect: { current: activeServer }, arrive, outbox: c.drain,
     pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     createSocket: () => socket, online: true, foreground: false,
@@ -73,7 +73,7 @@ function makeLifecycle(overrides: Partial<LifecycleDependencies> = {}) {
   const kick = jest.fn<void | Promise<void>, ['login']>();
   const lifecycle = createLifecycle({
     driver: c.driver, store: c.store, clock: c.clock, session: c.session,
-    secretBox: c.secretBox, api: c.api, http: c.http, servers, activeServer,
+    api: c.api, activeServer,
     kick, removeAssetFiles, cancelNotifications, stopTracking, ...overrides,
   });
   return { lifecycle, files, notifications, removeAssetFiles, cancelNotifications, stopTracking,
@@ -294,7 +294,7 @@ test('SE-WIPE-ADOPT-CRASH: death after wipe and before the first new token write
   };
   const session = createSession({ http: c.http, secretBox, clock: c.clock, kv: c.kv, servers, activeServer });
   const api = createApi({ http: c.http, session, servers, activeServer });
-  const { lifecycle, files, notifications, tracking, kick } = makeLifecycle({ session, secretBox, api });
+  const { lifecycle, files, notifications, tracking, kick } = makeLifecycle({ session, api });
   const next = differentUser();
   killed = true;
   await expect(lifecycle.onLogin(next, { confirmDiscard: async () => true }))

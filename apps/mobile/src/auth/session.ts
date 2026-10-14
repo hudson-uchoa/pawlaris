@@ -14,6 +14,8 @@ export interface Session {
   login(body: Login): Promise<ApiResult<WireSession>>;
   redeem(body: Redeem): Promise<ApiResult<WireSession>>;
   adopt(session: WireSession, server?: Server): Promise<void>;
+  hasSession(server: Server): Promise<boolean>;
+  logout(server: Server): Promise<void>;
   accessToken(server?: Server): Promise<string | ApiFailure>;
   refresh(server?: Server): Promise<ApiResult<WireSession>>;
   clear(server?: Server): Promise<void>;
@@ -97,6 +99,19 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
     login: (body) => authenticate(activeServer(), '/auth/login', body),
     redeem: (body) => authenticate(activeServer(), '/auth/redeem', body),
     adopt,
+    async hasSession(server) {
+      return await storedTokens(server) !== null;
+    },
+    async logout(server) {
+      const tokens = await storedTokens(server);
+      if (tokens === null) return;
+      const base = servers[server];
+      if (base === undefined) throw new Error('The active server has no configured address');
+      await requestHttp(http, {
+        method: 'POST', url: `${base.replace(/\/+$/, '')}/auth/logout`,
+        body: { refresh_token: tokens.refresh_token }, timeoutMs: 15_000,
+      });
+    },
     async accessToken(server = activeServer()) {
       if (kv.get(serverKey('signed_out', server)) === '1') return signedOut(server);
       const tokens = await storedTokens(server);

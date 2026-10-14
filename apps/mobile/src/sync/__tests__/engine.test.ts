@@ -58,7 +58,7 @@ function makeEngine(options: Partial<EngineDependencies> = {}) {
     return 'ok';
   });
   const dependencies: EngineDependencies = {
-    driver: c.driver, secretBox: c.secretBox, clock: c.clock,
+    driver: c.driver, session: c.session, clock: c.clock,
     random: fakeRandom(...Array.from({ length: 12 }, () => 0.5)),
     serverSelect: { current: () => selected }, arrive, outbox: c.drain,
     pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
@@ -529,7 +529,7 @@ test('ENGINE-WIRING: NetInfo and AppState feed the primary selector and dispose 
   }));
   const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
   const wired = createWiredEngine({
-    driver: c.driver, secretBox: c.secretBox, clock: c.clock, random: fakeRandom(),
+    driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(),
     outbox: c.drain, pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
     arrive, createSocket,
   });

@@ -1,15 +1,11 @@
 import type { Api } from '../api/client';
-import { requestHttp } from '../api/client';
 import type { AuthUser } from '@pawlaris/shared';
-import type { Servers } from '../config/servers';
 import type { SqlDriver } from '../db/driver';
 import { Kv, serverKey, type Server } from '../db/kv';
 import { OutboxRepo } from '../db/outboxRepo';
 import type { Clock } from '../platform/clock';
-import type { Http } from '../platform/http';
 import type { ReplicaStore } from '../replica/store';
 import { hydrateReplica } from '../replica/apply';
-import type { SecretBox } from './secretBox';
 import type { Session, WireSession } from './session';
 
 export interface DiscardOptions {
@@ -27,10 +23,7 @@ export interface LifecycleDependencies {
   store: ReplicaStore;
   clock: Clock;
   session: Session;
-  secretBox: SecretBox;
   api: Api;
-  http: Http;
-  servers: Servers;
   activeServer(): Server;
   kick(reason: 'login'): void | Promise<void>;
   removeAssetFiles(): Promise<void>;
@@ -80,16 +73,7 @@ export function createLifecycle(deps: LifecycleDependencies): Lifecycle {
       const server = deps.activeServer();
       const pushToken = kv.get(serverKey('push_token_sent', server));
       if (pushToken !== null) await deps.api.request('DELETE', '/me/push-token', { token: pushToken });
-      const stored = await deps.secretBox.get(`session_tokens.${server}`);
-      if (stored !== null) {
-        const tokens = JSON.parse(stored) as { refresh_token: string };
-        const base = deps.servers[server];
-        if (base === undefined) throw new Error('The active server has no configured address');
-        await requestHttp(deps.http, {
-          method: 'POST', url: `${base.replace(/\/+$/, '')}/auth/logout`,
-          body: { refresh_token: tokens.refresh_token }, timeoutMs: 15_000,
-        });
-      }
+      await deps.session.logout(server);
       await wipe();
       return true;
     },

@@ -344,3 +344,66 @@ test('SE-CLEAR / RS-9: clear the active server tokens without clearing the other
   await session.clear();
   expect(ctx.secretBox.snapshot()).toEqual(reserveSecrets);
 });
+
+describe.each<Server>(['primary', 'reserve'])('SE-SESSION-STORAGE / RS-9: %s', (server) => {
+  test('hasSession reports only the requested server without refreshing or writing flags', async () => {
+    const ctx = current();
+    const session = ctx.makeSession();
+    const other: Server = server === 'primary' ? 'reserve' : 'primary';
+    await session.adopt(wireSession(other), other);
+    ctx.select(other);
+    expect(await session.hasSession(server)).toBe(false);
+    expect(await session.hasSession(other)).toBe(true);
+    await session.adopt(wireSession(server, 'expired', 0), server);
+    ctx.kv.set(serverKey('signed_out', server), '1');
+    const secrets = ctx.secretBox.snapshot();
+    const stored = ctx.driver.all('SELECT * FROM kv ORDER BY key');
+    expect(await ctx.makeSession().hasSession(server)).toBe(true);
+    expect(ctx.secretBox.snapshot()).toEqual(secrets);
+    expect(ctx.driver.all('SELECT * FROM kv ORDER BY key')).toEqual(stored);
+    await session.clear(server);
+    expect(await session.hasSession(server)).toBe(false);
+    expect(await session.hasSession(other)).toBe(true);
+    expect(ctx.http.requests).toEqual([]);
+  });
+
+  test.each([204, 401, 503, 'network'] as const)(
+    'logout uses only its refresh token and preserves storage on %s', async (result) => {
+      const ctx = current();
+      const session = ctx.makeSession();
+      const other: Server = server === 'primary' ? 'reserve' : 'primary';
+      await session.adopt(wireSession(other), other);
+      await session.adopt(wireSession(server, 'expired', 0), server);
+      ctx.select(other);
+      ctx.kv.set(serverKey('signed_out', server), '1');
+      ctx.kv.set(serverKey('signed_out', other), '1');
+      const local = seedLocalIntent(ctx);
+      const secrets = ctx.secretBox.snapshot();
+      const stored = ctx.driver.all('SELECT * FROM kv ORDER BY key');
+      ctx.http.enqueue(result === 'network' ? new Error('simulated logout failure') : response(result));
+      await expect(session.logout(server)).resolves.toBeUndefined();
+      expect(ctx.http.requests).toEqual([{
+        method: 'POST', url: `${servers[server]}/auth/logout`,
+        body: { refresh_token: wireSession(server, 'expired', 0).refresh_token }, timeoutMs: 15_000,
+      }]);
+      expect(ctx.secretBox.snapshot()).toEqual(secrets);
+      expect(ctx.driver.all('SELECT * FROM kv ORDER BY key')).toEqual(stored);
+      expect(ctx.outbox.head(local.queued.userId)).toEqual(local.queued);
+      expect(ctx.replica.get('pets', local.pet.id)?.row).toEqual(local.pet);
+    },
+  );
+
+  test('logout without its session sends nothing and preserves the other server', async () => {
+    const ctx = current();
+    const session = ctx.makeSession();
+    const other: Server = server === 'primary' ? 'reserve' : 'primary';
+    await session.adopt(wireSession(other), other);
+    ctx.select(other);
+    const secrets = ctx.secretBox.snapshot();
+    const stored = ctx.driver.all('SELECT * FROM kv ORDER BY key');
+    await expect(session.logout(server)).resolves.toBeUndefined();
+    expect(ctx.http.requests).toEqual([]);
+    expect(ctx.secretBox.snapshot()).toEqual(secrets);
+    expect(ctx.driver.all('SELECT * FROM kv ORDER BY key')).toEqual(stored);
+  });
+});
