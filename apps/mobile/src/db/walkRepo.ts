@@ -47,7 +47,7 @@ export class WalkRepo {
   }
   insertPoint(point: WalkPoint): void {
     this.driver.run(`
-      INSERT OR IGNORE INTO walk_point (walk_id, seq, lat, lon, t, acc, paused)
+      INSERT INTO walk_point (walk_id, seq, lat, lon, t, acc, paused)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [point.walkId, point.seq, point.lat, point.lon, point.t, point.acc, Number(point.paused)]);
   }
