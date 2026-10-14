@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
+import { useStore } from 'zustand';
 import type { ReplicaState, ReplicaStore } from './store';
 
 export interface ReplicaProviderProps {
@@ -6,12 +7,14 @@ export interface ReplicaProviderProps {
   children: ReactNode;
 }
 
+const ReplicaContext = createContext<ReplicaStore | null>(null);
+
 export function ReplicaProvider(props: ReplicaProviderProps): ReactNode {
-  void props;
-  throw new Error('Replica provider not implemented');
+  return <ReplicaContext.Provider value={props.store}>{props.children}</ReplicaContext.Provider>;
 }
 
 export function useReplica<T>(selector: (state: ReplicaState) => T): T {
-  void selector;
-  throw new Error('Replica hook not implemented');
+  const store = useContext(ReplicaContext);
+  if (store === null) throw new Error('useReplica requires a ReplicaProvider');
+  return useStore(store, selector);
 }

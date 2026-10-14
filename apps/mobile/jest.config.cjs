@@ -8,6 +8,7 @@ module.exports = {
   collectCoverageFrom: ['app/**/*.{ts,tsx}', 'src/**/*.{ts,tsx}', '!**/__tests__/**'],
   coverageThreshold: {
     './src/db/': { statements: 90, branches: 90, functions: 90, lines: 90 },
+    './src/replica/': { statements: 90, branches: 90, functions: 90, lines: 90 },
   },
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*))',

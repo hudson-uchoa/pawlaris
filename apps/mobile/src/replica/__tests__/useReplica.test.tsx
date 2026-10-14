@@ -49,3 +49,11 @@ test('P3-2 useReplica: an unchanged selected value does not rerender on another 
     ctx.driver.close();
   }
 });
+
+test('P3-2 useReplica: a missing provider fails with a clear configuration error', async () => {
+  function WithoutProvider() {
+    const ready = useReplica((state) => state.ready);
+    return <Text>{String(ready)}</Text>;
+  }
+  await expect(render(<WithoutProvider />)).rejects.toThrow('useReplica requires a ReplicaProvider');
+});
