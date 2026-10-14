@@ -883,7 +883,7 @@ of `07` §10 for the directories it creates.
   and caches; offline returns `unavailable`.
   **Gate:** `pnpm -C apps/mobile exec jest src/assets src/walks/__tests__/routes.test.ts`
 
-- [ ] **P3-9 — Server selection**
+- [~] **P3-9 — Server selection**
   **Depends:** P3-8, P2-16 · **Read:** `11` §4.1, §4.2, §4.5, §4.6 · `10` §6, §8 · `04` §14
   **Build:** `sync/serverSelect.ts` — `createServerSelect({http, clock, kv,
   servers})` with `current()`, `report(outcome)` (the engine reports each
