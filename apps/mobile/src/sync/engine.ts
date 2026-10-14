@@ -57,7 +57,7 @@ export function createEngine(deps: EngineDependencies): Engine {
   let foreground = deps.foreground;
   let disposed = false;
   let generation = 0;
-  let arrivalPending = false;
+  let arrivalPending = kv.get(serverKey('reseeded_epoch', server)) === null;
   let pullFailures = 0;
   let rerun = false;
   let nextReason: KickReason = 'start';
@@ -162,6 +162,9 @@ export function createEngine(deps: EngineDependencies): Engine {
       arrivalPending = true;
     }
     if (reason === 'probe' && !moved && socket?.state === 'open') return;
+    if (!moved && signedOut()) { enterSignedOut(); return; }
+    if (reason === 'login') arrivalPending = true;
+    if (arrivalPending && !online) { publish('offline'); return; }
     if (arrivalPending) {
       publish('syncing');
       const result = await deps.arrive(server);
@@ -200,7 +203,12 @@ export function createEngine(deps: EngineDependencies): Engine {
       await deps.serverSelect.report('offline');
       return;
     }
+    const pullGen = kv.get('pull_gen');
     const r2 = await deps.pull.pull();
+    // A new generation means pull delegated to arrival, even if its full pull failed.
+    if (r2 !== 'ok' && (deps.pull.lastFailure === null || kv.get('pull_gen') !== pullGen)) {
+      arrivalPending = true;
+    }
     if (r2 === 'auth') {
       if (!disposed) await deps.serverSelect.report(deps.pull.lastFailure);
       if (valid(run)) endSession();
