@@ -1,7 +1,7 @@
 import { createApi } from '../../api/client';
 import { serverKey } from '../../db/kv';
 import type { SecretBox } from '../secretBox';
-import { createSession } from '../session';
+import { createSession, type Session } from '../session';
 import { deferred, response, servers, sessionContext, wireSession, type SessionContext } from './support';
 
 let context: SessionContext | undefined;
@@ -15,11 +15,17 @@ function current(): SessionContext {
 
 const credentials = { email: 'family@example.invalid', password: 'fake-password-for-tests' };
 
+async function signIn(ctx: SessionContext, session: Session) {
+  ctx.http.enqueue(response(200, wireSession('primary')));
+  const result = await session.login(credentials);
+  if ('networkError' in result || !result.ok) throw new Error('Test sign-in failed');
+  await session.adopt(result.body);
+}
+
 test.each([401, 429, 503])('SE-LOGIN-FAILURE: a failed login (%i) preserves prior session state', async (status) => {
   const ctx = current();
   const session = ctx.makeSession();
-  ctx.http.enqueue(response(200, wireSession('primary')));
-  await session.login(credentials);
+  await signIn(ctx, session);
   ctx.kv.set(serverKey('signed_out', 'primary'), '1');
   const before = ctx.secretBox.snapshot();
   const user = ctx.kv.get('session_user');
@@ -33,8 +39,7 @@ test.each([401, 429, 503])('SE-LOGIN-FAILURE: a failed login (%i) preserves prio
 test('SE-REFRESH-SIGNED-OUT: refresh cannot reuse tokens after the session has ended', async () => {
   const ctx = current();
   const session = ctx.makeSession();
-  ctx.http.enqueue(response(200, wireSession('primary')));
-  await session.login(credentials);
+  await signIn(ctx, session);
   ctx.kv.set(serverKey('signed_out', 'primary'), '1');
   const before = ctx.http.requests.length;
   expect(await session.refresh()).toMatchObject({ ok: false, status: 401 });
@@ -43,8 +48,7 @@ test('SE-REFRESH-SIGNED-OUT: refresh cannot reuse tokens after the session has e
 
 test('SE-ROTATION-PERSIST: refresh resolves only after the new token pair is durable', async () => {
   const ctx = current();
-  ctx.http.enqueue(response(200, wireSession('primary')));
-  await ctx.makeSession().login(credentials);
+  await signIn(ctx, ctx.makeSession());
   const values = new Map(Object.entries(ctx.secretBox.snapshot()));
   const started = deferred<void>();
   const allowWrite = deferred<void>();
@@ -75,8 +79,7 @@ test('SE-ROTATION-PERSIST: refresh resolves only after the new token pair is dur
 test('API-AUTH-HEADER / RS-9: caller headers cannot send a different bearer token', async () => {
   const ctx = current();
   const session = ctx.makeSession();
-  ctx.http.enqueue(response(200, wireSession('primary')));
-  await session.login(credentials);
+  await signIn(ctx, session);
   ctx.http.enqueue(response(200));
   const api = createApi({ http: ctx.http, session, servers, activeServer: ctx.activeServer });
   await api.request('GET', '/me', undefined, {
