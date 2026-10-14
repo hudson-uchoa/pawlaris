@@ -707,7 +707,7 @@ No screens. Everything here is plain TypeScript behind the seams of `10` §1 and
 is tested under Jest with `sql.js` and fakes. Each task adds the coverage floor
 of `07` §10 for the directories it creates.
 
-- [~] **P3-1 — SQLite layer**
+- [x] **P3-1 — SQLite layer**
   **Depends:** P0-5 · **Read:** `03` §10, §11 · `10` §1 · `07` §6 · `11` §2.2, §4.1, §4.3
   **Build:** first, set `@types/react` in `apps/mobile` to the range the SDK
   expects (`npx expo install --check` reports it; noticed in P0-6), and add
