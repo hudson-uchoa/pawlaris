@@ -400,3 +400,130 @@ test('P3-2 family removal: another id leaves the family intact and its own id re
   expect(replica.get('family', family.id)).toBeNull();
   expect(store.getState().pending[`family:${family.id}`]).toBeUndefined();
 });
+
+test('R2: hydrate uses the same SQL count for ten and a thousand rows and reproduces applies',
+  async () => {
+    const ctx = current();
+    hydrate(ctx);
+    ctx.apply.applyServerRows([
+      { entity: 'family', row: ctx.factory.family() },
+      { entity: 'pets', row: ctx.factory.pets() },
+      { entity: 'weight_entries', row: ctx.factory.weight_entries() },
+      ...Array.from({ length: 6 }, () => ({
+        entity: 'task_completions' as const, row: ctx.factory.task_completions(),
+      })),
+    ]);
+    ctx.apply.applyLocalRow('task_completions', ctx.factory.task_completions({ revision: null }));
+
+    async function hydrateReadCount(): Promise<number> {
+      const driver = await memoryDriver(ctx.driver.export());
+      const reads = jest.spyOn(driver, 'all');
+      try {
+        const store = createReplicaStore();
+        hydrate({ driver, store, clock: ctx.clock });
+        expect(store.getState()).toEqual(ctx.store.getState());
+        return reads.mock.calls.length;
+      } finally {
+        reads.mockRestore();
+        driver.close();
+      }
+    }
+
+    const smallReads = await hydrateReadCount();
+    ctx.apply.applyServerRows(Array.from({ length: 990 }, () => ({
+      entity: 'task_completions' as const, row: ctx.factory.task_completions(),
+    })));
+    const largeReads = await hydrateReadCount();
+    expect(smallReads).toBeGreaterThan(0);
+    expect(largeReads).toBe(smallReads);
+  },
+);
+
+test.each(['commit', 'rollback'] as const)(
+  'R2: the cutoff is shared by nested writes and hydrate and cleared after %s',
+  (outcome) => {
+    const ctx = current();
+    ctx.apply.applyServerRows([{ entity: 'family', row: ctx.factory.family() }]);
+    const first = ctx.factory.task_completions({ occurrence_key: '2026-06-14' });
+    const second = ctx.factory.task_completions({ occurrence_key: '2026-06-15' });
+    const reads = jest.spyOn(ctx.driver, 'all');
+    const cutoffReads = () => reads.mock.calls.filter(([sql]) =>
+      sql.includes("SELECT json FROM replica WHERE entity = 'family'")).length;
+    const failure = new Error('Injected cutoff cache rollback');
+    try {
+      const transaction = () => ctx.driver.transaction(() => {
+        ctx.apply.applyServerRows([
+          { entity: 'task_completions', row: first },
+          { entity: 'task_completions', row: second },
+        ]);
+        createReplicaApply(ctx).applyLocalRow('task_completions', first);
+        hydrate({ ...ctx, store: createReplicaStore() });
+        expect(cutoffReads()).toBe(1);
+        if (outcome === 'rollback') throw failure;
+      });
+      if (outcome === 'rollback') expect(transaction).toThrow(failure);
+      else transaction();
+      expect(cutoffReads()).toBe(1);
+
+      reads.mockClear();
+      ctx.clock.advance(86_400_000);
+      ctx.apply.applyServerRows([
+        { entity: 'task_completions', row: first },
+        { entity: 'task_completions', row: second },
+      ]);
+      expect(cutoffReads()).toBe(1);
+      expect(ctx.store.getState().completions).toEqual({ [second.id]: second });
+      expect(ctx.store.getState().pending).toEqual({});
+    } finally {
+      reads.mockRestore();
+    }
+  },
+);
+
+test('R2: hydration between nested writes publishes once and preserves prior snapshots', () => {
+  const ctx = current();
+  const pet = ctx.factory.pets();
+  const member = ctx.factory.members();
+  ctx.apply.applyLocalRow('pets', pet);
+  ctx.apply.applyLocalRow('members', member);
+  const before = ctx.store.getState();
+  const updated = { ...pet, name: 'Updated Aurora' };
+  const listener = jest.fn();
+  const unsubscribe = ctx.store.subscribe(listener);
+  try {
+    ctx.driver.transaction(() => {
+      ctx.apply.applyLocalRow('pets', updated);
+      hydrate(ctx);
+      ctx.apply.removeRow('members', member.id);
+      hydrate(ctx);
+      ctx.apply.applyServerRows([{ entity: 'pets', row: updated }]);
+      ctx.apply.removeRow('pets', pet.id);
+      ctx.apply.applyLocalRow('pets', updated);
+      expect(ctx.store.getState()).toBe(before);
+      expect(listener).not.toHaveBeenCalled();
+    });
+    const after = ctx.store.getState();
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(after.ready).toBe(true);
+    expect(after.pets).toEqual({ [pet.id]: updated });
+    expect(after.members).toEqual({});
+    expect(after.pending).toEqual({ [`pets:${pet.id}`]: true });
+    expect(before.ready).toBe(false);
+    expect(before.pets).toEqual({ [pet.id]: pet });
+    expect(before.members).toEqual({ [member.id]: member });
+    expect(before.pending).toEqual({ [`pets:${pet.id}`]: true, [`members:${member.id}`]: true });
+
+    ctx.driver.transaction(() => {
+      ctx.apply.removeRow('pets', pet.id);
+      ctx.apply.applyServerRows([{ entity: 'pets', row: pet }]);
+    });
+    expect(ctx.store.getState().pets).toEqual({ [pet.id]: pet });
+    expect(ctx.store.getState().pending).toEqual({});
+    expect(ctx.store.getState().members).toBe(after.members);
+    expect(after.pets).toEqual({ [pet.id]: updated });
+    expect(after.pending).toEqual({ [`pets:${pet.id}`]: true });
+    expect(listener).toHaveBeenCalledTimes(2);
+  } finally {
+    unsubscribe();
+  }
+});

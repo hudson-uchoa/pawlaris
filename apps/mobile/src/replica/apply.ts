@@ -31,12 +31,28 @@ export interface ReplicaApply {
   removeRow(entity: SyncEntity, id: string): void;
 }
 
-type StateUpdate = (state: ReplicaState) => ReplicaState;
+type StateUpdate =
+  | { kind: 'upsert'; change: ServerChange; pending: boolean }
+  | { kind: 'remove'; entity: SyncEntity; id: string }
+  | { kind: 'hydrate'; rows: ReplicaRecord[] };
 interface ReplicaWriter {
   api: StoreApi<ReplicaState>;
   batches: Map<SqlDriver, StateUpdate[]>;
 }
 const writers = new WeakMap<ReplicaStore, ReplicaWriter>();
+interface CutoffCache {
+  value: string | undefined;
+}
+const completionCutoffs = new WeakMap<SqlDriver, CutoffCache>();
+
+function transactionCutoffCache(driver: SqlDriver): CutoffCache {
+  const existing = completionCutoffs.get(driver);
+  if (existing !== undefined) return existing;
+  const cache: CutoffCache = { value: undefined };
+  completionCutoffs.set(driver, cache);
+  driver.onTransactionEnd(() => { cache.value = undefined; });
+  return cache;
+}
 
 // Keep the vanilla setter private to this module; React receives only readers.
 export function registerReplicaStore(api: StoreApi<ReplicaState>): ReplicaStore {
@@ -50,13 +66,14 @@ function transactionUpdates({ driver, store }: ReplicaDependencies): StateUpdate
   if (writer === undefined) throw new Error('Replica store is not registered');
   const existing = writer.batches.get(driver);
   if (existing !== undefined) return existing;
+  // Clear the cutoff before a store notification can start another transaction.
+  transactionCutoffCache(driver);
   const updates: StateUpdate[] = [];
   writer.batches.set(driver, updates);
   driver.onTransactionEnd((committed) => {
     const pending = updates.splice(0);
     if (!committed || pending.length === 0) return;
-    const state = pending.reduce((previous, update) => update(previous), store.getState());
-    writer.api.setState(state, true);
+    writer.api.setState(buildState(store, pending), true);
   });
   return updates;
 }
@@ -71,35 +88,68 @@ const slices = {
   walk_sessions: 'walks', assets: 'assets',
 } as const;
 
-function withoutRow(state: ReplicaState, entity: SyncEntity, id: string): ReplicaState {
-  const pending = { ...state.pending };
-  delete pending[`${entity}:${id}`];
-  if (entity === 'family') {
-    return { ...state, family: state.family?.id === id ? null : state.family, pending };
+function buildState(store: ReplicaStore, updates: StateUpdate[]): ReplicaState {
+  let hydrated: ReplicaRecord[] | undefined;
+  let start = 0;
+  // A hydrate snapshot supersedes earlier queued changes from this transaction.
+  for (const [index, update] of updates.entries()) {
+    if (update.kind === 'hydrate') {
+      hydrated = update.rows;
+      start = index + 1;
+    }
   }
-  const slice = slices[entity];
-  const rows = { ...state[slice] };
-  delete rows[id];
-  return { ...state, [slice]: rows, pending };
-}
+  const base = hydrated === undefined ? store.getState() : store.getInitialState();
+  const state = { ...base, pending: { ...base.pending }, ready: hydrated === undefined ? base.ready : true };
+  type Slice = typeof slices[keyof typeof slices];
+  const copied = new Set<Slice>();
+  function mutableSlice<S extends Slice>(slice: S): ReplicaState[S] {
+    if (!copied.has(slice)) {
+      state[slice] = { ...state[slice] };
+      copied.add(slice);
+    }
+    return state[slice];
+  }
 
-function withRow(state: ReplicaState, change: ServerChange, pendingRow: boolean): ReplicaState {
-  const pending = { ...state.pending };
-  const key = `${change.entity}:${change.row.id}`;
-  if (pendingRow) pending[key] = true;
-  else delete pending[key];
-  if (change.entity === 'family') return { ...state, family: change.row, pending };
-  const slice = slices[change.entity];
-  return { ...state, [slice]: { ...state[slice], [change.row.id]: change.row }, pending };
+  function withoutRow(entity: SyncEntity, id: string): void {
+    delete state.pending[`${entity}:${id}`];
+    if (entity === 'family') {
+      if (state.family?.id === id) state.family = null;
+    } else {
+      delete mutableSlice(slices[entity])[id];
+    }
+  }
+
+  function withRow(change: ServerChange, pendingRow: boolean): void {
+    const key = `${change.entity}:${change.row.id}`;
+    if (pendingRow) state.pending[key] = true;
+    else delete state.pending[key];
+    if (change.entity === 'family') state.family = change.row;
+    else mutableSlice(slices[change.entity])[change.row.id] = change.row;
+  }
+
+  if (hydrated !== undefined) {
+    for (const record of hydrated) {
+      // ReplicaRepo decodes each entity's JSON as that entity's row type.
+      withRow({ entity: record.entity, row: record.row } as ServerChange, record.pending);
+    }
+  }
+  for (const update of updates.slice(start)) {
+    if (update.kind === 'upsert') withRow(update.change, update.pending);
+    else if (update.kind === 'remove') withoutRow(update.entity, update.id);
+  }
+  return state;
 }
 
 function completionCutoff(dependencies: ReplicaDependencies): string {
+  const cache = transactionCutoffCache(dependencies.driver);
+  if (cache.value !== undefined) return cache.value;
   const family = dependencies.driver.all<{ json: string }>(
     "SELECT json FROM replica WHERE entity = 'family' AND deleted = 0 LIMIT 1",
   )[0];
   // Before the family arrives, use the seeded family's timezone (02, Family).
   const timezone = family === undefined ? 'America/Sao_Paulo' : (JSON.parse(family.json) as Family).timezone;
-  return addDays(localDate(dependencies.clock.now(), timezone), -120);
+  cache.value = addDays(localDate(dependencies.clock.now(), timezone), -120);
+  return cache.value;
 }
 
 function queueRecord(dependencies: ReplicaDependencies, record: ReplicaRecord): void {
@@ -107,8 +157,9 @@ function queueRecord(dependencies: ReplicaDependencies, record: ReplicaRecord): 
     || (record.sortKey !== null && record.sortKey >= completionCutoff(dependencies)));
   // ReplicaRepo decodes each entity's JSON as that entity's row type.
   const change = { entity: record.entity, row: record.row } as ServerChange;
-  collect(dependencies, (state) => visible
-    ? withRow(state, change, record.pending) : withoutRow(state, record.entity, record.id));
+  collect(dependencies, visible
+    ? { kind: 'upsert', change, pending: record.pending }
+    : { kind: 'remove', entity: record.entity, id: record.id });
 }
 
 export function createReplicaApply(dependencies: ReplicaDependencies): ReplicaApply {
@@ -146,7 +197,7 @@ export function createReplicaApply(dependencies: ReplicaDependencies): ReplicaAp
     removeRow(entity, id) {
       driver.transaction(() => {
         replica.remove(entity, id);
-        collect(dependencies, (state) => withoutRow(state, entity, id));
+        collect(dependencies, { kind: 'remove', entity, id });
       });
     },
   };
@@ -156,7 +207,6 @@ export function hydrateReplica(dependencies: ReplicaDependencies): void {
   transactionUpdates(dependencies);
   dependencies.driver.transaction(() => {
     const rows = new ReplicaRepo(dependencies.driver).allExceptOldCompletions(completionCutoff(dependencies));
-    collect(dependencies, () => ({ ...dependencies.store.getInitialState(), ready: true }));
-    for (const record of rows) queueRecord(dependencies, record);
+    collect(dependencies, { kind: 'hydrate', rows });
   });
 }
