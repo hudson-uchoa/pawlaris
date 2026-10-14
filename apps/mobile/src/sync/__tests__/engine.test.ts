@@ -397,6 +397,99 @@ test('ENGINE-NO-SERVER-SESSION / RS-9: moving to a server without tokens signs o
   expect(c.http.requests).toHaveLength(1);
 });
 
+test('ENGINE-ARRIVE-AUTH-NO-FLAG / RS-9: an auth arrival without a flag ends the session and keeps local intent', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  c.http.enqueue(page());
+  const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'auth');
+  const { engine: created, select } = makeEngine({ arrive });
+  await created.kick('start');
+  const queued = seedMutation(c, petMutation(c, 'Kept after auth arrival'));
+  const beforeStore = c.store.getState();
+  const beforeReplica = c.driver.all('SELECT * FROM replica');
+  const beforeOutbox = c.driver.all('SELECT * FROM outbox');
+  const secrets = c.secretBox.snapshot();
+  expect(c.kv.get('signed_out.reserve')).toBeNull();
+  select('reserve');
+  await created.kick('refresh');
+  expect(arrive).toHaveBeenCalledWith('reserve');
+  expect(created.state.getState()).toEqual({ status: 'signed_out', server: 'reserve', outboxCount: 1 });
+  expect(c.kv.get('signed_out.reserve')).toBe('1');
+  expect(c.store.getState()).toBe(beforeStore);
+  expect(c.driver.all('SELECT * FROM replica')).toEqual(beforeReplica);
+  expect(c.driver.all('SELECT * FROM outbox')).toEqual(beforeOutbox);
+  expect(c.outbox.head(c.sessionUser.id)).toEqual(queued);
+  expect(c.secretBox.snapshot()).toEqual(secrets);
+  expect(c.http.requests).toHaveLength(1);
+});
+
+test('ENGINE-MOVE-MISSING-TOKENS / RS-9: moving to a server with removed tokens and no flag ends the session', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  await c.session.clear('reserve');
+  c.http.enqueue(page());
+  const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
+  const { engine: created, select } = makeEngine({ arrive });
+  await created.kick('start');
+  const queued = seedMutation(c, petMutation(c, 'Kept after token removal'));
+  const beforeStore = c.store.getState();
+  const beforeReplica = c.driver.all('SELECT * FROM replica');
+  const beforeOutbox = c.driver.all('SELECT * FROM outbox');
+  const secrets = c.secretBox.snapshot();
+  expect(await c.session.hasSession('reserve')).toBe(false);
+  expect(c.kv.get('signed_out.reserve')).toBeNull();
+  select('reserve');
+  await created.kick('refresh');
+  expect(arrive).toHaveBeenCalledWith('reserve');
+  expect(created.state.getState()).toEqual({ status: 'signed_out', server: 'reserve', outboxCount: 1 });
+  expect(c.kv.get('signed_out.reserve')).toBe('1');
+  expect(c.store.getState()).toBe(beforeStore);
+  expect(c.driver.all('SELECT * FROM replica')).toEqual(beforeReplica);
+  expect(c.driver.all('SELECT * FROM outbox')).toEqual(beforeOutbox);
+  expect(c.outbox.head(c.sessionUser.id)).toEqual(queued);
+  expect(c.secretBox.snapshot()).toEqual(secrets);
+  expect(c.http.requests).toHaveLength(1);
+});
+
+test('ENGINE-MOVE-ACTIVE-SERVER / RS-9: the engine stores the new server when arrival writes no active key', async () => {
+  await c.session.adopt(wireSession('reserve'), 'reserve');
+  c.kv.set('active_server', 'primary');
+  c.http.enqueue(page(), page(11));
+  const arrive = jest.fn(async (_server: Server): Promise<PullResult> => 'ok');
+  const { engine: created, select } = makeEngine({ arrive });
+  await created.kick('start');
+  expect(c.kv.get('active_server')).toBe('primary');
+  select('reserve');
+  await created.kick('refresh');
+  expect(arrive).toHaveBeenCalledWith('reserve');
+  expect(c.kv.get('active_server')).toBe('reserve');
+  expect(c.http.requests.map((request) => request.url)).toEqual([
+    `${servers.primary}/sync?since=0&limit=500`, `${servers.reserve}/sync?since=0&limit=500`,
+  ]);
+  expect(c.kv.get('last_revision.primary')).toBe('7');
+  expect(c.kv.get('last_revision.reserve')).toBe('11');
+  expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
+});
+
+test('ENGINE-PULL-SESSION-END / SE-2: a pull resolving after session expiry publishes no further connection state', async () => {
+  const started = deferred<void>();
+  const held = deferred<HttpResponse>();
+  c.http.enqueue(() => { started.resolve(); return held.promise; }, response(401));
+  const { engine: created } = makeEngine({ foreground: true });
+  const states: ConnectionState[] = [];
+  created.state.subscribe((state) => { states.push(state); });
+  const cycle = created.kick('start');
+  await started.promise;
+  expect(created.state.getState()).toEqual({ status: 'syncing', server: 'primary', outboxCount: 0 });
+  expect(await c.session.refresh()).toMatchObject({ ok: false, status: 401 });
+  const signedOutState = created.state.getState();
+  expect(signedOutState).toEqual({ status: 'signed_out', server: 'primary', outboxCount: 0 });
+  const atSessionEnd = [...states];
+  held.resolve(page());
+  await cycle;
+  expect(created.state.getState()).toBe(signedOutState);
+  expect(states).toEqual(atSessionEnd);
+  expect(jest.getTimerCount()).toBe(0);
+});
+
 test('ENGINE-DISPOSE: stopping the engine clears retries and fallback and closes its socket', async () => {
   c.http.enqueue(new Error('simulated pull failure'));
   const { engine: created, sockets } = makeEngine({ foreground: true });
