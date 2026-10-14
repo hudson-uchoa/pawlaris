@@ -13,6 +13,7 @@ export type Redeem = components['schemas']['Redeem'];
 export interface Session {
   login(body: Login): Promise<ApiResult<WireSession>>;
   redeem(body: Redeem): Promise<ApiResult<WireSession>>;
+  adopt(session: WireSession, server?: Server): Promise<void>;
   accessToken(server?: Server): Promise<string | ApiFailure>;
   refresh(server?: Server): Promise<ApiResult<WireSession>>;
   clear(server?: Server): Promise<void>;
@@ -50,6 +51,16 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
     return stored === null ? null : JSON.parse(stored) as StoredTokens;
   };
 
+  const adopt = async (wire: WireSession, server: Server = activeServer()): Promise<void> => {
+    const tokens: StoredTokens = {
+      access_token: wire.access_token, refresh_token: wire.refresh_token,
+      access_expires_at: wire.access_expires_at,
+    };
+    await secretBox.set(tokenKey(server), JSON.stringify(tokens));
+    kv.set('session_user', JSON.stringify(wire.user));
+    kv.remove(serverKey('signed_out', server));
+  };
+
   const authenticate = async (
     server: Server, path: string, body: Login | Redeem | components['schemas']['Refresh'],
   ): Promise<ApiResult<WireSession>> => {
@@ -59,15 +70,7 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
       method: 'POST', url: `${base.replace(/\/+$/, '')}${path}`, body, timeoutMs: 15_000,
     });
     if ('networkError' in result || !result.ok) return result;
-    const wire = result.body as WireSession;
-    const tokens: StoredTokens = {
-      access_token: wire.access_token, refresh_token: wire.refresh_token,
-      access_expires_at: wire.access_expires_at,
-    };
-    await secretBox.set(tokenKey(server), JSON.stringify(tokens));
-    kv.set('session_user', JSON.stringify(wire.user));
-    kv.remove(serverKey('signed_out', server));
-    return { ...result, body: wire };
+    return { ...result, body: result.body as WireSession };
   };
 
   const performRefresh = async (server: Server): Promise<ApiResult<WireSession>> => {
@@ -75,6 +78,7 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
     const tokens = await storedTokens(server);
     if (tokens === null) return signedOut(server);
     const result = await authenticate(server, '/auth/refresh', { refresh_token: tokens.refresh_token });
+    if (!('networkError' in result) && result.ok) await adopt(result.body, server);
     if (!('networkError' in result) && result.status === 401) {
       kv.set(serverKey('signed_out', server), '1');
     }
@@ -92,6 +96,7 @@ export function createSession({ http, secretBox, clock, kv, servers, activeServe
   return {
     login: (body) => authenticate(activeServer(), '/auth/login', body),
     redeem: (body) => authenticate(activeServer(), '/auth/redeem', body),
+    adopt,
     async accessToken(server = activeServer()) {
       if (kv.get(serverKey('signed_out', server)) === '1') return signedOut(server);
       const tokens = await storedTokens(server);

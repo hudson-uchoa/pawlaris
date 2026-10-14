@@ -21,7 +21,9 @@ async function signIn(ctx: SessionContext, session: Session, server: Server, rem
   ctx.select(server);
   const wire = wireSession(server, 'initial', remaining);
   ctx.http.enqueue(response(200, wire));
-  await session.login(credentials);
+  const result = await session.login(credentials);
+  if ('networkError' in result || !result.ok) throw new Error('Test sign-in failed');
+  await session.adopt(result.body);
   return wire;
 }
 
@@ -131,16 +133,19 @@ test('SE-REFRESH-401 / SE-2: a 401 ends the session and preserves local intent a
   expect(ctx.http.requests).toHaveLength(before);
 });
 
-test('SE-LOGIN: same-user login clears signed_out and preserves the outbox and replica', async () => {
+test('SE-LOGIN: same-user adoption clears signed_out and preserves the outbox and replica', async () => {
   const ctx = current();
   const session = ctx.makeSession();
   const wire = await signIn(ctx, session, 'primary');
   const local = seedLocalIntent(ctx);
   ctx.kv.set(serverKey('signed_out', 'primary'), '1');
   ctx.http.enqueue(response(200, wireSession('primary', 'new-login')));
-  expect(await session.login(credentials)).toEqual({
+  const result = await session.login(credentials);
+  expect(result).toEqual({
     ok: true, ...response(200, wireSession('primary', 'new-login')),
   });
+  if ('networkError' in result || !result.ok) throw new Error('Test sign-in failed');
+  await session.adopt(result.body);
   expect(ctx.kv.get(serverKey('signed_out', 'primary'))).toBeNull();
   expect(JSON.parse(ctx.kv.get('session_user') ?? 'null')).toEqual(wire.user);
   expect(ctx.outbox.head(local.queued.userId)).toEqual(local.queued);
@@ -167,22 +172,84 @@ test('SE-LOGIN-STORAGE / R1.7: tokens and expiry persist only in SecretBox', asy
   expect(ctx.http.requests[0]?.headers?.Authorization).toBeUndefined();
 });
 
-test('SE-REDEEM: send the wire body and persist the returned session', async () => {
+test('SE-REDEEM: send the wire body and adopt the returned session', async () => {
   const ctx = current();
   const session = ctx.makeSession();
   const body = { ...credentials, code: 'FAKECODE01', display_name: 'Test member' };
   const wire = wireSession('primary', 'redeemed');
   ctx.kv.set(serverKey('signed_out', 'primary'), '1');
   ctx.http.enqueue(response(200, wire));
-  expect(await session.redeem(body)).toEqual({ ok: true, ...response(200, wire) });
+  const result = await session.redeem(body);
+  expect(result).toEqual({ ok: true, ...response(200, wire) });
   expect(ctx.http.requests).toHaveLength(1);
   expect(ctx.http.requests[0]).toMatchObject({
     method: 'POST', url: `${servers.primary}/auth/redeem`, body,
   });
   expect(ctx.http.requests[0]?.headers?.Authorization).toBeUndefined();
+  if ('networkError' in result || !result.ok) throw new Error('Test redeem failed');
+  await session.adopt(result.body);
   expect(ctx.kv.get(serverKey('signed_out', 'primary'))).toBeNull();
   expect(await ctx.makeSession().accessToken()).toBe(wire.access_token);
   expect(JSON.stringify(ctx.secretBox.snapshot())).toContain(wire.refresh_token);
+});
+
+describe.each(['login', 'redeem'] as const)('SE-AUTH-NO-STORAGE: %s', (method) => {
+  test.each([false, true])('preserves storage with a prior session: %s', async (hasPriorSession) => {
+    const ctx = current();
+    const session = ctx.makeSession();
+    if (hasPriorSession) await signIn(ctx, session, 'primary');
+    ctx.kv.set(serverKey('signed_out', 'primary'), '1');
+    ctx.kv.set(serverKey('signed_out', 'reserve'), '1');
+    const secrets = ctx.secretBox.snapshot();
+    const user = ctx.kv.get('session_user');
+    const stored = ctx.driver.all('SELECT key, value FROM kv ORDER BY key');
+    const wire = wireSession('primary', 'unadopted');
+    wire.user = { ...wire.user, id: '00000000-0000-4000-8000-000000000005' };
+    ctx.http.enqueue(response(200, wire));
+    const result = method === 'login'
+      ? await session.login(credentials)
+      : await session.redeem({ ...credentials, code: 'FAKECODE01', display_name: 'Test member' });
+    expect(result).toEqual({ ok: true, ...response(200, wire) });
+    expect(ctx.secretBox.snapshot()).toEqual(secrets);
+    expect(ctx.kv.get('session_user')).toBe(user);
+    expect(ctx.kv.get(serverKey('signed_out', 'primary'))).toBe('1');
+    expect(ctx.kv.get(serverKey('signed_out', 'reserve'))).toBe('1');
+    expect(ctx.driver.all('SELECT key, value FROM kv ORDER BY key')).toEqual(stored);
+  });
+});
+
+describe.each<Server>(['primary', 'reserve'])('SE-ADOPT / RS-9: %s', (server) => {
+  test.each([false, true])('stores only its session with an explicit server: %s', async (explicit) => {
+    const ctx = current();
+    const session = ctx.makeSession();
+    const other: Server = server === 'primary' ? 'reserve' : 'primary';
+    await signIn(ctx, session, other);
+    const otherSecrets = ctx.secretBox.snapshot();
+    ctx.kv.set(serverKey('signed_out', other), '1');
+    ctx.kv.set(serverKey('last_revision', other), '17');
+    ctx.kv.set(serverKey('sync_epoch', other), `fake-${other}-epoch`);
+    ctx.kv.set(serverKey('reseeded_epoch', other), `fake-${other}-reseeded-epoch`);
+    ctx.kv.set(serverKey('signed_out', server), '1');
+    ctx.select(explicit ? other : server);
+    const requestsBefore = ctx.http.requests.length;
+    const wire = wireSession(server, 'adopted');
+    if (explicit) await session.adopt(wire, server);
+    else await session.adopt(wire);
+    expect(ctx.secretBox.snapshot()).toEqual({
+      ...otherSecrets,
+      [`session_tokens.${server}`]: JSON.stringify({
+        access_token: wire.access_token, refresh_token: wire.refresh_token,
+        access_expires_at: wire.access_expires_at,
+      }),
+    });
+    expect(JSON.parse(ctx.kv.get('session_user') ?? 'null')).toEqual(wire.user);
+    expect(ctx.kv.get(serverKey('signed_out', server))).toBeNull();
+    expect(ctx.kv.get(serverKey('signed_out', other))).toBe('1');
+    expect(ctx.kv.get(serverKey('last_revision', other))).toBe('17');
+    expect(ctx.kv.get(serverKey('sync_epoch', other))).toBe(`fake-${other}-epoch`);
+    expect(ctx.kv.get(serverKey('reseeded_epoch', other))).toBe(`fake-${other}-reseeded-epoch`);
+    expect(ctx.http.requests).toHaveLength(requestsBefore);
+  });
 });
 
 test.each<Server>(['primary', 'reserve'])(
