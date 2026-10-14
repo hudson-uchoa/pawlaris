@@ -4,20 +4,20 @@ export type Server = 'primary' | 'reserve';
 export type ServerKeyName =
   | 'last_revision' | 'sync_epoch' | 'reseeded_epoch' | 'signed_out' | 'push_token_sent';
 
-export function serverKey(_name: ServerKeyName, _server: Server): string {
-  throw new Error('not implemented: serverKey');
+export function serverKey(name: ServerKeyName, server: Server): string {
+  return `${name}.${server}`;
 }
 
 export class Kv {
   constructor(private readonly driver: SqlDriver) {}
 
-  get(_key: string): string | null {
-    throw new Error('not implemented: Kv.get');
+  get(key: string): string | null {
+    return this.driver.all<{ value: string }>('SELECT value FROM kv WHERE key = ?', [key])[0]?.value ?? null;
   }
-  set(_key: string, _value: string): void {
-    throw new Error('not implemented: Kv.set');
+  set(key: string, value: string): void {
+    this.driver.run('INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)', [key, value]);
   }
-  remove(_key: string): void {
-    throw new Error('not implemented: Kv.remove');
+  remove(key: string): void {
+    this.driver.run('DELETE FROM kv WHERE key = ?', [key]);
   }
 }
