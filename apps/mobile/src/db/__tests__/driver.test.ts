@@ -213,6 +213,38 @@ describe.each(['memory', 'expo'] as const)('%s SqlDriver', (kind) => {
     expect(driver.all('SELECT id FROM sample')).toEqual([]);
   });
 
+  test('R4: an onTransactionEnd listener commits its own transaction', () => {
+    let wroteFromListener = false;
+    const listener = jest.fn((committed: boolean) => {
+      if (!committed || wroteFromListener) return;
+      wroteFromListener = true;
+      driver.transaction(() => {
+        driver.run('INSERT INTO sample (id, value) VALUES (?, ?)', [2, 'listener']);
+      });
+    });
+    driver.onTransactionEnd(listener);
+    driver.transaction(() => driver.run('INSERT INTO sample (id) VALUES (?)', [1]));
+    // The listener's transaction has its own observable commit notification.
+    expect(listener.mock.calls).toEqual([[true], [true]]);
+    expect(driver.all('SELECT id, value FROM sample ORDER BY id')).toEqual([
+      { id: 1, value: null }, { id: 2, value: 'listener' },
+    ]);
+    if (kind === 'expo') {
+      expect(commands.filter((sql) => /^(BEGIN|COMMIT|ROLLBACK)/.test(sql)))
+        .toEqual(['BEGIN IMMEDIATE', 'COMMIT', 'BEGIN IMMEDIATE', 'COMMIT']);
+    }
+
+    const failure = new Error('Injected rollback after the listener commit');
+    expect(() => driver.transaction(() => {
+      driver.run('DELETE FROM sample');
+      throw failure;
+    })).toThrow(failure);
+    expect(driver.all('SELECT id, value FROM sample ORDER BY id')).toEqual([
+      { id: 1, value: null }, { id: 2, value: 'listener' },
+    ]);
+    expect(listener.mock.calls).toEqual([[true], [true], [false]]);
+  });
+
   test('onTransactionEnd retains every listener across commits and rollbacks', () => {
     const first = jest.fn();
     const second = jest.fn();

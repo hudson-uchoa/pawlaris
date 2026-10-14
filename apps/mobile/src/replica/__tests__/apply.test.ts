@@ -174,6 +174,35 @@ test('RP-3: an outer rollback restores disk and memory and never notifies subscr
   unsubscribe();
 });
 
+test('RP-3 R4: a later commit never replays rolled-back changes', () => {
+  const { apply, driver, factory, replica, store } = current();
+  const existing = factory.pets();
+  apply.applyLocalRow('pets', existing);
+  const before = store.getState();
+  const member = factory.members();
+  const rolledBack = factory.pets({ revision: null });
+  const failure = new Error('Injected rollback before a later commit');
+  expect(() => driver.transaction(() => {
+    apply.applyLocalRow('pets', rolledBack);
+    apply.removeRow('pets', existing.id);
+    apply.applyServerRows([{ entity: 'members', row: member }]);
+    throw failure;
+  })).toThrow(failure);
+  expect(store.getState()).toBe(before);
+
+  const committed = factory.pets({ revision: null });
+  apply.applyLocalRow('pets', committed);
+  expect(store.getState()).toEqual({
+    ...before,
+    pets: { ...before.pets, [committed.id]: committed },
+    pending: { ...before.pending, [`pets:${committed.id}`]: true },
+  });
+  expect(replica.get('pets', existing.id)?.row).toEqual(existing);
+  expect(replica.get('pets', rolledBack.id)).toBeNull();
+  expect(replica.get('members', member.id)).toBeNull();
+  expect(replica.get('pets', committed.id)?.row).toEqual(committed);
+});
+
 test('P3-2 batch: nested applies publish once only after the outer transaction commits', () => {
   const { driver, apply, factory, store, replica } = current();
   const first = factory.pets();
