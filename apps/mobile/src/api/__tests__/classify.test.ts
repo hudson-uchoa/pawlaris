@@ -50,3 +50,7 @@ test.each([400, 403, 404, 405, 409, 410, 413, 422])(
     expect(classify(result(status))).toBe('permanent');
   },
 );
+
+test.each([302, 101])('CLASS-OTHER: %i is permanent without throwing', (status) => {
+  expect(classify(result(status))).toBe('permanent');
+});

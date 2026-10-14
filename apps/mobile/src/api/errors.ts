@@ -15,5 +15,5 @@ export function classify(
   }
   if (status === 401) return 'auth';
   if (status >= 400 && status < 500) return 'permanent';
-  throw new Error('Unexpected HTTP status for classification');
+  return 'permanent';
 }
