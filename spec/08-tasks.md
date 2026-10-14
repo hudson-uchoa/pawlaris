@@ -901,7 +901,7 @@ of `07` §10 for the directories it creates.
   **Not here:** the reseed (P3-10); the indicator's label (P4-3); the push
   token (P5-8).
 
-- [ ] **P3-10 — Arriving at a server: reseed, full pull, sweep**
+- [~] **P3-10 — Arriving at a server: reseed, full pull, sweep**
   **Depends:** P3-9, P2-17 · **Read:** `11` §3 (the body, the order, the limits), §4.3, §4.4 · `10` §5, §7 · `04` §6.1
   **Build:** first, `replicaRepo.pageForReseed` takes the filter of `11`
   §4.3 in place of the one P3-1 built: every row whose `revision` is not
