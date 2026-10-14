@@ -742,7 +742,7 @@ of `07` §10 for the directories it creates.
   an outbox entry).
   **Gate:** `pnpm -C apps/mobile exec jest src/db`
 
-- [~] **P3-2 — Replica store**
+- [x] **P3-2 — Replica store**
   **Depends:** P3-1, P1-3 · **Read:** `10` §1, §2 · `11` §2.2
   **Build:** `replica/store.ts` (`createReplicaStore()`), `replica/hydrate.ts`,
   `replica/apply.ts` (`applyServerRows(rows, {cursor, pullGen})`,
