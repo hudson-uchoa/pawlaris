@@ -85,6 +85,40 @@ test('P3-2 day view: the selector wraps the real builder with family timezone an
   expect(ctx.store.getState()).toBe(before);
 });
 
+test.each(['pending first', 'acknowledged first'] as const)(
+  'R4 day view: the acknowledged completion wins with %s',
+  (order) => {
+    const { apply, clock, factory, store } = current();
+    const pet = factory.pets({ id: factory.petId });
+    const template = factory.task_templates({
+      id: factory.taskId, completion_mode: 'per_pet',
+    });
+    const pending = factory.task_completions({ pet_id: pet.id, revision: null });
+    const acknowledged = factory.task_completions({ pet_id: pet.id });
+    apply.applyServerRows([
+      { entity: 'family', row: factory.family() }, { entity: 'pets', row: pet },
+      { entity: 'task_templates', row: template },
+    ]);
+    const acknowledge = () => apply.applyServerRows([
+      { entity: 'task_completions', row: acknowledged },
+    ]);
+    if (order === 'acknowledged first') acknowledge();
+    apply.applyLocalRow('task_completions', pending);
+    if (order === 'pending first') acknowledge();
+
+    const state = store.getState();
+    expect(Object.keys(state.completions)).toEqual(order === 'pending first'
+      ? [pending.id, acknowledged.id] : [acknowledged.id, pending.id]);
+    expect(state.pending).toEqual({ [`task_completions:${pending.id}`]: true });
+    const view = selectDayView(state, {
+      date: '2026-10-13', now: clock.now(), me: factory.memberId, scope: 'all',
+    });
+    expect(view.done).toHaveLength(1);
+    expect(view.done[0]?.completions).toEqual([acknowledged]);
+    expect(view.done[0]?.progress).toEqual({ done: 1, total: 1 });
+  },
+);
+
 test('P3-2 tombstone selectors: deleted pets, members, templates and walks never appear', () => {
   const ctx = current();
   const deleted_at = new Date(ctx.clock.now()).toISOString();
