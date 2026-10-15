@@ -6,6 +6,9 @@ packages:
 virtualStoreDir: .p
 virtualStoreDirMaxLength: 20
 allowBuilds:
+  # Copies the prebuilt Skia libraries from its platform packages into
+  # libs/, which the Android build links; it downloads nothing.
+  '@shopify/react-native-skia': true
   # The resolver ships prebuilt binaries; no install-time script is needed.
   unrs-resolver: false
 overrides:
