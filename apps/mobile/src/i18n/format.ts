@@ -38,23 +38,26 @@ export function formatDecimal(value: number, fractionDigits: number): string {
 }
 
 export function formatDistance(metres: number): string {
-  return metres < 1000
-    ? `${formatDecimal(metres, 0)} ${strings.format.metres}`
-    : `${formatDecimal(metres / 1000, 2)} ${strings.format.kilometres}`;
+  const wholeMetres = Math.round(metres);
+  return wholeMetres < 1000
+    ? `${formatDecimal(wholeMetres, 0)} ${strings.format.metres}`
+    : `${formatDecimal(wholeMetres / 1000, 2)} ${strings.format.kilometres}`;
 }
 
 export function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  const remainder = twoDigits(seconds % 60);
-  return seconds < 3600
+  const wholeSeconds = Math.floor(seconds);
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainder = twoDigits(wholeSeconds % 60);
+  return wholeSeconds < 3600
     ? `${twoDigits(minutes)}:${remainder}`
     : `${Math.floor(minutes / 60)}:${twoDigits(minutes % 60)}:${remainder}`;
 }
 
 export function formatPace(secondsPerKilometre: number | null): string {
   if (secondsPerKilometre === null) return strings.format.unavailable;
-  const minutes = twoDigits(Math.floor(secondsPerKilometre / 60));
-  return `${minutes}:${twoDigits(secondsPerKilometre % 60)} ${strings.format.paceUnit}`;
+  const wholeSeconds = Math.round(secondsPerKilometre);
+  const minutes = twoDigits(Math.floor(wholeSeconds / 60));
+  return `${minutes}:${twoDigits(wholeSeconds % 60)} ${strings.format.paceUnit}`;
 }
 
 export function formatPetAge(birthdate: DateKey, today: DateKey): string {
