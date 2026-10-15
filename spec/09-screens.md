@@ -553,6 +553,36 @@ Formatting helpers in `apps/mobile/src/i18n/format.ts`:
 | Pace | `mm:ss /km` | `14:15 /km` |
 | Age | per R2.4 | `1 ano e 4 meses` |
 
+Validation messages *(Q-31)*. `formatValidationError` in `format.ts` turns a
+`FormValidationError` of `packages/shared/src/validators.ts` into the line shown
+under its field, from this table; the first row that matches the field and the
+code wins, and the last row catches everything else. Most codes cannot come
+from a form, whose controls only produce valid values; they still get the
+fallback, never a raw code.
+
+| Field | Code | Message |
+|---|---|---|
+| `name` | `required` | Informe o nome. |
+| `name` | `out_of_range` | O nome pode ter até 40 caracteres. |
+| `title` | `required` | Informe o título. |
+| `title` | `out_of_range` | O título pode ter até 80 caracteres. |
+| `species` | `required` | Escolha a espécie. |
+| `type` | `required` | Escolha o tipo. |
+| `weight_kg` | `required` | Informe o peso. |
+| `weight_kg` | `invalid` | Informe o peso em kg, como 4,25. |
+| `weight_kg` | `out_of_range` | O peso vai de 0,01 a 119,99 kg, com até duas casas decimais. |
+| `measured_at`, `occurred_at`, `starts_on`, `date` | `required` | Informe a data. |
+| `password` | `required` | Informe a senha. |
+| `password` | `out_of_range` | A senha precisa ter de 8 a 128 caracteres. |
+| `pet_ids` | `required` | Escolha pelo menos um pet. |
+| `byday` | `required` | Escolha pelo menos um dia da semana. |
+| `bymonthday` | `required` | Escolha pelo menos um dia do mês. |
+| `interval` | `out_of_range` | O intervalo vai de 1 a 365. |
+| `times_of_day` | `too_many` | São no máximo 8 horários. |
+| `times_of_day` | `duplicate` | Esse horário já está na lista. |
+| `timer_seconds` | `out_of_range` | O cronômetro vai de 1 a 1440 minutos. |
+| any other | any other | Confira este campo. |
+
 Push body templates (server-side, `04` §15):
 
 | Event | Title | Body |

@@ -870,3 +870,11 @@ authorize authoring that copy or supply its exact text, including the
 fallback for a field without a specific message, before tests freeze it.
 **Blocking:** yes (Stage B stopped before adding stubs or tests). The
 session explicitly requires stopping for unspecified product copy.
+
+**Answer:** orchestrator — 2026-10-15. The copy is written: `09` §10 now
+has the validation message table, keyed by field and code, first match
+wins, with "Confira este campo." as the fallback for any other field or
+code — the user never sees a raw code. "Informe o nome." stays as `09`
+§4.2 gives it. The shared validators stay unchanged; `format.ts` exposes
+`formatValidationError`, and `format.test.ts` covers every row of the
+table as it covers every other row of `09` §10.
