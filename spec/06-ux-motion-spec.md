@@ -603,6 +603,9 @@ race`, `approximate` location, and `offline`, which are the states most likely t
 skipped and most likely to be seen.
 
 Every interactive element has an `accessibilityLabel` and `accessibilityRole`.
+A native text input is the exception for the role: it keeps the edit-text
+semantics Android gives it, which React Native has no role for, and its test
+finds it by its label *(Q-33)*.
 A `StarCheck` is a checkbox to assistive technology and announces its state
 ("Remédio da Aurora, 8 horas, não feito"). Ambient effects are hidden from the
 accessibility tree.

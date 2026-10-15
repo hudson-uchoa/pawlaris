@@ -938,3 +938,10 @@ repair before implementation resumes.
 changing Stage B assertions). No test was changed. The unfinished
 primitive implementation was restored to the committed stubs; only this
 question remains in the working tree besides COMMIT_MSG.txt.
+
+**Answer:** orchestrator — 2026-10-15. As assumed. The `TextField` keeps
+the native input's own semantics, with no role override, and has its
+`accessibilityLabel`; its case finds the input by that label and keeps
+every other assertion, in both themes. This is a repair of a Stage B
+assertion that no correct input could meet, approved here; the commit
+that makes it says so. `06` §7 now names the exception.
