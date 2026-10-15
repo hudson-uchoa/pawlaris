@@ -2,8 +2,12 @@ const expoPreset = require('jest-expo/jest-preset');
 
 module.exports = {
   preset: 'jest-expo',
+  testEnvironment: '@shopify/react-native-skia/jestEnv.js',
   resolver: 'react-native-worklets/jest/resolver',
-  setupFiles: ['react-native-gesture-handler/jestSetup.js'],
+  setupFiles: [
+    'react-native-gesture-handler/jestSetup.js',
+    '@shopify/react-native-skia/jestSetup.js',
+  ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   // Lucide's React Native entry uses ESM .mjs files.
   transform: { '\\.mjs$': expoPreset.transform['\\.[jt]sx?$'] },
@@ -23,6 +27,6 @@ module.exports = {
     './src/walks/': { statements: 80, branches: 80, functions: 80, lines: 80 },
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|lucide-react-native))',
+    'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|@shopify/react-native-skia|expo(nent)?|@expo(nent)?/.*|lucide-react-native))',
   ],
 };
