@@ -1,0 +1,66 @@
+// Spec 06 section 2.1: dawn and deep space.
+export const light = {
+  bg: '#F5F3FF',
+  surface: '#FFFFFF',
+  surfaceSunken: '#ECE8FB',
+  border: '#D9D3F2',
+  text: '#17153A',
+  textMuted: '#5A567F',
+  accent: '#5B43D6',
+  accentSoft: '#E6E0FF',
+  onAccent: '#FFFFFF',
+  star: '#B87B06',
+  starText: '#8A5A00',
+  success: '#157A5A',
+  warning: '#8A5A00',
+  danger: '#B8324A',
+  scrim: 'rgba(23,21,58,0.45)',
+  skyTop: '#E6E0FF',
+  skyBottom: '#F5F3FF',
+  starfield: '#5B43D6',
+  nebulaA: '#C9B8FF',
+  nebulaB: '#FFC9E8',
+  padTop: '#7A63EE',
+  padBottom: '#4A33C2',
+} as const;
+
+export const dark = {
+  bg: '#090B1A',
+  surface: '#13162E',
+  surfaceSunken: '#0D1024',
+  border: '#2A2F5C',
+  text: '#EEF0FF',
+  textMuted: '#A4A9D1',
+  accent: '#A99BFF',
+  accentSoft: '#241F55',
+  onAccent: '#0B0A24',
+  star: '#FFD27A',
+  starText: '#FFD27A',
+  success: '#5FE0B4',
+  warning: '#FFC56B',
+  danger: '#FF8D9B',
+  scrim: 'rgba(3,4,12,0.7)',
+  skyTop: '#151A45',
+  skyBottom: '#090B1A',
+  starfield: '#FFFFFF',
+  nebulaA: '#4B3BB8',
+  nebulaB: '#8A2F7A',
+  padTop: '#C3B8FF',
+  padBottom: '#7767E6',
+} as const;
+
+export const identity = [
+  { name: 'polaris', key: '#5B7DB1', light: '#2F5FB3', dark: '#8DB4FF' },
+  { name: 'antares', key: '#B15B6B', light: '#B5364F', dark: '#FF93A6' },
+  { name: 'aurora', key: '#4F8A6B', light: '#126E51', dark: '#5FE0B4' },
+  { name: 'solar', key: '#C88A2E', light: '#8A5A00', dark: '#FFD27A' },
+  { name: 'nebula', key: '#7A65B0', light: '#7A3FC4', dark: '#C8A6FF' },
+  { name: 'neptune', key: '#3F8F97', light: '#0F7285', dark: '#6FD9EE' },
+  { name: 'mars', key: '#B5654A', light: '#A8481F', dark: '#FFA47A' },
+  { name: 'andromeda', key: '#B15B9E', light: '#A6338F', dark: '#FF9BE3' },
+] as const;
+
+export const insurge = {
+  void: '#030308', deep: '#4B0FCE', violet: '#7224FB',
+  lavender: '#B895FF', glow: '#D075EF',
+} as const;
