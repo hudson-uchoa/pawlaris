@@ -72,6 +72,18 @@ describe('P4-1 schedule summaries: the four examples of 09 section 5.2', () => {
   });
 });
 
+describe('P4-1 Q-34 schedule summaries: the four additional examples', () => {
+  const cases: readonly { input: ScheduleSummaryInput; expected: string }[] = [
+    { input: { recurrence: { freq: 'daily', interval: 2 }, timesOfDay: ['08:00'] }, expected: 'A cada 2 dias · 08:00' },
+    { input: { recurrence: { freq: 'weekly', interval: 2, byday: ['TH', 'MO'] }, timesOfDay: [] }, expected: 'A cada 2 semanas · Seg, qui · o dia todo' },
+    { input: { recurrence: { freq: 'monthly', interval: 3, bymonthday: [10] }, timesOfDay: ['09:00'] }, expected: 'A cada 3 meses · Dia 10 · 09:00' },
+    { input: { recurrence: { freq: 'once', date: '2026-10-03' }, timesOfDay: ['18:30'] }, expected: 'Uma vez · 03/10 · 18:30' },
+  ];
+  test.each(cases)('$expected', ({ input, expected }) => {
+    expect(formatScheduleSummary(input)).toBe(expected);
+  });
+});
+
 describe('P4-1 validation copy: every row of 09 section 10, first match wins', () => {
   const cases: readonly { field: string; code: FormValidationError['code']; message: string }[] = [
     { field: 'name', code: 'required', message: 'Informe o nome.' },
