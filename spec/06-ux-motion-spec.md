@@ -263,7 +263,19 @@ header, the pet profile header and every empty state.
 - Stars come from a **pure, seeded** generator —
   `generateStars(seed, count, width, height)` → `{x, y, r, opacity, layer}[]`
   (mulberry32) — so the sky is identical on every launch and testable.
-  Radius 0.6–1.8 dp. Three layers, split 50% / 30% / 20%.
+  Radius 0.6–1.8 dp. Three layers, split 50% / 30% / 20%; each layer is one
+  size and one brightness, because one points call has one paint *(Q-35)*:
+
+  | Layer | Share | Radius | Base opacity | Parallax |
+  |---|---|---|---|---|
+  | 0, far | `floor(count × 0.5)` | 0.6 dp | 0.35 | × 0.04 |
+  | 1 | `floor(count × 0.3)` | 1.2 dp | 0.55 | × 0.08 |
+  | 2, near | the rest | 1.8 dp | 0.8 | × 0.16 |
+
+  The generator draws `x` then `y` for each star from mulberry32, layer 0
+  first; the layer values draw nothing. A layer is drawn as round points of
+  stroke width 2 × radius, at its base opacity times the twinkle and theme
+  factors. The table lives in `stars.ts` as `starLayers`.
 - Drawn in **one** Skia canvas: a vertical gradient (`skyTop` → `skyBottom`),
   an optional nebula (two blurred radial gradients, `nebulaA` and `nebulaB`, at
   18% opacity, static), then each layer as a single points draw call in
@@ -408,6 +420,18 @@ Empty states are small scenes **drawn in code** with Skia from primitives
 
 All of it is authored for this project. **No GoPuppy assets**, no stock
 illustration packs.
+
+The two shapes the scenes share, also the star of `StarCheck` (§4.2), live in
+`ui/cosmos/glyphs.ts` beside the mark *(Q-35)*:
+
+```
+star      starPath(x, y, R): a closed polygon of ten vertices, the first at
+          −90°, every 36°, alternating radius R and 0.5 R
+
+crescent  crescentPath(x, y, R): this path, scaled by R and moved to (x, y);
+          its horns open to the right
+          M0 -1  A1 1 0 1 0 0 1  A0.6 1 0 0 1 0 -1  Z
+```
 
 ### 4.11 The mark
 
