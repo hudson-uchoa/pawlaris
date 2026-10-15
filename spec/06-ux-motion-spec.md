@@ -562,6 +562,7 @@ Reduced mode is a different design, not a broken one: the sky is still there.
 > **MO-3** With reduce motion on, no `withRepeat` is started anywhere. Gate: a
 > test renders `Starfield`, `Orbit`, `SyncIndicator`, `Skeleton` and `PoweredBy`
 > with the hook mocked true and asserts `withRepeat` was never called.
+> P4-2 covers the four it builds; P4-3 adds `SyncIndicator` to the same test.
 
 ---
 
