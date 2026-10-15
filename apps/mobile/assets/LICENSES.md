@@ -15,8 +15,8 @@ package carries `LICENSE` (Expo's MIT licence) and `LICENSE_FONT`
 (Apache-2.0). These are framework assets; the Pawlaris screen does not
 select this font or render icons from this set.
 
-The product font, icon set and authored visuals will be added by their
-own tasks, with their licences recorded here.
+The product font and icon set are recorded below, followed by the
+runtime assets and the project-authored icon and splash images.
 
 ## Product font and icons (P4-1)
 

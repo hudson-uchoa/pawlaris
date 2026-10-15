@@ -23,12 +23,14 @@ import { dark, light } from '../tokens/color';
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
 type AnimationAPI = typeof import('react-native-reanimated');
-// Barrel re-exports are non-configurable. Spy on their original exports,
-// retaining Reanimated's real Jest implementation and animation behaviour.
-const repeatAnimation = jest.requireActual<Pick<AnimationAPI, 'withRepeat'>>('react-native-reanimated/src/animation/repeat');
-const springAnimation = jest.requireActual<Pick<AnimationAPI, 'withSpring'>>('react-native-reanimated/src/animation/spring/spring');
-const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>('react-native-reanimated/src/animation/timing');
-const animationUtil = jest.requireActual<Pick<AnimationAPI, 'cancelAnimation'>>('react-native-reanimated/src/animation/util');
+// Barrel re-exports are non-configurable. Resolve their original exports
+// from the public entry so spies observe the same package implementation.
+const animationEntry = jest.requireActual<{ main: string }>('react-native-reanimated/package.json').main;
+const animationRoot = `react-native-reanimated/${animationEntry.replace(/\/index(?:\.js)?$/, '')}`;
+const repeatAnimation = jest.requireActual<Pick<AnimationAPI, 'withRepeat'>>(`${animationRoot}/animation/repeat`);
+const springAnimation = jest.requireActual<Pick<AnimationAPI, 'withSpring'>>(`${animationRoot}/animation/spring/spring`);
+const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>(`${animationRoot}/animation/timing`);
+const animationUtil = jest.requireActual<Pick<AnimationAPI, 'cancelAnimation'>>(`${animationRoot}/animation/util`);
 
 function expectTouchTarget(element: ReturnType<typeof screen.getByRole>): void {
   const style = StyleSheet.flatten<ViewStyle>(element.props.style) ?? {};
