@@ -313,3 +313,21 @@ the icons derived from Feather. Product asset licences are recorded in
 All seven packages are local, open-source software without accounts or
 billing. The fallback is the pinned lockfile installation and local
 Expo/Android tooling; no hosted service is required.
+
+## P4-2 — The cosmos kit (2026-10-15)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's `package.json` and
+`LICENSE.md`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `@shopify/react-native-skia` | 2.6.2 | Canvas drawing for starfields, particles, gradients and trails | MIT |
+
+Skia matches the installed Expo SDK 57's bundled version, 2.6.2.
+Its shipped Jest environment uses the local `canvaskit-wasm` 0.41.0
+dependency for tests without a native build or network access.
+
+Skia is local, open-source software without accounts or billing. The
+fallback is the pinned lockfile installation and local Expo/Android
+tooling; no hosted service is required.
