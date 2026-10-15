@@ -282,6 +282,23 @@ Two segments: **Ativas** (no `ends_on`, or `ends_on ≥ today`) and
 (`Todo dia · 08:00, 20:00`, `Seg, qua, sex · 07:00`, `Dias 1 e 15 · o dia todo`,
 `Uma vez · 03/10`), assignee. Tap → `task/[id]`.
 
+The summary is built from parts joined by ` · `, each part starting with a
+capital *(Q-34)*:
+
+1. **The cadence.** Daily: `Todo dia`, or `A cada N dias` when the interval
+   is above 1. Weekly and monthly with an interval above 1 begin with
+   `A cada N semanas` or `A cada N meses`, followed by the next part. Once:
+   `Uma vez`.
+2. **The days.** Weekly: the chosen weekdays, Monday first, as `seg`, `ter`,
+   `qua`, `qui`, `sex`, `sáb`, `dom`, separated by commas
+   (`Seg, qua, sex`). Monthly: `Dia 10`, or `Dias 1, 10 e 20` in ascending
+   order with ` e ` before the last. Once: the date as `dd/MM`.
+3. **The times.** `08:00, 20:00` in ascending order; with no times,
+   `o dia todo` — except for a once rule, which then has no third part.
+
+`A cada 2 dias · 08:00` · `A cada 2 semanas · Seg, qui · o dia todo` ·
+`A cada 3 meses · Dia 10 · 09:00` · `Uma vez · 03/10 · 18:30`.
+
 ### 5.3 Detail — `task/[id]`
 
 1. Title, category, schedule summary, pets, assignee. **Editar** `task-edit`.

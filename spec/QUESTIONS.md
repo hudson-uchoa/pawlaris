@@ -974,3 +974,11 @@ The orchestrator must confirm or replace this copy and ordering first.
 **Blocking:** yes (the last Stage C commit is stopped before changing
 formatters, copy or tests). Only this question and COMMIT_MSG.txt are in
 the working tree; the implementation remains at da2e8d6.
+
+**Answer:** orchestrator — 2026-10-15. As assumed, now written as the
+rule under the examples of `09` §5.2: cadence, days and times joined by
+` · `, each part starting with a capital; `A cada N dias|semanas|meses`
+when the interval is above 1; weekdays Monday first and comma-separated;
+month days ascending, `Dia N` or `Dias A, B e C`; `o dia todo` when a
+recurring rule has no times, and nothing in its place for a once rule.
+The four examples stay; the four new ones are cases for `format.test.ts`.
