@@ -282,8 +282,8 @@ Two segments: **Ativas** (no `ends_on`, or `ends_on ≥ today`) and
 (`Todo dia · 08:00, 20:00`, `Seg, qua, sex · 07:00`, `Dias 1 e 15 · o dia todo`,
 `Uma vez · 03/10`), assignee. Tap → `task/[id]`.
 
-The summary is built from parts joined by ` · `, each part starting with a
-capital *(Q-34)*:
+The summary is built from parts joined by ` · `; the cadence and the days
+start with a capital, the times part does not *(Q-34)*:
 
 1. **The cadence.** Daily: `Todo dia`, or `A cada N dias` when the interval
    is above 1. Weekly and monthly with an interval above 1 begin with
@@ -565,9 +565,9 @@ Formatting helpers in `apps/mobile/src/i18n/format.ts`:
 | Short date | `dd/MM` | `03/10` |
 | Day label | weekday abbr., day, month abbr. | `sáb., 3 de out.` |
 | Decimal | comma | `4,25 kg`, `2,14 km` |
-| Distance | `< 1000 m` → `850 m`; else `2,14 km` | |
-| Duration | `< 1 h` → `30:12`; else `1:05:12` | |
-| Pace | `mm:ss /km` | `14:15 /km` |
+| Distance | rounded to whole metres first; `< 1000 m` → `850 m`; else `2,14 km` | `999,6` → `1,00 km` |
+| Duration | whole seconds, rounded down (a stopwatch); `< 1 h` → `30:12`; else `1:05:12` | `1812,7` → `30:12` |
+| Pace | `mm:ss /km`, rounded to the nearest second | `855,4` → `14:15 /km` |
 | Age | per R2.4 | `1 ano e 4 meses` |
 
 Validation messages *(Q-31)*. `formatValidationError` in `format.ts` turns a
