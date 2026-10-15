@@ -945,3 +945,32 @@ the native input's own semantics, with no role override, and has its
 every other assertion, in both themes. This is a repair of a Stage B
 assertion that no correct input could meet, approved here; the commit
 that makes it says so. `06` §7 now names the exception.
+
+## Q-34 — P4-1 — How should other valid schedules be summarized?
+**Asked:** 2026-10-15
+**Where:** spec/08-tasks.md P4-1 Build; spec/09-screens.md §5.1, §5.2;
+spec/02-spec.md R3.13–R3.14; apps/mobile/src/i18n/format.ts
+**Problem:** The four §5.2 examples cover interval-one daily, weekly and
+monthly rules, and an all-day once rule. The shared Recurrence type and
+validators also accept intervals from 2 to 365, any nonempty weekday or
+month-day selection, and timed once rules. Section 5.1 supplies the form
+stepper label but does not define those summary strings. Ignoring an
+interval would misstate when care is due; rejecting valid rules would
+leave the formatter incomplete. The session requires copy verbatim from
+the spec and a stop for unspecified product copy, so the final formatter
+commit cannot safely choose these outputs.
+**I would assume:** Keep the four approved examples. For daily intervals
+above one, use "A cada N dias" before the time suffix. For weekly and
+monthly intervals above one, prefix the existing day list with
+"A cada N semanas · " or "A cada N meses · ". Order weekdays Monday first,
+capitalize only the first weekday abbreviation, and separate them with
+commas. Sort month days numerically, use "Dia N" for one or "Dias A, B e
+C" for several, with " e " before the last day. Append " · o dia todo"
+when recurring rules have no times, or " · HH:mm, HH:mm" otherwise. For
+once rules, preserve "Uma vez · dd/MM" without an all-day suffix and
+append the time suffix when times exist. Keep this assembly in
+formatScheduleSummary and add cases without changing frozen assertions.
+The orchestrator must confirm or replace this copy and ordering first.
+**Blocking:** yes (the last Stage C commit is stopped before changing
+formatters, copy or tests). Only this question and COMMIT_MSG.txt are in
+the working tree; the implementation remains at da2e8d6.
