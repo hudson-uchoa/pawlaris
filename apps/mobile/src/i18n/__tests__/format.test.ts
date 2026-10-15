@@ -92,6 +92,22 @@ describe('P4-1 Q-34 schedule summaries: the four additional examples', () => {
   });
 });
 
+describe('P4-1 R2 schedule summaries: out-of-order input', () => {
+  test('month days sort numerically in ascending order', () => {
+    expect(formatScheduleSummary({
+      recurrence: { freq: 'monthly', interval: 1, bymonthday: [20, 2, 10] },
+      timesOfDay: [],
+    })).toBe('Dias 2, 10 e 20 · o dia todo');
+  });
+
+  test('daily times sort in ascending order', () => {
+    expect(formatScheduleSummary({
+      recurrence: { freq: 'daily', interval: 1 },
+      timesOfDay: ['20:00', '08:00'],
+    })).toBe('Todo dia · 08:00, 20:00');
+  });
+});
+
 describe('P4-1 validation copy: every row of 09 section 10, first match wins', () => {
   const cases: readonly { field: string; code: FormValidationError['code']; message: string }[] = [
     { field: 'name', code: 'required', message: 'Informe o nome.' },
