@@ -367,7 +367,8 @@ back       system back: overlay re-mounts at the header frames and animates to t
 | Tab switch | content crossfades in `duration.micro`; the active tab icon gets a small star dot beneath it (scale in, `spring.bouncy`) |
 | Push | native stack default (`slide_from_right`) |
 | Modal route | native `slide_from_bottom` |
-| `Sheet` primitive | translateY spring up (`spring.gentle`), scrim fades to `color.scrim`; drag down past 30% or a fast fling dismisses. **No blur.** |
+| `Sheet` primitive | translateY spring up (`spring.gentle`), scrim fades to `color.scrim`; a drag down past 30% of its height, or a fling down faster than 1000 dp/s, dismisses *(Q-32)*. **No blur.** |
+| `PressableScale` | press-in scales to 0.97 (`spring.stiff`), release or cancel back to 1 — the same feel as the pet card's press *(Q-32)* |
 | Back | system back; reverses the push |
 
 ### 4.8 Lists and loading
@@ -550,6 +551,7 @@ else in the app draws the mark.
 | List stagger, skeleton sweep | all at once; static placeholder |
 | Comet tail, pulsar, rolling digits, route draw-on | static dot; digits snap; route shown |
 | Sheet spring | 150 ms fade |
+| `PressableScale` press | no scale: it stays at 1 |
 | The ring of the Insurge signature breathing | a still ring |
 
 Reduced mode is a different design, not a broken one: the sky is still there.

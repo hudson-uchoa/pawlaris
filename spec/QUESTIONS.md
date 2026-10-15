@@ -902,3 +902,10 @@ exclusive, matching the wording past 30 percent. Store the press scale,
 sheet dismissal fraction and fling velocity as named motion tokens.
 **Blocking:** yes (this Stage C commit stopped before changing code or
 tests). The session requires stopping for unspecified product values.
+
+**Answer:** orchestrator — 2026-10-15. As assumed, and now in `06`:
+`PressableScale` presses to 0.97 with `spring.stiff` and returns to 1 on
+release or cancel (§4.7); under Reduce Motion it stays at 1 and schedules
+no spring (§5). A `Sheet` dismisses when dragged down past 30% of its
+height, or flung down faster than 1000 dp/s (§4.7); both bounds are
+exclusive. Keep the three values as named motion tokens.
