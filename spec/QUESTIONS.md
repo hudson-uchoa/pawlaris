@@ -909,3 +909,32 @@ release or cancel (§4.7); under Reduce Motion it stays at 1 and schedules
 no spring (§5). A `Sheet` dismisses when dragged down past 30% of its
 height, or flung down faster than 1000 dp/s (§4.7); both bounds are
 exclusive. Keep the three values as named motion tokens.
+
+## Q-33 — P4-1 — How should the native TextField role be tested?
+**Asked:** 2026-10-15
+**Where:** spec/06-ux-motion-spec.md §7;
+apps/mobile/src/ui/__tests__/primitives.test.tsx, TextField case;
+React Native 0.86.3 ViewAccessibility types and ReactAccessibilityDelegate;
+React Native Testing Library 14.0.1 helpers/accessibility.js
+**Problem:** The Stage B TextField case queries getByRole('textbox').
+The installed React Native Role union excludes textbox: assigning it
+to TextInput.role fails strict type-checking. Android's AccessibilityRole
+also has no textbox entry, and its fromValue implementation rejects an
+unknown accessibilityRole. The installed test library does not infer a
+textbox role for TextInput; without an explicit role its getRole helper
+returns none. Thus a correct native TextInput does not satisfy this
+assertion, and adding an unsupported role merely to satisfy the test
+would misrepresent the native accessibility contract. Section 7's blanket
+explicit-role rule does not address controls that supply their own
+native accessibility semantics.
+**I would assume:** Keep TextInput's native EditText semantics without a
+role override and give it the required accessibilityLabel. Change the
+TextField case to select its input by that label, retaining every value,
+touch-target, change callback, disabled-state and disabled-edit assertion
+in both themes. Clarify §7 that a native control's built-in role meets
+the role requirement. The orchestrator must approve this assertion
+repair before implementation resumes.
+**Blocking:** yes (Stage C stopped under the session's rule against
+changing Stage B assertions). No test was changed. The unfinished
+primitive implementation was restored to the committed stubs; only this
+question remains in the working tree besides COMMIT_MSG.txt.
