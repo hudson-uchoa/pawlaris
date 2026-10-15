@@ -982,3 +982,44 @@ when the interval is above 1; weekdays Monday first and comma-separated;
 month days ascending, `Dia N` or `Dias A, B e C`; `o dia todo` when a
 recurring rule has no times, and nothing in its place for a once rule.
 The four examples stay; the four new ones are cases for `format.test.ts`.
+
+## Q-35 — P4-2 — What are the star-layer values and missing glyph shapes?
+**Asked:** 2026-10-15
+**Where:** spec/06-ux-motion-spec.md §4.1 and §4.11;
+spec/08-tasks.md P4-2 Build; apps/mobile/src/ui/cosmos/stars.ts and
+glyphs.ts
+**Problem:** Section 4.1 specifies radii of 0.6–1.8 dp, layer counts,
+twinkle factors and theme scaling, but no base opacities or allocation
+of radii to layers. It requires one points draw call per layer. Skia
+2.6.2's PointsProps accepts SkPoint[] and a single paint, whose
+strokeWidth and opacity apply to the whole draw call; independent
+per-star radii or opacities cannot be expressed by that call alone.
+The spec does not say whether these values vary within a layer.
+Section 4.11 gives exact sparkle and paw-star geometry, but no
+five-point star vertices or inner radius and no crescent path. The
+masters in spec/brand contain the sparkle and paw-star, not these two
+glyphs. Implementing the first green stage would therefore choose
+product values and geometry the session requires the spec to settle.
+**I would assume:** Generate layers in order 0, 1, 2 with counts
+floor(count × 0.5), floor(count × 0.3), and the remaining stars.
+Use uniform radii [0.6, 1.2, 1.8] dp and base opacities
+[0.35, 0.55, 0.8] for those layers. Use mulberry32 to draw x and then y
+for each star; layer values themselves do not consume random draws.
+Draw each layer with round points, strokeWidth = 2 × radius, and its
+base opacity multiplied by the specified twinkle and theme factors.
+This preserves every generated value with exactly three points calls.
+Keep the layer values together in a named star-layer token.
+For starPath(x, y, R), use a closed polygon with ten vertices, starting
+at angle −90 degrees and advancing 36 degrees per vertex, alternating
+outer radius R and inner radius 0.5R. For crescentPath(x, y, R), scale
+and translate this normalized path, which leaves a crescent opening
+to the right:
+
+    M0 -1 A1 1 0 1 0 0 1 A0.6 1 0 0 1 0 -1 Z
+
+Keep the polygon ratio and crescent path in glyphs.ts. The sparkle and
+paw-star geometry remain exactly as section 4.11 gives them. The
+orchestrator must confirm or replace these values and shapes first.
+**Blocking:** yes (the first Stage C implementation is stopped before
+any code or test changes). Only this question and COMMIT_MSG.txt are
+in the working tree; the red implementation remains at 3d4d506.
