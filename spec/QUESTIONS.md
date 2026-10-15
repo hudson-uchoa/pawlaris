@@ -1030,3 +1030,36 @@ shares floor 50% and 30% and the rest, `x` then `y` per star, layer 0
 first) in §4.1 as `starLayers` in `stars.ts`; the ten-vertex star with
 inner radius 0.5 R and the crescent path, horns to the right, in §4.10,
 both in `glyphs.ts`. The red tests stand as written.
+
+## Q-36 — P4-2 — What are Starfield's clamp and nebula geometry?
+**Asked:** 2026-10-15
+**Where:** spec/06-ux-motion-spec.md §4.1;
+apps/mobile/src/ui/cosmos/Starfield.tsx
+**Problem:** Section 4.1 gives parallax factors but says only "clamped",
+without lower or upper bounds or whether the clamp applies to scrollY
+or to each layer's translation. The optional nebula has two blurred
+radial gradients with named colours and 18% opacity, but no centres,
+radii or blur amount. Skia 2.6.2 requires a centre and radius for a
+RadialGradient and a numeric blur for a BlurMask. These are product
+values and geometry, which the session requires the spec to settle
+before implementation. The Starfield API also makes density and nebula
+optional, so their default choices need to be explicit.
+**I would assume:** Clamp scrollY to [0, height] first, then multiply by
+each layer's specified parallax factor for its positive Y translation.
+Without scrollY, or under Reduce Motion, translation is zero. Use the
+header density when omitted, and show no nebula unless requested.
+For the nebula, with w = width, h = height and L = max(w, h):
+
+- nebulaA: centre (0.25w, 0.25h), radius 0.6L;
+- nebulaB: centre (0.75w, 0.65h), radius 0.5L;
+- both fade from their token colour at the centre to the same colour
+  with zero alpha at the radius, with overall opacity 0.18;
+- both use a normal Gaussian blur with sigma 0.08 × min(w, h), and
+  remain static.
+
+Keep these design values together in a named starfield token in
+apps/mobile/src/ui/tokens/cosmos.ts. The orchestrator must confirm or
+replace the clamp, geometry and defaults first.
+**Blocking:** yes (the Starfield green stage is stopped before any code
+or test changes). Only this question and COMMIT_MSG.txt are in the
+working tree; the implementation remains at 928d80a.
