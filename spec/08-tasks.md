@@ -936,7 +936,7 @@ From here on, each task's **Read** always includes `09` for the screen and `06`
 for identity and motion. Every screen renders from the store with no network
 await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
-- [ ] **P4-1 — Tokens, theme, type, icons, primitives**
+- [~] **P4-1 — Tokens, theme, type, icons, primitives**
   **Depends:** P0-5, P1-7 · **Read:** `06` §2, §3, §4.7 (Sheet), §4.8 (Skeleton), §4.12 (the `insurge` colours), §5, §7 · `09` §5.2, §10
   **Build:** install `react-native-reanimated`, `react-native-gesture-handler`,
   `react-native-svg`, `lucide-react-native`, `expo-font`, `expo-haptics`.
