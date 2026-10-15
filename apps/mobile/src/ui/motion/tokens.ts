@@ -5,6 +5,11 @@ export const spring = {
   stiff: { damping: 26, stiffness: 420, mass: 0.7 },
 } as const;
 
+// Spec 06 section 4.7, Q-32. Both sheet dismissal bounds are exclusive.
+export const pressScale = 0.97;
+export const sheetDismissFraction = 0.3;
+export const sheetFlingVelocity = 1000;
+
 export const duration = {
   micro: 120,
   quick: 200,

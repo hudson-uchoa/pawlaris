@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react';
-import type { TextProps as NativeTextProps } from 'react-native';
-import type { ColorToken } from '../theme';
+import { Text as NativeText, type TextProps as NativeTextProps } from 'react-native';
+import { useTheme, type ColorToken } from '../theme';
+import { accessibility } from '../tokens/accessibility';
+import { typography } from '../tokens/type';
 
 export type TextVariant = 'display' | 'title' | 'heading' | 'body' | 'label' | 'caption';
 export type TextProps = Omit<NativeTextProps, 'maxFontSizeMultiplier'> & {
@@ -8,6 +10,8 @@ export type TextProps = Omit<NativeTextProps, 'maxFontSizeMultiplier'> & {
   color?: ColorToken;
 };
 
-export function Text(_props: TextProps): ReactElement | null {
-  return null;
+export function Text({ variant = 'body', color = 'text', style, ...props }: TextProps): ReactElement {
+  const theme = useTheme();
+  return <NativeText {...props} maxFontSizeMultiplier={accessibility.maxFontSizeMultiplier}
+    style={[typography[variant], { color: theme.color[color] }, style]} />;
 }

@@ -25,6 +25,7 @@ export const pairs: readonly ContrastPair[] = [
   { name: 'success/bg', foreground: 'success', background: 'bg', kind: 'text' },
   { name: 'success/surface', foreground: 'success', background: 'surface', kind: 'text' },
   { name: 'onAccent/accent', foreground: 'onAccent', background: 'accent', kind: 'text' },
+  { name: 'surface/textMuted/graphic', foreground: 'surface', background: 'textMuted', kind: 'graphic' },
   ...(['textMuted', 'accent'] as const).flatMap((foreground) => surfaces.map((background) => ({
     name: `${foreground}/${background}/graphic`, foreground, background, kind: 'graphic' as const,
   }))),
