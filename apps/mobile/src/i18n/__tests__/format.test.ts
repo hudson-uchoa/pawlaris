@@ -35,12 +35,14 @@ describe('P4-1 copy: every formatting row of 09 section 10', () => {
 
   test.each([
     [850, '850 m'], [999, '999 m'], [1000, '1,00 km'], [2140, '2,14 km'],
+    [999.6, '1,00 km'],
   ] as const)('distance %s m formats as %s', (metres, expected) => {
     expect(formatDistance(metres)).toBe(expected);
   });
 
   test.each([
     [1812, '30:12'], [3912, '1:05:12'], [3599, '59:59'], [3600, '1:00:00'],
+    [1812.7, '30:12'],
   ] as const)('duration %s seconds formats as %s', (seconds, expected) => {
     expect(formatDuration(seconds)).toBe(expected);
   });
@@ -48,6 +50,12 @@ describe('P4-1 copy: every formatting row of 09 section 10', () => {
   test('pace uses mm:ss /km and an unavailable pace uses the R4.12 marker', () => {
     expect(formatPace(855)).toBe('14:15 /km');
     expect(formatPace(null)).toBe('--');
+  });
+
+  test.each([
+    [855.4, '14:15 /km'], [899.6, '15:00 /km'],
+  ] as const)('pace %s seconds per kilometre formats as %s', (secondsPerKilometre, expected) => {
+    expect(formatPace(secondsPerKilometre)).toBe(expected);
   });
 
   test.each([
