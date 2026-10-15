@@ -279,12 +279,20 @@ header, the pet profile header and every empty state.
 - Drawn in **one** Skia canvas: a vertical gradient (`skyTop` → `skyBottom`),
   an optional nebula (two blurred radial gradients, `nebulaA` and `nebulaB`, at
   18% opacity, static), then each layer as a single points draw call in
-  `starfield` color.
+  `starfield` color. Nebula geometry, with `w`, `h` the canvas and
+  `L = max(w, h)` *(Q-36)*: `nebulaA` centred at (0.25 w, 0.25 h), radius
+  0.6 L; `nebulaB` at (0.75 w, 0.65 h), radius 0.5 L; each fades from its
+  colour to the same colour at alpha 0 at its radius, under a normal blur of
+  sigma 0.08 × min(w, h). These numbers live in `ui/tokens/cosmos.ts`.
 - **Twinkle:** each layer's opacity oscillates between 55% and 100% of its base
   with its own period (`ambient.twinkleA/B/C`), three shared values in total.
 - **Parallax:** on a scrolling screen, the layers translate by
-  `scrollY × 0.04 / 0.08 / 0.16`, clamped.
-- Density: 60 stars for a header band, 120 for a full screen. In the light
+  `scrollY × 0.04 / 0.08 / 0.16`, clamped. The canvas stays put behind the
+  scrolling content, and each layer moves up by
+  `clamp(scrollY, 0, height) × factor`, so the near layer moves most
+  *(Q-36)*. With no `scrollY`, or under Reduce Motion, nothing moves.
+- Density: 60 stars for a header band (the default), 120 for a full screen;
+  the nebula is off unless asked for. In the light
   theme the stars are drawn at 28% of their opacity — a dawn sky keeps only its
   brightest stars.
 - Stops animating when the screen is not focused, the app is in the background,
