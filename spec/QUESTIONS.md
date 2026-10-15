@@ -878,3 +878,27 @@ code — the user never sees a raw code. "Informe o nome." stays as `09`
 §4.2 gives it. The shared validators stay unchanged; `format.ts` exposes
 `formatValidationError`, and `format.test.ts` covers every row of the
 table as it covers every other row of `09` §10.
+
+## Q-32 — P4-1 — Which values govern press scale and sheet fling?
+**Asked:** 2026-10-15
+**Where:** spec/06-ux-motion-spec.md §3, §4.6, §4.7, §5, §7;
+apps/mobile/src/ui/__tests__/primitives.test.tsx
+**Problem:** PressableScale is listed without a default pressed scale.
+The 0.97 scale in §4.6 belongs to the pet-card hero interaction; the
+0.92 scale in §4.2 belongs to StarCheck. Neither section assigns a
+default to the generic primitive. The Sheet rule in §4.7 defines the
+30 percent drag threshold but calls its other dismissal condition a
+fast fling without specifying a downward velocity threshold. The red
+gesture tests use velocities 0 and 10000; those fixtures do not define
+the product threshold between them. Implementing the primitives would
+therefore require choosing product values, which the session forbids
+without an orchestrator answer.
+**I would assume:** Use 0.97 as PressableScale's default pressed scale,
+with spring.stiff on press-in and release/cancellation. With Reduce
+Motion enabled, leave its scale at 1 without scheduling a spring.
+Dismiss a Sheet when translationY exceeds 30 percent of its measured
+height or downward velocityY exceeds 1000 dp/s. Keep the boundary
+exclusive, matching the wording past 30 percent. Store the press scale,
+sheet dismissal fraction and fling velocity as named motion tokens.
+**Blocking:** yes (this Stage C commit stopped before changing code or
+tests). The session requires stopping for unspecified product values.
