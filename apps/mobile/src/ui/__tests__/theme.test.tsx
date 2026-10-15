@@ -7,7 +7,9 @@ import { dark, light } from '../tokens/color';
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
 type AnimationAPI = typeof import('react-native-reanimated');
-const reducedMotionHook = jest.requireActual<Pick<AnimationAPI, 'useReducedMotion'>>('react-native-reanimated/src/hook/useReducedMotion');
+const animationEntry = jest.requireActual<{ main: string }>('react-native-reanimated/package.json').main;
+const animationRoot = `react-native-reanimated/${animationEntry.replace(/\/index(?:\.js)?$/, '')}`;
+const reducedMotionHook = jest.requireActual<Pick<AnimationAPI, 'useReducedMotion'>>(`${animationRoot}/hook/useReducedMotion`);
 
 afterEach(() => { jest.restoreAllMocks(); });
 

@@ -1,3 +1,5 @@
+import { useReducedMotion } from 'react-native-reanimated';
+
 export function useReduceMotion(): boolean {
-  throw new Error('useReduceMotion not implemented');
+  return useReducedMotion();
 }
