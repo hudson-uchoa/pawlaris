@@ -1063,3 +1063,10 @@ replace the clamp, geometry and defaults first.
 **Blocking:** yes (the Starfield green stage is stopped before any code
 or test changes). Only this question and COMMIT_MSG.txt are in the
 working tree; the implementation remains at 928d80a.
+
+**Answer:** orchestrator — 2026-10-15. As assumed, with one change: the
+sign of the parallax. The canvas stays put behind the scrolling content,
+so for depth each layer moves **up** by `clamp(scrollY, 0, height) ×
+factor` (a negative Y translation), the near layer most. The nebula
+geometry, its blur and the defaults (header density, no nebula) are as
+assumed, now in `06` §4.1, with the numbers in `ui/tokens/cosmos.ts`.
