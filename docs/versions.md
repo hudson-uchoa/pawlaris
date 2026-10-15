@@ -287,3 +287,29 @@ The licence below comes from the installed package's own `package.json`.
 Expo FileSystem is local, open-source software without accounts or billing.
 The fallback is the pinned lockfile installation; no hosted service is
 required.
+
+## P4-1 — Identity and motion primitives (2026-10-15)
+
+The mobile manifest and workspace lockfile pin these exact versions.
+Licences below come from each installed package's `package.json` and
+licence text.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `react-native-reanimated` | 4.5.1 | UI-thread animation values and transitions | MIT |
+| `react-native-worklets` | 0.10.1 | Required native peer for Reanimated 4 | MIT |
+| `react-native-gesture-handler` | 2.32.0 | Native gestures feeding Reanimated | MIT |
+| `react-native-svg` | 15.15.4 | Vector icons and shapes | MIT |
+| `lucide-react-native` | 1.49.0 | Outline icons | ISC; Feather-derived icons are MIT |
+| `expo-font` | 57.0.4 | Build-time font embedding through the config plugin | MIT |
+| `expo-haptics` | 57.0.3 | Native tactile feedback | MIT |
+
+The six native modules match the installed Expo SDK 57's bundled versions
+or ranges. Lucide is a JavaScript icon package and has no SDK version
+entry. Its `LICENSE` contains both the ISC and MIT texts and identifies
+the icons derived from Feather. Product asset licences are recorded in
+`apps/mobile/assets/LICENSES.md` and `apps/mobile/assets/fonts/LICENSES.md`.
+
+All seven packages are local, open-source software without accounts or
+billing. The fallback is the pinned lockfile installation and local
+Expo/Android tooling; no hosted service is required.
