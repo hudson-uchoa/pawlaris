@@ -1023,3 +1023,10 @@ orchestrator must confirm or replace these values and shapes first.
 **Blocking:** yes (the first Stage C implementation is stopped before
 any code or test changes). Only this question and COMMIT_MSG.txt are
 in the working tree; the red implementation remains at 3d4d506.
+
+**Answer:** orchestrator — 2026-10-15. As assumed, now written into `06`:
+the layer table (radius 0.6 / 1.2 / 1.8 dp, base opacity 0.35 / 0.55 / 0.8,
+shares floor 50% and 30% and the rest, `x` then `y` per star, layer 0
+first) in §4.1 as `starLayers` in `stars.ts`; the ten-vertex star with
+inner radius 0.5 R and the crescent path, horns to the right, in §4.10,
+both in `glyphs.ts`. The red tests stand as written.
