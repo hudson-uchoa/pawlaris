@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Bell } from 'lucide-react-native';
-import { StyleSheet, useColorScheme, type Insets, type ViewStyle } from 'react-native';
+import { AppState, StyleSheet, useColorScheme, type AppStateStatus, type Insets, type ViewStyle } from 'react-native';
 import { State, type PanGesture } from 'react-native-gesture-handler';
 import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-handler/jest-utils';
 import * as ReduceMotion from '../motion/useReduceMotion';
@@ -31,6 +31,7 @@ const repeatAnimation = jest.requireActual<Pick<AnimationAPI, 'withRepeat'>>(`${
 const springAnimation = jest.requireActual<Pick<AnimationAPI, 'withSpring'>>(`${animationRoot}/animation/spring/spring`);
 const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>(`${animationRoot}/animation/timing`);
 const animationUtil = jest.requireActual<Pick<AnimationAPI, 'cancelAnimation'>>(`${animationRoot}/animation/util`);
+const initialAppState = AppState.currentState;
 
 function expectTouchTarget(element: ReturnType<typeof screen.getByRole>): void {
   const style = StyleSheet.flatten<ViewStyle>(element.props.style) ?? {};
@@ -48,11 +49,13 @@ function expectTouchTarget(element: ReturnType<typeof screen.getByRole>): void {
 afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
+  AppState.currentState = initialAppState;
 });
 
 describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
   const color = scheme === 'light' ? light : dark;
   beforeEach(() => {
+    AppState.currentState = 'active';
     jest.mocked(useColorScheme).mockReturnValue(scheme);
     jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
   });
@@ -199,14 +202,14 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     const view = await render(<TextField label="Name" accessibilityLabel="Pet name" value="A" onChangeText={onChangeText} error="Check the name" />);
     expect(screen.getByText('Name')).toBeOnTheScreen();
     expect(screen.getByText('Check the name')).toBeOnTheScreen();
-    const input = screen.getByRole('textbox', { name: 'Pet name' });
+    const input = screen.getByLabelText('Pet name');
     expect(input).toHaveDisplayValue('A');
     expectTouchTarget(input);
     await fireEvent.changeText(input, 'Aurora');
     expect(onChangeText).toHaveBeenLastCalledWith('Aurora');
     await view.rerender(<TextField label="Name" accessibilityLabel="Pet name" value="A" onChangeText={onChangeText} disabled />);
-    expect(screen.getByRole('textbox', { name: 'Pet name' })).toBeDisabled();
-    await fireEvent.changeText(screen.getByRole('textbox', { name: 'Pet name' }), 'Changed');
+    expect(screen.getByLabelText('Pet name')).toBeDisabled();
+    await fireEvent.changeText(screen.getByLabelText('Pet name'), 'Changed');
     expect(onChangeText).toHaveBeenCalledTimes(1);
   });
 
@@ -273,6 +276,7 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
 
   test.each([
     [300, 0, false], [310, 0, true], [10, 10000, true],
+    [10, 1000, false], [10, 1001, true], [10, -10000, false],
   ] as const)('Sheet drag %s with velocity %s dismisses: %s', async (translationY, velocityY, dismissed) => {
     jest.useFakeTimers();
     const onDismiss = jest.fn();
@@ -298,6 +302,42 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     expect(repeat).not.toHaveBeenCalled();
   });
 
+  test('Q-32 reduced press feedback schedules no spring and stays at unit scale', async () => {
+    jest.useFakeTimers();
+    jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
+    const spring = jest.spyOn(springAnimation, 'withSpring');
+    await render(<PressableScale accessibilityLabel="Record care"><Text>Care</Text></PressableScale>);
+    const button = screen.getByRole('button', { name: 'Record care' });
+    await fireEvent(button, 'pressIn');
+    await act(async () => { await jest.runAllTimersAsync(); });
+    expect(button).toHaveAnimatedStyle({ transform: [{ scale: 1 }] });
+    await fireEvent(button, 'pressOut');
+    await act(async () => { await jest.runAllTimersAsync(); });
+    expect(button).toHaveAnimatedStyle({ transform: [{ scale: 1 }] });
+    expect(spring).not.toHaveBeenCalled();
+  });
+
+  test('Q-32 normal press feedback reaches the specified scale and returns on cancellation', async () => {
+    jest.useFakeTimers();
+    await render(<PressableScale accessibilityLabel="Record care"><Text>Care</Text></PressableScale>);
+    const button = screen.getByRole('button', { name: 'Record care' });
+    await fireEvent(button, 'pressIn');
+    await act(async () => { await jest.runAllTimersAsync(); });
+    expect(button).toHaveAnimatedStyle({ transform: [{ scale: 0.97 }] });
+    await fireEvent(button, 'pressOut');
+    await act(async () => { await jest.runAllTimersAsync(); });
+    expect(button).toHaveAnimatedStyle({ transform: [{ scale: 1 }] });
+  });
+
+  test('PressableScale cancels feedback and rejects queued motion when inactive', async () => {
+    jest.useFakeTimers();
+    const view = await render(<PressableScale accessibilityLabel="Record care"><Text>Care</Text></PressableScale>);
+    await fireEvent(screen.getByRole('button', { name: 'Record care' }), 'pressIn');
+    await view.rerender(<PressableScale accessibilityLabel="Record care" active={false}><Text>Care</Text></PressableScale>);
+    await act(async () => { await jest.runAllTimersAsync(); });
+    expect(screen.getByRole('button', { name: 'Record care' })).toHaveAnimatedStyle({ transform: [{ scale: 1 }] });
+  });
+
   test('Skeleton starts no repetition while inactive and cancels it on loss of focus', async () => {
     jest.useFakeTimers();
     const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
@@ -311,6 +351,35 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     await view.rerender(<Skeleton width={240} height={48} active={false} testID="inactive-shape" />);
     expect(cancel).toHaveBeenCalled();
     await act(() => { jest.advanceTimersByTime(1400); });
+  });
+
+  test('Skeleton cancels its sweep when the app enters the background', async () => {
+    jest.useFakeTimers();
+    let notify: () => void = () => { throw new Error('Missing app lifecycle subscription'); };
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
+      notify = () => { (listener as (state: AppStateStatus) => void)('background'); };
+      return { remove: jest.fn() };
+    });
+    const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
+    const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+    await render(<Skeleton width={240} height={48} active testID="lifecycle-shape" />);
+    expect(repeat).toHaveBeenCalled();
+    repeat.mockClear();
+    cancel.mockClear();
+    await act(() => { AppState.currentState = 'background'; notify(); });
+    expect(cancel).toHaveBeenCalled();
+    await act(async () => { await jest.advanceTimersByTimeAsync(2800); });
+    expect(repeat).not.toHaveBeenCalled();
+    expect(screen.getByTestId('lifecycle-shape', { includeHiddenElements: true })).toBeOnTheScreen();
+  });
+
+  test('Sheet schedules no animation while its screen is inactive', async () => {
+    const spring = jest.spyOn(springAnimation, 'withSpring');
+    const timing = jest.spyOn(timingAnimation, 'withTiming');
+    await render(<Sheet visible active={false} accessibilityLabel="Confirm care" dismissLabel="Close sheet" onDismiss={jest.fn()}><Text>Details</Text></Sheet>);
+    expect(screen.getByRole('dialog', { name: 'Confirm care' })).toBeOnTheScreen();
+    expect(spring).not.toHaveBeenCalled();
+    expect(timing).not.toHaveBeenCalled();
   });
 
   test('Sheet uses a 150 ms fade and schedules no spring under Reduce Motion', async () => {
