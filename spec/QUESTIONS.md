@@ -846,3 +846,27 @@ needs the name to exist in `app.services.reseed`, so it lands in the same
 commit as the merge; say so in its message. The real lock, both limits,
 the removal, the `401` and the whole-database comparison stay as written.
 Keep the direct import from `app.locks`.
+
+## Q-31 — P4-1 — What copy should the validator messages use?
+**Asked:** 2026-10-15
+**Where:** spec/08-tasks.md P4-1 Build; spec/09-screens.md §4.2, §5.1,
+§10; packages/shared/src/validators.ts; spec/QUESTIONS.md Q-7, Q-12
+**Problem:** P4-1 requires validator messages, and the session's Stage B
+requires tests for them before implementation. The shared validators
+return field names and eight codes: required, invalid, out_of_range,
+duplicate, unsorted, too_many, mismatch and unknown_key. Q-7 and Q-12
+define those data shapes and limits, but not their user-facing wording.
+The screens spec gives one pet-name validation sentence in §4.2; §5.1
+requires inline validation with server limits, and §10 has no validator
+message table. The existing strings.ts contains only appName. There is
+no approved text to assert for the other validator results, and the
+session requires copy verbatim from the spec rather than invented text.
+**I would assume:** Preserve the supplied pet-name sentence. Author one
+central Portuguese message mapping in i18n/strings.ts for all eight
+codes, with field-specific required and range messages for name, title,
+weight and password. Keep the shared validators unchanged and format
+their field/code data in i18n/format.ts. The orchestrator must either
+authorize authoring that copy or supply its exact text, including the
+fallback for a field without a specific message, before tests freeze it.
+**Blocking:** yes (Stage B stopped before adding stubs or tests). The
+session explicitly requires stopping for unspecified product copy.
