@@ -18,6 +18,17 @@ select this font or render icons from this set.
 The product font, icon set and authored visuals will be added by their
 own tasks, with their licences recorded here.
 
+## Product font and icons (P4-1)
+
+| Product assets | Package or source | Licence |
+|---|---|---|
+| Space Grotesk weights 500 and 700 | Space Grotesk 2.0.0 | SIL Open Font License 1.1; see [fonts/LICENSES.md](fonts/LICENSES.md) and [fonts/OFL.txt](fonts/OFL.txt) |
+| Outline icons | `lucide-react-native` 1.49.0 | ISC; Feather-derived icons are MIT |
+
+Lucide Icons and Contributors own the Lucide icons; Cole Bemis owns the
+Feather-derived icons. The pinned `lucide-react-native` package's `LICENSE`
+contains both licence texts and lists the icons derived from Feather.
+
 ## Development client runtime assets (P0-6)
 
 `expo-dev-client` 57.0.19 brings the development launcher and menu. Their

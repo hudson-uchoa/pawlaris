@@ -22,6 +22,22 @@ const config: ExpoConfig = {
     'expo-router',
     './plugins/withShortNativePaths.cjs',
     [
+      'expo-font',
+      {
+        android: {
+          fonts: [
+            {
+              fontFamily: 'Space Grotesk',
+              fontDefinitions: [
+                { path: './assets/fonts/SpaceGrotesk-Medium.ttf', weight: 500 },
+                { path: './assets/fonts/SpaceGrotesk-Bold.ttf', weight: 700 },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+    [
       'expo-splash-screen',
       {
         image: './assets/splash-icon.png',
