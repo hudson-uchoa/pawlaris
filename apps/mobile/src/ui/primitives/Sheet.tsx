@@ -71,10 +71,12 @@ export function Sheet({ visible, active: focused = true, accessibilityLabel, dis
   const sheetStyle = useAnimatedStyle(() => reduced
     ? { opacity: opacity.get() } : { transform: [{ translateY: travel.get() }] });
   if (!visible) return null;
-  return <Modal transparent visible animationType="none" onRequestClose={onDismiss}>
+  return <Modal testID={testID === undefined ? undefined : `${testID}-modal`}
+    transparent visible animationType="none" onRequestClose={onDismiss}>
     <GestureHandlerRootView style={{ flex: 1, justifyContent: 'flex-end' }}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.scrim }, scrimStyle]}>
         <Pressable accessible={false} accessibilityRole="button" accessibilityLabel={dismissLabel}
+          testID={testID === undefined ? undefined : `${testID}-scrim`}
           importantForAccessibility="no-hide-descendants" onPress={onDismiss}
           style={[StyleSheet.absoluteFill, { minWidth: accessibility.minTouchTarget, minHeight: accessibility.minTouchTarget }]} />
       </Animated.View>

@@ -11,6 +11,8 @@ export type ToastProps = {
   message: string;
   dismissLabel: string;
   onDismiss: () => void;
+  active?: boolean;
+  testID?: string;
 };
 
 export type ToastProviderProps = {
@@ -26,9 +28,10 @@ export type ToastController = {
 type ToastContextValue = { message: string | null; dismissLabel: string; controller: ToastController };
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-export function Toast({ message, dismissLabel, onDismiss }: ToastProps): ReactElement {
+export function Toast({ message, dismissLabel, onDismiss, active = true, testID }: ToastProps): ReactElement | null {
+  void active;
   const { color } = useTheme();
-  return <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+  return <View testID={testID} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
     padding: spacing.md, backgroundColor: color.surface, borderColor: color.border,
     borderWidth, borderRadius: radius.card, elevation: elevation.card }}>
     <View accessible accessibilityRole="alert" accessibilityLiveRegion="polite"
@@ -46,12 +49,15 @@ export function ToastProvider({ children, dismissLabel }: ToastProviderProps): R
   return <ToastContext.Provider value={value}>{children}</ToastContext.Provider>;
 }
 
-export function ToastHost(): ReactElement | null {
+export type ToastHostProps = { active?: boolean; bottomInset?: number };
+
+export function ToastHost(props: ToastHostProps = {}): ReactElement | null {
   const context = useContext(ToastContext);
   if (context === null) throw new Error('ToastHost requires a ToastProvider');
   if (context.message === null) return null;
   return <View pointerEvents="box-none" style={{ position: 'absolute', left: spacing.md, right: spacing.md, bottom: spacing.lg }}>
-    <Toast message={context.message} dismissLabel={context.dismissLabel} onDismiss={context.controller.dismiss} />
+    <Toast message={context.message} dismissLabel={context.dismissLabel} onDismiss={context.controller.dismiss}
+      active={props.active ?? true} testID="toast" />
   </View>;
 }
 

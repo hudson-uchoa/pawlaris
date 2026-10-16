@@ -1,9 +1,9 @@
 import { cleanup, render, screen } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 
-import Index from '../app/index';
+import Index from '../app/(auth)/login';
 
-// The route now supplies focus to the cosmos kit; this unit test has no navigator.
+// The shell replaces the scratch route; keep the original name invariant.
 jest.mock('expo-router', () => ({ useIsFocused: () => true }));
 const initialAppState = AppState.currentState;
 

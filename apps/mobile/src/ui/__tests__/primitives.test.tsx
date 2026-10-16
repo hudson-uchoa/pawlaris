@@ -127,6 +127,7 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
   });
 
   test('Sheet exposes a labelled dialog, dismisses by action and hides when closed', async () => {
+    jest.useFakeTimers({ now: 0 });
     const onDismiss = jest.fn();
     const view = await render(<Sheet visible accessibilityLabel="Confirm care" dismissLabel="Close sheet" onDismiss={onDismiss}><Text>Confirm details</Text></Sheet>);
     expect(screen.getByRole('dialog', { name: 'Confirm care' })).toBeOnTheScreen();
@@ -134,6 +135,7 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     const dismiss = screen.getByRole('button', { name: 'Close sheet' });
     expectTouchTarget(dismiss);
     await fireEvent.press(dismiss);
+    await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
     expect(onDismiss).toHaveBeenCalledTimes(1);
     await view.rerender(<Sheet visible={false} accessibilityLabel="Confirm care" dismissLabel="Close sheet" onDismiss={onDismiss}><Text>Confirm details</Text></Sheet>);
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -141,16 +143,19 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
   });
 
   test('Toast announces its message and supplies a labelled dismiss action', async () => {
+    jest.useFakeTimers({ now: 0 });
     const onDismiss = jest.fn();
     await render(<Toast message="Care saved" dismissLabel="Dismiss notice" onDismiss={onDismiss} />);
     expect(screen.getByRole('alert')).toHaveTextContent('Care saved');
     const dismiss = screen.getByRole('button', { name: 'Dismiss notice' });
     expectTouchTarget(dismiss);
     await fireEvent.press(dismiss);
+    await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
   test('Toast host displays a requested notice and removes it on dismissal', async () => {
+    jest.useFakeTimers({ now: 0 });
     function NoticeTrigger() {
       const toast = useToast();
       return <Button label="Show notice" accessibilityLabel="Show notice" onPress={() => toast.show('Care saved')} />;
@@ -160,6 +165,7 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     await fireEvent.press(screen.getByRole('button', { name: 'Show notice' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Care saved');
     await fireEvent.press(screen.getByRole('button', { name: 'Dismiss notice' }));
+    await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
     expect(screen.queryByRole('alert')).toBeNull();
   });
 

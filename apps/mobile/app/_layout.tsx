@@ -1,6 +1,9 @@
-import { Stack } from 'expo-router';
+import type { ReactElement } from 'react';
+import type { AppDependencies } from '../src/bootstrap';
 
-export default function RootLayout() {
-  // Q-2 records the scope of this native stack's internal runtime assets.
-  return <Stack screenOptions={{ headerShown: false }} />;
+export type RootLayoutProps = { dependencies?: AppDependencies };
+
+export default function RootLayout(props: RootLayoutProps = {}): ReactElement {
+  void props;
+  throw new Error('App shell not implemented');
 }

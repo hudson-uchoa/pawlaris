@@ -1,5 +1,13 @@
 export const strings = {
   appName: 'Pawlaris',
+  dismiss: 'Fechar',
+  tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
+  sync: {
+    synced: 'sincronizado',
+    syncing: 'sincronizando',
+    offline: 'offline',
+    reserveSuffix: ' · reserva',
+  },
   brand: {
     poweredBy: 'powered by',
     insurge: 'Insurge',

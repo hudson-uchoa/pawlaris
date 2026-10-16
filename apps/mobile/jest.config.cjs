@@ -27,6 +27,6 @@ module.exports = {
     './src/walks/': { statements: 80, branches: 80, functions: 80, lines: 80 },
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|@shopify/react-native-skia|expo(nent)?|@expo(nent)?/.*|lucide-react-native))',
+    'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|@react-navigation|standard-navigation|@shopify/react-native-skia|expo(nent)?|@expo(nent)?/.*|lucide-react-native))',
   ],
 };
