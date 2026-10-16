@@ -615,3 +615,5 @@ only in the four empty states *(06 §4.10)* and in "Céu completo".
 Standard toasts: `Duda já tinha feito às 07:12` · `Uma alteração não pôde ser
 aplicada` · `Sem conexão — suas alterações serão enviadas depois` (first
 offline mutation of a session only) · `Peso registrado` · `Passeio salvo`.
+A toast's dismiss button, and a sheet's, reads `Fechar`, which is also its
+accessibility label *(Q-39)*.
