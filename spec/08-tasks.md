@@ -980,21 +980,26 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   from `adb shell dumpsys gfxinfo app.pawlaris` taken right after.
 
 - [ ] **P4-3 — App shell**
-  **Depends:** P3-10, P4-2 · **Read:** `09` §1 (startup sequence), §3.1 (the indicator's label) · `10` §8 · `11` §4.6 · `06` §4.4 (SyncIndicator), §4.7, §5 (MO-3)
+  **Depends:** P3-10, P4-2 · **Read:** `09` §1 (startup sequence), §3.1 (the indicator's label) · `10` §8 · `11` §4.6 · `06` §3, §4.4 (SyncIndicator), §4.7 (Sheet, Toast), §5
   **Build:** `app/_layout.tsx` performing the startup sequence of `09` §1 and
   providing db, store, engine, session and theme through context; `(auth)` and
   `(tabs)` groups with placeholder screens; the auth gate (honouring
   `kv.signed_out`); `features/shell/` — `SyncIndicator` bound to engine state,
   the tab bar, the toast host subscribed to `completion_lost` and
   `mutation_rejected`; `platform/logger.ts` (256 KB rotating file);
-  `perf/marker.ts`. Adds the 60% coverage floor for `src/features`.
+  `perf/marker.ts`. Adds the 60% coverage floor for `src/features`. Gives
+  P4-1's `Sheet` its exit and `Toast` its entry, hold and exit (`06` §4.7, §5).
   **Tests:** `__tests__/shell.test.tsx` — no session → login; session → tabs,
   with zero HTTP calls before first paint (the fake `Http` asserts none);
   `kv.signed_out` → login with the replica intact; `SyncIndicator` shows the
   three states with the right text and is not styled as an error when offline;
   on the reserve its two online labels end with `· reserva` and the drawing
-  is the same; MO-3 for `SyncIndicator`.
-  **Gate:** `pnpm -C apps/mobile exec jest __tests__/shell.test.tsx src/features/shell`
+  is the same; MO-3 for `SyncIndicator`. In `src/ui/primitives`: every way
+  of dismissing a `Sheet` runs the same exit and unmounts after it; a toast
+  leaves by itself after `hold.toast` (fake timers), at once on its button,
+  and a second toast replaces the first; both use the 150 ms fade under
+  Reduce Motion.
+  **Gate:** `pnpm -C apps/mobile exec jest __tests__/shell.test.tsx src/features/shell src/ui/primitives`
 
 - [ ] **P4-4 — Login and redeem**
   **Depends:** P4-3, P2-7 · **Read:** `09` §2 · `10` §8.1 · `11` §4.5
