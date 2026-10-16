@@ -58,3 +58,14 @@ P0-9 uses the supplied PNG files unchanged; no third-party artwork is used.
 | `adaptive-background.png` | Android adaptive night sky |
 | `adaptive-monochrome.png` | Android themed paw-star mark |
 | `splash-icon.png` | Splash paw-star mark |
+
+## Insurge signature (P4-2)
+
+| Brand assets | Source | Ownership and permission |
+|---|---|---|
+| Insurge name and black-hole mark | `spec/brand/insurge-mark.svg`; drawn in `src/ui/cosmos/insurgeMark.tsx` from `spec/06-ux-motion-spec.md` §4.12 | Belong to Insurge; used by decision of the owner under ADR-036; not covered by this repository's MIT licence |
+
+The signature is the mark followed by "powered by Insurge". The app draws
+it from the specified geometry; it is not Pawlaris's to relicense. If
+Insurge supplies an official mark, it replaces the master and this drawing
+together, as §4.12 and ADR-036 require.
