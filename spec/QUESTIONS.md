@@ -1168,3 +1168,35 @@ Reduce Motion the still, bright sky lasts the same 1600 ms (cuts, no fades,
 no meteors) and then returns to the ordinary still sky, rather than staying
 bright while `play` is true, so both paths end the same way whatever P5-9
 does with `play`. Now in `06` §4.5.
+
+## Q-39 — P4-3 — Which copy sources and toast dismiss label should the shell use?
+**Asked:** 2026-10-16
+**Where:** spec/08-tasks.md P4-3; spec/09-screens.md §1, §3.1 and §10;
+spec/10-client-sync.md §8; spec/11-reserve-server.md §4.6;
+spec/06-ux-motion-spec.md §4.7 and §7;
+apps/mobile/src/i18n/strings.ts;
+apps/mobile/src/ui/primitives/Toast.tsx
+**Problem:** The session permits copying only from `09` §3.1 and §10
+into strings.ts and requires a question for missing copy or accessibility
+decisions. Section 3.1 names the indicator and its reserve suffix but does
+not give its three labels. Those labels are defined in `10` §8 and `11`
+§4.6. The four tab names appear in the other screen headings of `09`,
+outside those two permitted sections. Section 4.7 of `06` requires a
+toast dismiss button, and §7 requires its accessibility label, but `09`
+does not specify that button's text. The existing Toast and ToastProvider
+require dismissLabel from their caller; strings.ts has no such label.
+The red indicator cases must assert the specified text, and the shell
+must supply the toast host's dismiss label without inventing app copy.
+**I would assume:** Permit the shell to copy the exact connection labels
+from `10` §8 and `11` §4.6: `sincronizado`, `sincronizando` with ` (n)`
+only when n is positive, `offline`, and the online suffix ` · reserva`.
+Use the four screen names already present in `09`: `Hoje`, `Pets`,
+`Passeios`, `Ajustes`. Specify `Fechar` for the toast dismiss button and
+its accessibility label. Keep all of these in strings.ts, with tests
+reading their expected copy from the i18n directory, and keep the login
+screen a placeholder with the existing Pawlaris name. The orchestrator
+must confirm or replace the dismiss label and permit these copy sources.
+**Blocking:** yes (P4-3 Stage A stopped before code or test changes).
+The required spec sections and supporting modules have been read. The
+working tree contains only this question and COMMIT_MSG.txt. No task
+checkbox, dependency, existing assertion or review file has changed.
