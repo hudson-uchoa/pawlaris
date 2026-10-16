@@ -335,12 +335,17 @@ describe('cosmos pieces', () => {
   test('ShootingStars shares the Starfield canvas and schedules no motion under Reduce Motion', async () => {
     jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
     const timing = jest.spyOn(timingAnimation, 'withTiming');
+    const spring = jest.spyOn(springAnimation, 'withSpring');
+    const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
     const view = await render(<Starfield active seed={42} width={360} height={240}>
       <ShootingStars active play width={360} height={240} />
     </Starfield>);
     expect(drawNodes(view, 'View')).toHaveLength(1);
     expect(drawNodes(view, 'skPoints')).toHaveLength(3);
-    expect(timing).not.toHaveBeenCalled();
+    // Q-38 permits only a zero-duration cut to end the still bright hold.
+    expect(timing.mock.calls.every(([, config]) => config?.duration === 0)).toBe(true);
+    expect(spring).not.toHaveBeenCalled();
+    expect(repeat).not.toHaveBeenCalled();
   });
 
   test('InsurgeMark breathes only while focused and cancels when inactive', async () => {

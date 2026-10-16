@@ -48,3 +48,15 @@ export const orbit = {
   satelliteSize: spacing.xxs,
   firstAngle: -Math.PI / 2,
 } as const;
+
+// Spec 06 section 4.5, Q-38. Meteor geometry is a visual choice.
+export const shootingStars = {
+  duration: 1600,
+  stagger: 160,
+  crossing: 960,
+  tailLength: 60,
+  headRadius: spacing.xxs / 2,
+  tailWidth: icon.strokeWidth,
+  startY: [0.05, 0.15, 0.25, 0.35, 0.45],
+  verticalTravel: 0.5,
+} as const;
