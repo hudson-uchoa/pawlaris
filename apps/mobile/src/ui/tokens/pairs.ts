@@ -31,6 +31,7 @@ export const pairs: readonly ContrastPair[] = [
   }))),
   { name: 'star/bg/graphic', foreground: 'star', background: 'bg', kind: 'graphic' },
   { name: 'star/surface/graphic', foreground: 'star', background: 'surface', kind: 'graphic' },
+  { name: 'starText/accentSoft/graphic', foreground: 'starText', background: 'accentSoft', kind: 'graphic' },
   ...identity.flatMap((entry): ContrastPair[] => [
     { name: `${entry.name}/bg`, foreground: { identity: entry.name }, background: 'bg', kind: 'text' },
     { name: `${entry.name}/surface`, foreground: { identity: entry.name }, background: 'surface', kind: 'text' },
