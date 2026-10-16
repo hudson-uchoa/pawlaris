@@ -235,6 +235,8 @@ export const spring = {
 export const duration = { micro: 120, quick: 200, base: 280, hero: 320, sheet: 380, burst: 520 } as const;
 
 export const ambient = { twinkleA: 2800, twinkleB: 4100, twinkleC: 5300, orbit: 24000, syncOrbit: 1200, breath: 4000 } as const;
+
+export const hold = { toast: 4000 } as const;                 // how long a toast stays
 ```
 
 All numbers live in this file. Components import a named token, never an inline
@@ -405,7 +407,8 @@ back       system back: overlay re-mounts at the header frames and animates to t
 | Tab switch | content crossfades in `duration.micro`; the active tab icon gets a small star dot beneath it (scale in, `spring.bouncy`) |
 | Push | native stack default (`slide_from_right`) |
 | Modal route | native `slide_from_bottom` |
-| `Sheet` primitive | translateY spring up (`spring.gentle`), scrim fades to `color.scrim`; a drag down past 30% of its height, or a fling down faster than 1000 dp/s, dismisses *(Q-32)*. **No blur.** |
+| `Sheet` primitive | translateY spring up (`spring.gentle`), scrim fades to `color.scrim`; a drag down past 30% of its height, or a fling down faster than 1000 dp/s, dismisses *(Q-32)*. However it is dismissed — drag, fling, scrim, back, its button, or its owner hiding it — it leaves the same way: translateY to its height and the scrim to clear in `duration.quick`, and it unmounts when that ends. **No blur.** |
+| `Toast` | one at a time, above the tab bar: rises 16 dp and fades in (`spring.gentle`), stays `hold.toast` (4 s), then sinks and fades out in `duration.quick`. Its dismiss button sends it out at once; a new toast replaces the shown one and starts its own hold. Announced politely to assistive technology |
 | `PressableScale` | press-in scales to 0.97 (`spring.stiff`), release or cancel back to 1 — the same feel as the pet card's press *(Q-32)* |
 | Back | system back; reverses the push |
 
@@ -600,7 +603,8 @@ else in the app draws the mark.
 | Hero transition | 150 ms crossfade |
 | List stagger, skeleton sweep | all at once; static placeholder |
 | Comet tail, pulsar, rolling digits, route draw-on | static dot; digits snap; route shown |
-| Sheet spring | 150 ms fade |
+| Sheet spring, in and out | 150 ms fade |
+| Toast in and out | 150 ms fade; the hold is the same |
 | `PressableScale` press | no scale: it stays at 1 |
 | The ring of the Insurge signature breathing | a still ring |
 
