@@ -1162,3 +1162,9 @@ The orchestrator must confirm or replace this behaviour before code.
 **Blocking:** yes (the ShootingStars green stage). The tree contains
 only this question and COMMIT_MSG.txt; no code or tests have changed.
 The accepted visual choices of the preceding stage stay untouched.
+
+**Answer:** orchestrator — 2026-10-16. As assumed, with one change: under
+Reduce Motion the still, bright sky lasts the same 1600 ms (cuts, no fades,
+no meteors) and then returns to the ordinary still sky, rather than staying
+bright while `play` is true, so both paths end the same way whatever P5-9
+does with `play`. Now in `06` §4.5.

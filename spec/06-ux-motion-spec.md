@@ -358,6 +358,19 @@ meteors cross the header starfield on staggered diagonal paths (head in `star`,
 tail fading over 60 dp), over 1600 ms; the starfield brightens to full and
 settles; the header reads **Céu completo**. Once per device per day.
 
+The component plays; P5-9 decides when *(Q-38)*. `play` turning true (or true
+at mount) is one request; it waits while the screen is inactive and is used
+up once it starts, so a rerender, a return to focus or a change of size or
+Reduce Motion never replays it; `play` going false and true again is a new
+request. The timeline is one 1600 ms group: meteors start at 0, 160, 320,
+480 and 640 ms and each crossing takes 960 ms. Over the first
+`duration.quick` every star layer rises to opacity 1 in both themes (radii,
+colour, gradient and nebula unchanged), holds, and returns to its ordinary
+opacity over the last `duration.quick`; then the sky twinkles as before.
+Under Reduce Motion the same 1600 ms shows the layers still at opacity 1,
+with no meteors and no fades, then the ordinary still sky. Losing focus or
+the foreground cancels a celebration in flight and restores the ordinary sky.
+
 ### 4.6 Hero — pet card → profile *(ADR-011)*
 
 Hand-built and deterministic; no shared-element API.
