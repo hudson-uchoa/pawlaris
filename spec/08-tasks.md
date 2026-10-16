@@ -956,7 +956,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   age formats of R2.4, the four schedule summaries).
   **Gate:** `pnpm -C apps/mobile exec jest src/ui src/i18n`
 
-- [~] **P4-2 — The cosmos kit**
+- [x] **P4-2 — The cosmos kit**
   **Depends:** P4-1 · **Read:** `06` §1.3, §4.1–§4.5, §4.10, §4.11, §4.12, §5
   **Build:** install `@shopify/react-native-skia`. In `ui/cosmos/`:
   `stars.ts` (`generateStars`, pure, seeded mulberry32); `glyphs.ts` (the
