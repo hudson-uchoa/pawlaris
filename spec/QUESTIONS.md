@@ -1070,3 +1070,35 @@ so for depth each layer moves **up** by `clamp(scrollY, 0, height) ×
 factor` (a negative Y translation), the near layer most. The nebula
 geometry, its blur and the defaults (header density, no nebula) are as
 assumed, now in `06` §4.1, with the numbers in `ui/tokens/cosmos.ts`.
+
+## Q-37 — P4-2 — How should the checked star meet light-theme contrast?
+**Asked:** 2026-10-16
+**Where:** spec/06-ux-motion-spec.md §2.1 and §4.2;
+apps/mobile/src/ui/cosmos/StarCheck.tsx;
+apps/mobile/src/ui/tokens/pairs.ts
+**Problem:** The checked control has an accentSoft-filled ring and a
+star-coloured five-point star. In the light theme, star #B87B06 against
+accentSoft #E6E0FF has contrast 2.804084:1, using the same luminance
+formula as ui/__tests__/contrast.test.ts. That misses §2.1's 3:1
+minimum for meaningful graphics: the lit star communicates completion.
+The existing contrast registry covers star/bg and star/surface, but
+not star/accentSoft, so its current passing tests do not cover this
+new use. The session delegates visual layout numbers but explicitly
+reserves accessibility and contradictions for the orchestrator.
+**I would assume:** Keep the specified star fill and accentSoft ring
+fill. In the light theme only, outline the star in starText using the
+existing 1.75 dp icon stroke width, held in ui/tokens/cosmos.ts.
+starText #8A5A00 against accentSoft has contrast 4.648688:1, so the
+outline makes the completion shape readable without changing the
+palette or the gold fill. Leave the dark star without an outline.
+Register starText/accentSoft as a meaningful graphic pair, and add a
+case for the light outline while preserving every Stage B assertion.
+The orchestrator must approve this treatment or specify another one.
+**Blocking:** yes (the StarCheck/Sparks green stage is not complete).
+Its partial implementation and eight added tests remain uncommitted
+for continuation; no test was weakened, skipped or deleted. Lint and
+types pass. The cosmos gate has 48 passes and 20 remaining stub
+failures; the mobile suite has 920 passes and the same 20 stub failures.
+The contrast measurement above blocks reporting this stage as green.
+Only this question belongs to the accompanying question commit;
+the implementation and added tests stay pending its answer.
