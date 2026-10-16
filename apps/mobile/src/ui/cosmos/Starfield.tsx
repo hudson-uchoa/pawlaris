@@ -5,7 +5,8 @@ import { ambient } from '../motion/tokens';
 import { useAnimationActive } from '../motion/useAnimationActive';
 import { useReduceMotion } from '../motion/useReduceMotion';
 import { useTheme } from '../theme';
-import { starfield } from '../tokens/cosmos';
+import { shootingStars, starfield } from '../tokens/cosmos';
+import { CelebrationContext, celebrationBrightness } from './celebration';
 import { generateStars, starLayers, type StarLayer } from './stars';
 
 export type StarfieldProps = {
@@ -43,10 +44,11 @@ type StarLayerDrawingProps = {
   enabled: boolean;
   height: number;
   scrollY: SharedValue<number> | undefined;
+  celebration: SharedValue<number> | undefined;
 };
 
 const StarLayerDrawing = memo(function StarLayerDrawing({ layer, points, color, themeOpacity,
-  enabled, height, scrollY }: StarLayerDrawingProps): ReactElement {
+  enabled, height, scrollY, celebration }: StarLayerDrawingProps): ReactElement {
   const twinkle = useSharedValue(1);
   const period = twinklePeriods[layer];
   const paint = starLayers[layer];
@@ -60,9 +62,17 @@ const StarLayerDrawing = memo(function StarLayerDrawing({ layer, points, color, 
     return () => { cancelAnimation(twinkle); };
   }, [enabled, period, twinkle]);
 
+  const opacity = useDerivedValue(() => {
+    if (celebration === undefined) return 1;
+    const ordinary = paint.opacity * themeOpacity * twinkle.get();
+    const brightness = celebrationBrightness(celebration.get());
+    return ordinary + (1 - ordinary) * brightness;
+  }, [celebration, twinkle, paint.opacity, themeOpacity]);
+  // Without scene children, use the ambient paint directly. Scene effects
+  // can raise combined opacity to 1 without adding another points draw.
   const stars = <Points points={points} mode="points" color={color}
-    strokeWidth={2 * paint.radius} strokeCap="round" opacity={twinkle} />;
-  return <Group opacity={paint.opacity * themeOpacity}>
+    strokeWidth={2 * paint.radius} strokeCap="round" opacity={celebration === undefined ? twinkle : opacity} />;
+  return <Group opacity={celebration === undefined ? paint.opacity * themeOpacity : 1}>
     {enabled && scrollY !== undefined
       ? <ParallaxLayer scrollY={scrollY} height={height} factor={paint.parallax}>{stars}</ParallaxLayer>
       : stars}
@@ -80,6 +90,9 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
   const { color, scheme } = useTheme();
   const reduced = useReduceMotion();
   const animationActive = useAnimationActive(active);
+  const celebrationTime = useSharedValue<number>(shootingStars.duration);
+  const celebration = useMemo(() => ({ time: celebrationTime, active: animationActive }),
+    [celebrationTime, animationActive]);
   const enabled = animationActive && !reduced && width > 0 && height > 0;
   const count = starfield.count[density];
   const layers = useMemo(() => {
@@ -92,6 +105,7 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
   const themeOpacity = scheme === 'light' ? starfield.lightOpacity : 1;
   return <Canvas testID={testID} style={{ width, height }} pointerEvents="none"
     accessible={false} importantForAccessibility="no-hide-descendants">
+    <CelebrationContext.Provider value={celebration}>
     <Fill><LinearGradient start={vec(0, 0)} end={vec(0, height)} colors={[color.skyTop, color.skyBottom]} /></Fill>
     {nebula && starfield.nebula.clouds.map((cloud) => {
       const center = vec(width * cloud.x, height * cloud.y);
@@ -102,7 +116,9 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
       </Circle>;
     })}
     {starLayers.map(({ layer }) => <StarLayerDrawing key={layer} layer={layer} points={layers[layer]}
-      color={color.starfield} themeOpacity={themeOpacity} enabled={enabled} height={height} scrollY={scrollY} />)}
+      color={color.starfield} themeOpacity={themeOpacity} enabled={enabled} height={height} scrollY={scrollY}
+      celebration={children == null ? undefined : celebrationTime} />)}
     {children}
+    </CelebrationContext.Provider>
   </Canvas>;
 }
