@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactElement } from 'react';
+import { useEffect, useMemo, useRef, type ReactElement } from 'react';
 import Animated, { cancelAnimation, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { duration } from '../motion/tokens';
@@ -24,6 +24,7 @@ export function ConstellationLine({ points, width, height, complete, active,
   const { color } = useTheme();
   const animationActive = useAnimationActive(active);
   const reduced = useReduceMotion();
+  const previousComplete = useRef(complete);
   const { path, length } = useMemo(() => {
     const length = points.reduce((sum, point, index) => {
       const previous = points[index - 1];
@@ -34,8 +35,10 @@ export function ConstellationLine({ points, width, height, complete, active,
   }, [points]);
   const offset = useSharedValue(length);
   useEffect(() => {
+    const changed = previousComplete.current !== complete;
+    previousComplete.current = complete;
     offset.set(complete ? 0 : length);
-    if (complete && animationActive && !reduced) {
+    if (changed && complete && animationActive && !reduced) {
       offset.set(length);
       offset.set(withTiming(0, { duration: duration.base }));
     }
