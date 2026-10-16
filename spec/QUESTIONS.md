@@ -1108,3 +1108,57 @@ the implementation and added tests stay pending its answer.
 1.75 dp `starText` outline (the stroke width in `ui/tokens/cosmos.ts`),
 and `starText`/`accentSoft` joins `pairs.ts` as a meaningful-graphic pair.
 The dark star has no outline. Now in `06` §4.2.
+
+## Q-38 — P4-2 — How does a shooting-star celebration play and settle?
+**Asked:** 2026-10-16
+**Where:** spec/06-ux-motion-spec.md §4.1, §4.5 and §5;
+spec/08-tasks.md P4-2 and P5-9;
+apps/mobile/src/ui/cosmos/ShootingStars.tsx and Starfield.tsx
+**Problem:** Section 4.5 specifies five staggered meteors over 1600 ms
+and says the starfield "brightens to full and settles". Section 4.1
+normally multiplies each layer's base opacity by twinkle and, in the
+light theme, by 0.28. Neither section defines which factors "full"
+overrides, when the brightness rises and settles, or whether the
+settled sky returns to normal or stays bright. Section 5 requires a
+still, bright sky under Reduce Motion, without defining its duration.
+The red component signature has a boolean play request, but the spec
+does not say whether an interrupted request replays when focus or
+foreground activity returns. Replaying affects the once-per-day
+celebration. The session delegates meteor geometry, but explicitly
+reserves behaviour and timing that changes meaning for an answer.
+**I would assume:** P4-2 supplies the controlled visual effect only.
+P5-9 owns allDone, today's scope, kv.celebrated_on and the header copy.
+Treat an initial play=true or a false-to-true edge as one request per
+mounted instance. A request made while inactive waits for activity.
+Once it starts, it is consumed: rerenders, focus/foreground return,
+size changes and Reduce Motion changes do not replay its meteors.
+Setting play=false cancels and resets it; a later true requests a new
+play. Unmounting cancels all work; persistence remains P5-9's concern.
+
+Use one shared, linear timeline lasting 1600 ms for the whole group.
+Meteor starts are 0, 160, 320, 480 and 640 ms; each crossing lasts
+960 ms, so the fifth ends at 1600 ms. Geometry, head size and path
+choices remain delegated visual values in ui/tokens/cosmos.ts.
+
+During normal play, interpolate each layer's combined opacity from
+its ordinary base × twinkle × theme opacity to 1 during the first
+duration.quick (200 ms), hold full until 1400 ms, then interpolate
+back to its ordinary opacity during the last 200 ms. Full means all
+three star layers at opacity 1 in both themes; radii, starfield colour,
+sky gradient and nebula are unchanged. The sky returns to its normal
+twinkle after the 1600 ms effect, even if play stays true.
+
+Under Reduce Motion, schedule no animation and draw no meteors.
+While play=true, show the three layers still at combined opacity 1;
+play=false restores the ordinary still sky. Turning Reduce Motion on
+during a celebration cancels its animation and selects that still
+bright state; turning it off does not replay a consumed celebration.
+Losing focus or foreground activity cancels an in-flight celebration,
+hides its meteors and restores the normal still sky. On return it
+stays consumed; Reduce Motion still selects the bright state if play
+is true. All brightness and meteor work shares Starfield's one canvas
+and uses UI-thread shared values, with no clock reads or JS timers.
+The orchestrator must confirm or replace this behaviour before code.
+**Blocking:** yes (the ShootingStars green stage). The tree contains
+only this question and COMMIT_MSG.txt; no code or tests have changed.
+The accepted visual choices of the preceding stage stay untouched.
