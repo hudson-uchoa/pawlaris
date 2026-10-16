@@ -71,6 +71,42 @@ test('ConstellationLine draws on over 280 ms, stays while complete and disappear
   expect(screen.queryByTestId('line', { includeHiddenElements: true })).toBeNull();
 });
 
+test('R1 ConstellationLine mounts complete and active with a finished still line', async () => {
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+  const view = await render(<ConstellationLine points={points} width={120} height={64} complete active testID="line" />);
+  expect(screen.getByTestId('line', { includeHiddenElements: true })).toBeOnTheScreen();
+  expect(timing).not.toHaveBeenCalled();
+  await view.unmount();
+  expect(cancel.mock.calls[0]?.[0].value).toBe(0);
+});
+
+test.each(['focus', 'background'] as const)('R1 ConstellationLine completes while inactive and returns from %s without drawing on', async (reason) => {
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
+    const notify = (state: AppStateStatus) => { (listener as (value: AppStateStatus) => void)(state); };
+    listeners.add(notify);
+    return { remove: () => { listeners.delete(notify); } };
+  });
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+  const view = await render(<ConstellationLine points={points} width={120} height={64} complete={false} active testID="line" />);
+  if (reason === 'background') {
+    await act(() => { AppState.currentState = 'background'; listeners.forEach((notify) => notify('background')); });
+  }
+  await view.rerender(<ConstellationLine points={points} width={120} height={64} complete={false} active={reason !== 'focus'} testID="line" />);
+  await view.rerender(<ConstellationLine points={points} width={120} height={64} complete active={reason !== 'focus'} testID="line" />);
+  expect(timing).not.toHaveBeenCalled();
+  expect(cancel.mock.calls[0]?.[0].value).toBe(0);
+  if (reason === 'background') {
+    await act(() => { AppState.currentState = 'active'; listeners.forEach((notify) => notify('active')); });
+  }
+  await view.rerender(<ConstellationLine points={points} width={120} height={64} complete active testID="line" />);
+  expect(screen.getByTestId('line', { includeHiddenElements: true })).toBeOnTheScreen();
+  expect(timing).not.toHaveBeenCalled();
+  expect(cancel.mock.calls[0]?.[0].value).toBe(0);
+});
+
 test('P9 ConstellationLine appears complete without scheduling motion under Reduce Motion', async () => {
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   const timing = jest.spyOn(timingAnimation, 'withTiming');
