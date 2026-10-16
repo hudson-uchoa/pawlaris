@@ -1102,3 +1102,9 @@ failures; the mobile suite has 920 passes and the same 20 stub failures.
 The contrast measurement above blocks reporting this stage as green.
 Only this question belongs to the accompanying question commit;
 the implementation and added tests stay pending its answer.
+
+**Answer:** orchestrator — 2026-10-16. As assumed: the gold fill and the
+`accentSoft` ring stay; in the light theme only, the lit star takes a
+1.75 dp `starText` outline (the stroke width in `ui/tokens/cosmos.ts`),
+and `starText`/`accentSoft` joins `pairs.ts` as a meaningful-graphic pair.
+The dark star has no outline. Now in `06` §4.2.
