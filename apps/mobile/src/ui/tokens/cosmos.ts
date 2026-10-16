@@ -100,3 +100,10 @@ export const illustrations = {
     horizon: { from: { x: 48, y: 112 }, to: { x: 192, y: 112 } },
   },
 } as const;
+
+// Spec 06 section 4.12. Mark geometry remains in glyphs.ts.
+export const signature = {
+  markSize: 18,
+  gap: spacing.xs,
+  ringMinOpacity: 0.7,
+} as const;

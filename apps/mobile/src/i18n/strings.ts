@@ -1,5 +1,9 @@
 export const strings = {
   appName: 'Pawlaris',
+  brand: {
+    poweredBy: 'powered by',
+    insurge: 'Insurge',
+  },
   format: {
     year: ['ano', 'anos'],
     month: ['mês', 'meses'],

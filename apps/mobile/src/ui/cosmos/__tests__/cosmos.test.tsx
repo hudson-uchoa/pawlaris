@@ -46,6 +46,9 @@ function CheckHarness({ onPress }: { onPress: () => void }): ReactElement {
 }
 
 beforeEach(() => {
+  // Expo supplies Linking.openURL as a Jest mock; restoring spies does not
+  // clear that mock's call history between the light and dark link cases.
+  jest.clearAllMocks();
   jest.useFakeTimers({ now: 0 });
   AppState.currentState = 'active';
   jest.mocked(useColorScheme).mockReturnValue('dark');
