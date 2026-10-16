@@ -34,3 +34,17 @@ export const sparks = {
   size: spacing.xxs,
   firstAngle: -Math.PI / 2,
 } as const;
+
+// Spec 06 sections 4.3 and 4.4. Visual choices for P4-2 review.
+export const constellation = {
+  strokeWidth: icon.strokeWidth,
+  color: 'star',
+} as const;
+
+export const orbit = {
+  strokeWidth: 1.5,
+  // Keep the ring's outer edge at the supplied size.
+  ringInset: 1.5 / 2,
+  satelliteSize: spacing.xxs,
+  firstAngle: -Math.PI / 2,
+} as const;
