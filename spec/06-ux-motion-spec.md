@@ -317,6 +317,11 @@ cancel     the finger leaves the box, or a scroll starts, before release
 undo       the star scales to 0 and the ring empties (duration.quick), no sparks
 ```
 
+In the light theme the lit star also takes a 1.75 dp outline in `starText`:
+`star` on `accentSoft` is 2.8:1, below the 3:1 a meaningful graphic needs, and
+`starText` on it is 4.6:1; `pairs.ts` lists that pair. The dark star has no
+outline *(Q-37)*.
+
 If the sync later reveals someone else got there first, the star **stays lit**
 and the attribution line crossfades to the winner *(R3.21)*. Putting out a star
 under the user's eyes is the most destructive thing this UI could do.
