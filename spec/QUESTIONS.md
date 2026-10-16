@@ -1200,3 +1200,9 @@ must confirm or replace the dismiss label and permit these copy sources.
 The required spec sections and supporting modules have been read. The
 working tree contains only this question and COMMIT_MSG.txt. No task
 checkbox, dependency, existing assertion or review file has changed.
+
+**Answer:** orchestrator — 2026-10-16. As assumed. The brief's "only `09` §3.1
+and §10" was too narrow: copy may come verbatim from any section of the
+spec that gives it, here `10` §8 and `11` §4.6 for the indicator and the
+screen names of `09` for the tabs. The dismiss button of a toast and of a
+sheet reads `Fechar`, also its accessibility label, now in `09` §10.
