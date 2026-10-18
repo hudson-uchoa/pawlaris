@@ -20,6 +20,7 @@ import { openDatabase } from '../src/db/open';
 import { OutboxRepo } from '../src/db/outboxRepo';
 import { ReplicaRepo } from '../src/db/replicaRepo';
 import { strings } from '../src/i18n/strings';
+import { hydrate } from '../src/replica/hydrate';
 import { fakeClock } from '../src/testing/fakeClock';
 import { fakeFileSystem } from '../src/testing/fakeFileSystem';
 import { fakeHttp } from '../src/testing/fakeHttp';
@@ -166,6 +167,45 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   expect(hide).toHaveBeenCalledTimes(1);
   expect(c.http.requests.length).toBeGreaterThan(0);
   expect(replica.get('pets', pet.id)?.row).toEqual(pet);
+});
+
+test('P4-3 dashboard marker ignores skeleton layouts and emits once after family hydration', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  c.http.enqueue(() => new Promise(() => {}));
+  const observeDashboard = jest.fn((app: AppContext) => {
+    expect(app.sessionUser()).toEqual(wire.user);
+    expect(app.store.getState()).toMatchObject({ ready: true, family: null });
+  });
+  await renderShell(c.deps, observeDashboard);
+  const app = observeDashboard.mock.calls[0]?.[0];
+  if (app === undefined) throw new Error('Dashboard did not render');
+  const layout = { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 720 } } };
+  const dashboard = screen.getByTestId('dashboard-placeholder');
+  expect(dashboard.queryAll((node) => node.props.importantForAccessibility === 'no-hide-descendants')).toHaveLength(5);
+  expect(c.deps.perfOutput).not.toHaveBeenCalled();
+  await fireEvent(dashboard, 'layout', layout);
+  await fireEvent(dashboard, 'layout', layout);
+  expect(c.deps.perfOutput).not.toHaveBeenCalled();
+
+  const family = c.factory.family({ id: wire.user.family_id });
+  await act(() => {
+    new ReplicaRepo(driver).upsert('family', family, { pending: false, deleted: false, pullGen: 0 });
+    hydrate({ driver, store: app.store, clock: c.deps.clock });
+  });
+  expect(app.store.getState().family).toEqual(family);
+  const hydratedDashboard = screen.getByTestId('dashboard-placeholder');
+  expect(hydratedDashboard.queryAll((node) => node.props.importantForAccessibility === 'no-hide-descendants')).toHaveLength(0);
+  expect(c.deps.perfOutput).not.toHaveBeenCalled();
+  await fireEvent(hydratedDashboard, 'layout', layout);
+  expect(c.deps.perfOutput).toHaveBeenCalledTimes(1);
+  expect(c.deps.perfOutput).toHaveBeenCalledWith('PAWLARIS_PERF dashboard_interactive');
+  await fireEvent(hydratedDashboard, 'layout', layout);
+  await fireEvent(hydratedDashboard, 'layout', layout);
+  expect(c.deps.perfOutput).toHaveBeenCalledTimes(1);
 });
 
 test.each(['primary', 'reserve'] as const)('SE-2 signed_out on %s survives restart and keeps replica and outbox', async (server) => {
