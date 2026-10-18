@@ -3,8 +3,8 @@ export const strings = {
   dismiss: 'Fechar',
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
   auth: {
-    loginEmail: 'email',
-    password: 'senha',
+    loginEmail: 'E-mail',
+    password: 'Senha',
     login: 'Entrar',
     toRedeem: 'Tenho um convite',
     invalidCredentials: 'E-mail ou senha incorretos.',
@@ -15,6 +15,12 @@ export const strings = {
     discardBody: (count: number): string => `${count} alterações ainda não foram enviadas e serão perdidas.`,
     discardConfirm: 'Entrar mesmo assim',
     reserveNote: 'O servidor principal está fora do ar. Entre de novo para usar o servidor reserva — nada foi perdido.',
+    redeemCode: 'Código',
+    redeemName: 'Nome',
+    redeemEmail: 'E-mail',
+    redeem: 'Criar conta',
+    invalidInvite: 'Convite inválido ou expirado.',
+    emailInUse: 'Este e-mail já está em uso.',
   },
   sync: {
     synced: 'sincronizado',
