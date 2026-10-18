@@ -3,6 +3,12 @@ export interface StartupMarker {
 }
 
 export function createStartupMarker(output: (message: string) => void): StartupMarker {
-  void output;
-  throw new Error('Startup marker not implemented');
+  let emitted = false;
+  return {
+    dashboardInteractive() {
+      if (emitted) return;
+      emitted = true;
+      output('PAWLARIS_PERF dashboard_interactive');
+    },
+  };
 }

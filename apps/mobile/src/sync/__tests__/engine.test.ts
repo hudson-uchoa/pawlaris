@@ -895,3 +895,47 @@ test('ENGINE-PROBE-MUTATION / RS-9: a due probe cannot replace a mutation kick q
   ]);
   expect(created.state.getState()).toEqual({ status: 'synced', server: 'reserve', outboxCount: 0 });
 });
+
+test.each(['start-then-dispose', 'dispose-before-start'] as const)(
+  'ENGINE-WIRING-DEFER: %s attaches listeners at most once and never after disposal', async (order) => {
+    const unsubscribe = jest.fn();
+    const remove = jest.fn();
+    const uploads = { kick: jest.fn(async () => {}), dispose: jest.fn() };
+    jest.mocked(NetInfo.addEventListener).mockClear().mockImplementation(() => unsubscribe);
+    const nativeState = jest.spyOn(AppState, 'addEventListener').mockImplementation(() => ({ remove }));
+    const arrive = async (_server: Server): Promise<PullResult> => 'ok';
+    const wired = createWiredEngine({
+      driver: c.driver, session: c.session, clock: c.clock, random: fakeRandom(), serverSelect: c.serverSelect,
+      outbox: c.drain, pull: createPull({ driver: c.driver, apply: c.apply, api: c.api, arrive }),
+      arrive, uploads, deferListeners: true,
+      createSocket: () => { throw new Error('Unexpected socket before a sync cycle'); },
+    });
+    engine = wired.engine;
+    try {
+      await advance(0);
+      expect(NetInfo.addEventListener).not.toHaveBeenCalled();
+      expect(nativeState).not.toHaveBeenCalled();
+      expect(c.http.requests).toHaveLength(0);
+      expect(uploads.kick).not.toHaveBeenCalled();
+      if (order === 'dispose-before-start') wired.dispose();
+      wired.start();
+      wired.start();
+      const expectedListeners = order === 'dispose-before-start' ? 0 : 1;
+      expect(NetInfo.addEventListener).toHaveBeenCalledTimes(expectedListeners);
+      expect(nativeState).toHaveBeenCalledTimes(expectedListeners);
+      wired.dispose();
+      wired.dispose();
+      wired.start();
+      expect(NetInfo.addEventListener).toHaveBeenCalledTimes(expectedListeners);
+      expect(nativeState).toHaveBeenCalledTimes(expectedListeners);
+      expect(unsubscribe).toHaveBeenCalledTimes(expectedListeners);
+      expect(remove).toHaveBeenCalledTimes(expectedListeners);
+      expect(uploads.dispose).toHaveBeenCalledTimes(1);
+      expect(c.http.requests).toHaveLength(0);
+    } finally {
+      wired.dispose();
+      nativeState.mockRestore();
+      jest.mocked(NetInfo.addEventListener).mockReset();
+    }
+  },
+);
