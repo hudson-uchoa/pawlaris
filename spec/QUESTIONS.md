@@ -1231,3 +1231,13 @@ The performance marker retains its specified console output.
 dependencies, task checkbox or accepted slice has changed. The working
 tree contains this question and COMMIT_MSG.txt. The orchestrator must
 confirm or replace the retention and format policy before this slice.
+
+**Answer:** orchestrator — 2026-10-18. As assumed, now in `05` §7. One JSON
+object per line, UTF-8: `ts` (UTC ISO 8601 from the injected `Clock`),
+`level` (`info` · `warn` · `error`), `event` (a fixed English name) and
+flat fields. The limit is 256 KiB per file: an append that would take the
+active file past it first replaces the single archive with the active file.
+At most two files survive, 512 KiB in all. The export is the archive and
+then the active file, oldest first. Callers pass ids and codes, never row
+contents, tokens, passwords or response bodies. The performance marker
+keeps its own console line.

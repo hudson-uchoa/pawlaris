@@ -428,7 +428,14 @@ PostgreSQL and `uv`, no Docker — in a database of its own,
   caused it, naming the error and never a token, a title or a body. The HTTP
   client's own logger is set to `WARNING`: its line per request is not JSON.
 - Docker `json-file` driver with `max-size=10m, max-file=3`.
-- On the phone: a rotating log file (256 KB) and the Diagnostics screen.
+- On the phone: a rotating log file and the Diagnostics screen *(Q-40)*.
+  One JSON object per line, UTF-8, with `ts` (UTC, from the injected
+  `Clock`), `level` (`info` · `warn` · `error`), `event` (a fixed English
+  name) and flat fields. Each file holds at most 256 KiB: an append that
+  would pass it first replaces the single archive with the active file, so
+  at most two files (512 KiB) survive. The export *(R7.3)* is the archive
+  then the active file, oldest first. Callers log ids and codes, never row
+  contents, tokens, passwords or response bodies.
 - No SaaS. Nothing here costs money or ships data off the box.
 
 ## 8. Build and distribution

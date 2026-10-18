@@ -980,13 +980,13 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   from `adb shell dumpsys gfxinfo app.pawlaris` taken right after.
 
 - [ ] **P4-3 — App shell**
-  **Depends:** P3-10, P4-2 · **Read:** `09` §1 (startup sequence), §3.1 (the indicator's label) · `10` §8 · `11` §4.6 · `06` §3, §4.4 (SyncIndicator), §4.7 (Sheet, Toast), §5
+  **Depends:** P3-10, P4-2 · **Read:** `09` §1 (startup sequence), §3.1 (the indicator's label) · `10` §8 · `11` §4.6 · `06` §3, §4.4 (SyncIndicator), §4.7 (Sheet, Toast), §5 · `05` §7 (the phone's log)
   **Build:** `app/_layout.tsx` performing the startup sequence of `09` §1 and
   providing db, store, engine, session and theme through context; `(auth)` and
   `(tabs)` groups with placeholder screens; the auth gate (honouring
   `kv.signed_out`); `features/shell/` — `SyncIndicator` bound to engine state,
   the tab bar, the toast host subscribed to `completion_lost` and
-  `mutation_rejected`; `platform/logger.ts` (256 KB rotating file);
+  `mutation_rejected`; `platform/logger.ts` (the rotating file of `05` §7);
   `perf/marker.ts`. Adds the 60% coverage floor for `src/features`. Gives
   P4-1's `Sheet` its exit and `Toast` its entry, hold and exit (`06` §4.7, §5).
   **Tests:** `__tests__/shell.test.tsx` — no session → login; session → tabs,
