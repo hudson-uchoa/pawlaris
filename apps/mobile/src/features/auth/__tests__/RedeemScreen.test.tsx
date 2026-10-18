@@ -1,5 +1,5 @@
 import type { AuthRedeemBody } from '@pawlaris/shared';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 import { response, servers, wireSession } from '../../../auth/__tests__/support';
 import { strings } from '../../../i18n/strings';
@@ -27,8 +27,8 @@ afterEach(async () => {
   AppState.currentState = initialAppState;
 });
 
-async function scene() {
-  const c = await authContext();
+async function scene(options: Parameters<typeof authContext>[0] = {}) {
+  const c = await authContext(options);
   context = c;
   await render(<RedeemScreen services={c.services} active />);
   return c;
@@ -127,6 +127,53 @@ test('SE-2 redeem accepts an eight-character password, stores the session and ki
   expect(c.kick).toHaveBeenCalledTimes(1);
   expect(c.kick).toHaveBeenCalledWith('login');
   expect(c.store.getState().family).toEqual(c.family);
+});
+
+test.each(['confirm', 'close'] as const)('SE-3 different-user redeem waits for the discard Sheet: %s', async (decision) => {
+  const c = await scene({ previousUser: true, pendingCount: 2 });
+  const wire = { ...wireSession('primary', 'different'), user: {
+    ...wireSession('primary').user, id: '00000000-0000-4000-8000-000000000099', email: 'other@example.invalid',
+  } };
+  const before = {
+    rows: c.driver.all('SELECT * FROM replica ORDER BY entity, id'),
+    outbox: c.driver.all('SELECT * FROM outbox ORDER BY seq'),
+    user: c.kv.get('session_user'), secrets: c.secretBox.snapshot(),
+  };
+  c.http.enqueue(response(200, wire));
+  await fillForm({ email: wire.user.email });
+  await fireEvent.press(screen.getByTestId('redeem-submit'));
+  const sheet = screen.getByRole('dialog', { name: strings.auth.discardTitle });
+  expect(within(sheet).getByText(strings.auth.discardTitle)).toBeOnTheScreen();
+  expect(within(sheet).getByText(strings.auth.discardBody(2))).toBeOnTheScreen();
+  expect(within(sheet).getAllByRole('button')).toHaveLength(2);
+  expect(screen.getByTestId('login-discard-confirm')).toHaveTextContent(strings.auth.discardConfirm);
+  expect(c.kv.get('session_user')).toBe(before.user);
+  expect(c.secretBox.snapshot()).toEqual(before.secrets);
+  expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(before.outbox);
+  expect(c.kick).not.toHaveBeenCalled();
+  if (decision === 'confirm') {
+    c.queueArrival();
+    await fireEvent.press(screen.getByTestId('login-discard-confirm'));
+    await act(async () => { await c.kick.mock.results[0]?.value; });
+    expect(c.services.sessionUser()).toEqual(wire.user);
+    expect(await c.session.accessToken('primary')).toBe(wire.access_token);
+    expect(c.outbox.count()).toBe(0);
+    expect(c.replica.get('pets', c.pet.id)).toBeNull();
+    expect(c.removeAssetFiles).toHaveBeenCalledTimes(1);
+    expect(c.cancelNotifications).toHaveBeenCalledTimes(1);
+    expect(c.stopTracking).toHaveBeenCalledTimes(1);
+    expect(c.kick).toHaveBeenCalledWith('login');
+  } else {
+    await fireEvent.press(screen.getByRole('button', { name: strings.dismiss }));
+    await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(c.kv.get('session_user')).toBe(before.user);
+    expect(c.secretBox.snapshot()).toEqual(before.secrets);
+    expect(c.driver.all('SELECT * FROM replica ORDER BY entity, id')).toEqual(before.rows);
+    expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(before.outbox);
+    expect(c.removeAssetFiles).not.toHaveBeenCalled();
+    expect(c.kick).not.toHaveBeenCalled();
+  }
 });
 
 test('R5.1 pending redemption keeps the fields visible and prevents a second submission', async () => {
