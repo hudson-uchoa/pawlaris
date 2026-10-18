@@ -3,6 +3,7 @@ import { ExpoRoot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { AppState, Platform } from 'react-native';
+import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
 import RootLayout from '../app/_layout';
 import AuthLayout from '../app/(auth)/_layout';
 import Login from '../app/(auth)/login';
@@ -22,6 +23,7 @@ import { strings } from '../src/i18n/strings';
 import { fakeClock } from '../src/testing/fakeClock';
 import { fakeFileSystem } from '../src/testing/fakeFileSystem';
 import { fakeHttp } from '../src/testing/fakeHttp';
+import { fakeLogFiles } from '../src/testing/fakeLogFiles';
 import { fakeRandom } from '../src/testing/fakeRandom';
 import { fakeSecretBox } from '../src/testing/fakeSecretBox';
 import { fakeWebSocket } from '../src/testing/fakeWebSocket';
@@ -35,6 +37,10 @@ jest.mock('expo-splash-screen', () => ({
   preventAutoHideAsync: jest.fn(async () => true),
   hideAsync: jest.fn(async () => {}),
 }));
+jest.mock('@react-native-community/netinfo', () => ({
+  __esModule: true, default: { addEventListener: jest.fn() },
+  NetInfoStateType: { other: 'other' },
+}));
 
 const initialAppState = AppState.currentState;
 let driver: MemoryDriver;
@@ -43,7 +49,14 @@ beforeEach(async () => {
   jest.clearAllMocks();
   // Pawlaris targets Android; the navigator uses button semantics on iOS.
   jest.replaceProperty(Platform, 'OS', 'android');
+  jest.spyOn(Platform, 'select').mockImplementation((options) => options.android ?? options.native
+    ?? ('default' in options ? options.default : undefined));
   jest.useFakeTimers({ now: epoch });
+  jest.mocked(NetInfo.addEventListener).mockImplementation((listener) => {
+    listener({ type: NetInfoStateType.other, isConnected: true, isInternetReachable: true,
+      details: { isConnectionExpensive: false } });
+    return () => {};
+  });
   AppState.currentState = 'active';
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   driver = await memoryDriver();
@@ -66,7 +79,8 @@ function dependencies() {
   const deps = {
     driver, clock, ids, http, secretBox, servers,
     random: fakeRandom(...Array.from({ length: 20 }, () => 0.5)),
-    fileSystem: fakeFileSystem(), WebSocketImpl: socket.WebSocketImpl, online: true,
+    fileSystem: fakeFileSystem(), logFiles: fakeLogFiles(), documentDirectory: 'file:///fake/documents/',
+    perfOutput: jest.fn(), WebSocketImpl: socket.WebSocketImpl, online: true,
   } satisfies AppDependencies;
   return { deps, http, secretBox, socket, kv: new Kv(driver), factory: rowFactories(clock, ids) };
 }

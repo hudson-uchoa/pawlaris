@@ -16,7 +16,11 @@ export function AppProvider({ runtime, children }: { runtime: AppRuntime; childr
 }
 
 export function useApp(): AppContext {
-  const app = useContext(Context);
+  const app = useOptionalApp();
   if (app === null) throw new Error('useApp requires an AppProvider');
   return app;
+}
+
+export function useOptionalApp(): AppContext | null {
+  return useContext(Context);
 }

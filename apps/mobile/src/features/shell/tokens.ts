@@ -9,4 +9,6 @@ export const shell = {
   tabIconSize: icon.large,
   tabStarSize: spacing.xxs,
   tabIconGap: spacing.xxs,
+  skeletonHeight: 64,
+  skeletonCount: 5,
 } as const;
