@@ -260,6 +260,32 @@ test('bootstrap disposed before paint never starts sync or lifecycle listeners',
   expect(AppState.addEventListener).not.toHaveBeenCalled();
 });
 
+test('SE-3 runtime lifecycle wipes previous data and the asset directory before adopting another user', async () => {
+  await seedSession();
+  const pet = c.factory.pets({ revision: null });
+  c.replica.upsert('pets', pet, { pending: true, deleted: false, pullGen: 0 });
+  c.outbox.insert(c.factory.outbox({ userId: wireSession('primary').user.id, entityId: pet.id }));
+  c.kv.set('device_id', '00000000-0000-4000-8000-000000000090');
+  await c.secretBox.set('session_tokens.reserve', JSON.stringify(wireSession('reserve')));
+  runtime = createAppRuntime(c.deps);
+  const next = { ...wireSession('primary', 'different'), user: {
+    ...wireSession('primary').user, id: '00000000-0000-4000-8000-000000000099', email: 'other@example.invalid',
+  } };
+  const confirmDiscard = jest.fn(async () => true);
+  expect(await runtime.lifecycle.onLogin(next, { confirmDiscard })).toBe(true);
+  await flush();
+  expect(confirmDiscard).toHaveBeenCalledWith(1);
+  expect(c.fileSystem.removed).toEqual([`${c.deps.documentDirectory}assets`]);
+  expect(c.outbox.count()).toBe(0);
+  expect(c.driver.all('SELECT * FROM replica')).toEqual([]);
+  expect(runtime.sessionUser()).toEqual(next.user);
+  expect(runtime.store.getState().pets).toEqual({});
+  expect(c.secretBox.snapshot()['session_tokens.reserve']).toBeUndefined();
+  expect(await runtime.session.accessToken('primary')).toBe(next.access_token);
+  expect(c.kv.get('device_id')).toBe('00000000-0000-4000-8000-000000000090');
+  expect(c.http.requests).toHaveLength(0);
+});
+
 test('AppProvider exposes the runtime and follows system theme without replacing it', async () => {
   await seedSession();
   const created = createAppRuntime(c.deps);

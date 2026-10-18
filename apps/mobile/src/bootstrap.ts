@@ -2,6 +2,7 @@ import type { AuthUser } from '@pawlaris/shared';
 import { AppState } from 'react-native';
 import { createApi } from './api/client';
 import { createAssetFiles, type AssetFiles } from './assets/files';
+import { createLifecycle, type Lifecycle } from './auth/lifecycle';
 import { expoSecretBox, type SecretBox } from './auth/secretBox';
 import { createSession, type Session } from './auth/session';
 import { readServers, type Servers } from './config/servers';
@@ -47,6 +48,7 @@ export interface AppRuntime {
   store: ReplicaStore;
   engine: Engine;
   session: Session;
+  lifecycle: Lifecycle;
   events: SyncEvents;
   clock: Clock;
   marker: StartupMarker;
@@ -108,10 +110,16 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     },
   });
   const { engine } = wiring;
+  const lifecycle = createLifecycle({ ...deps, store, session, api,
+    activeServer: serverSelect.current, kick: (reason) => engine.kick(reason),
+    removeAssetFiles: () => deps.fileSystem.remove(`${documentDirectory.replace(/\/+$/, '')}/assets`),
+    // No reminders or location tracking exist until P5-7 and P6-2.
+    cancelNotifications: async () => {}, stopTracking: async () => {},
+  });
   let painted = false;
   let disposed = false;
   return {
-    db: driver, store, engine, session, events, clock, marker, assetFiles, logger, sessionUser,
+    db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;
