@@ -100,6 +100,23 @@ test('R5.1 a pending login keeps the form visible and makes only the submit butt
   expect(screen.getByTestId('login-submit')).not.toBeBusy();
 });
 
+test('R1.5 missing or invalid Retry-After falls back to one minute and re-enables submission', async () => {
+  const c = await scene();
+  const invalidHeaders: Record<string, string>[] = [
+    {}, { 'Retry-After': 'invalid' }, { 'Retry-After': '-1' }, { 'Retry-After': '' },
+  ];
+  for (const headers of invalidHeaders) {
+    c.http.enqueue({ ...response(429), headers });
+    await submit();
+    expect(screen.getByRole('alert')).toHaveTextContent(strings.auth.rateLimited(1));
+    expect(screen.getByTestId('login-submit')).not.toBeBusy();
+    expect(screen.getByTestId('login-submit')).not.toBeDisabled();
+  }
+  expect(c.http.requests).toHaveLength(invalidHeaders.length);
+  expect(c.secretBox.snapshot()).toEqual({});
+  expect(c.kick).not.toHaveBeenCalled();
+});
+
 test('SE-2 first login stores its session and kicks the engine before the first pull completes', async () => {
   const c = await scene();
   const wire = wireSession('primary', 'login');

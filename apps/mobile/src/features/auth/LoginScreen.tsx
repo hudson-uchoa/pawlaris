@@ -75,8 +75,9 @@ export function LoginScreen({ services, active, online = true, onLayout, onRedee
       } else if (result.status === 429) {
         const header = Object.entries(result.headers).find(([name]) => name.toLowerCase() === 'retry-after')?.[1];
         const seconds = Number(header);
-        if (!Number.isFinite(seconds) || seconds < 0) throw new Error('Login Retry-After must contain non-negative seconds');
-        setError(strings.auth.rateLimited(Math.ceil(seconds / 60)));
+        const minutes = header !== undefined && header.trim() !== '' && Number.isFinite(seconds) && seconds >= 0
+          ? Math.ceil(seconds / 60) : 1;
+        setError(strings.auth.rateLimited(minutes));
       }
     } finally {
       running.current = false;
