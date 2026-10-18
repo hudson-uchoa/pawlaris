@@ -129,6 +129,28 @@ test('R5.1 startup without session renders the login placeholder without HTTP', 
   expect(c.socket.instances).toHaveLength(0);
 });
 
+test('P4-4 R1.5 offline login stays enabled and shows the network error', async () => {
+  jest.mocked(NetInfo.addEventListener).mockImplementation((listener) => {
+    listener({ type: NetInfoStateType.other, isConnected: false, isInternetReachable: false,
+      details: { isConnectionExpensive: false } });
+    return () => {};
+  });
+  const c = dependencies();
+  await renderShell(c.deps);
+  await fireEvent(screen.getByTestId('login-placeholder'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 720 } },
+  });
+  expect(NetInfo.addEventListener).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('login-submit')).not.toBeDisabled();
+  c.http.enqueue(new Error('Simulated offline transport'));
+  await fireEvent.changeText(screen.getByTestId('login-email'), wireSession('primary').user.email);
+  await fireEvent.changeText(screen.getByTestId('login-password'), 'test-only-password');
+  await fireEvent.press(screen.getByTestId('login-submit'));
+  expect(c.http.requests).toHaveLength(1);
+  expect(c.http.requests[0]).toMatchObject({ method: 'POST', url: `${servers.primary}/auth/login` });
+  expect(screen.getByRole('alert')).toHaveTextContent(strings.auth.networkError);
+});
+
 test('P4-4 login layout hides the splash once and invite navigation returns on back', async () => {
   const c = dependencies();
   await renderShell(c.deps);

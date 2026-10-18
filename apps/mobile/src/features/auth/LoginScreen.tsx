@@ -17,7 +17,7 @@ import type { AuthScreenProps } from './types';
 
 export type LoginScreenProps = AuthScreenProps & { onRedeem(): void };
 
-export function LoginScreen({ services, active, online = true, onLayout, onRedeem }: LoginScreenProps): ReactElement {
+export function LoginScreen({ services, active, onLayout, onRedeem }: LoginScreenProps): ReactElement {
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { width } = useWindowDimensions();
@@ -59,7 +59,7 @@ export function LoginScreen({ services, active, online = true, onLayout, onRedee
   }, []);
 
   async function submit(): Promise<void> {
-    if (running.current || !online) return;
+    if (running.current) return;
     running.current = true;
     setPending(true);
     setError(null);
@@ -109,7 +109,7 @@ export function LoginScreen({ services, active, online = true, onLayout, onRedee
             value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none"
             autoCorrect={false} autoComplete="current-password" />
           <Button testID="login-submit" label={strings.auth.login} accessibilityLabel={strings.auth.login}
-            onPress={() => { void submit(); }} loading={pending} disabled={!online} active={active} />
+            onPress={() => { void submit(); }} loading={pending} active={active} />
           {error !== null && <Text color="danger" accessibilityRole="alert">{error}</Text>}
           <PressableScale testID="login-to-redeem" accessibilityRole="link" accessibilityLabel={strings.auth.toRedeem}
             onPress={onRedeem} disabled={pending} active={active} style={{ alignItems: 'center', justifyContent: 'center' }}>

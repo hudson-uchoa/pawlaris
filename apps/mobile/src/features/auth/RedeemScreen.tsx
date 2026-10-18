@@ -16,7 +16,7 @@ import type { AuthScreenProps } from './types';
 
 type FieldErrors = { code?: string; name?: string; email?: string; password?: string };
 
-export function RedeemScreen({ services, active, online = true, onLayout }: AuthScreenProps): ReactElement {
+export function RedeemScreen({ services, active, onLayout }: AuthScreenProps): ReactElement {
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { width, height } = useWindowDimensions();
@@ -55,7 +55,7 @@ export function RedeemScreen({ services, active, online = true, onLayout }: Auth
   }, []);
 
   async function submit(): Promise<void> {
-    if (running.current || !online) return;
+    if (running.current) return;
     const errors: FieldErrors = {};
     if (code.length !== 10) errors.code = strings.validation.fallback;
     const nameLength = [...name].length;
@@ -119,7 +119,7 @@ export function RedeemScreen({ services, active, online = true, onLayout }: Auth
           autoCapitalize="none" autoCorrect={false} autoComplete="new-password"
           {...(fieldErrors.password === undefined ? {} : { error: fieldErrors.password })} />
         <Button testID="redeem-submit" label={strings.auth.redeem} accessibilityLabel={strings.auth.redeem}
-          onPress={() => { void submit(); }} loading={pending} disabled={!online} active={active} />
+          onPress={() => { void submit(); }} loading={pending} active={active} />
         {error !== null && <Text color="danger" accessibilityRole="alert">{error}</Text>}
       </View>
     </ScrollView>
