@@ -1241,3 +1241,34 @@ At most two files survive, 512 KiB in all. The export is the archive and
 then the active file, oldest first. Callers pass ids and codes, never row
 contents, tokens, passwords or response bodies. The performance marker
 keeps its own console line.
+
+## Q-41 — P4-4 — What copy should confirm a different-user login?
+**Asked:** 2026-10-18
+**Where:** spec/08-tasks.md P4-4 Tests; spec/10-client-sync.md §8.1;
+spec/02-spec.md R1.11; spec/09-screens.md §2, §7 and §10;
+spec/06-ux-motion-spec.md §7;
+apps/mobile/src/auth/lifecycle.ts
+**Problem:** The lifecycle requires confirmation before a different user
+discards the previous user's non-empty outbox. P4-4 requires a screen
+test for that confirmation, but no section specifies its dialog copy.
+The only supplied discard confirmation is for logout in `09` §7:
+"N alterações ainda não foram enviadas e serão perdidas. Sair mesmo assim?"
+Its final question describes logout, not entering another account.
+The accepted Sheet also requires an accessibility label, and the
+confirmation needs an affirmative action. The session requires verbatim
+spec copy and a question for missing copy or accessibility decisions.
+**I would assume:** Use a Sheet titled "Entrar com outra conta?", also
+its accessibility label. Its body is "N alterações ainda não foram
+enviadas e serão perdidas." with the actual outbox count substituted.
+The affirmative button reads "Entrar" and the refusal button reads
+"Cancelar", with matching accessibility labels. The Sheet retains
+`09` §10's standard "Fechar" dismissal; cancellation, close, back,
+scrim and drag all refuse adoption and preserve the previous state.
+Only an affirmative action resolves `confirmDiscard(count)` to true
+for the accepted lifecycle's wipe, adopt and login kick sequence.
+Store the approved text in `src/i18n/strings.ts`; no alternative
+authentication or wipe implementation is needed.
+**Blocking:** yes (P4-4 Stage A stopped before code or test changes).
+The confirmation assertions need the orchestrator's copy decision.
+The working tree contains only this question and COMMIT_MSG.txt.
+No dependency, task checkbox, existing assertion or review has changed.
