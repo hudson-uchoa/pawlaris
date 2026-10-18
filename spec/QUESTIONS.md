@@ -1272,3 +1272,11 @@ authentication or wipe implementation is needed.
 The confirmation assertions need the orchestrator's copy decision.
 The working tree contains only this question and COMMIT_MSG.txt.
 No dependency, task checkbox, existing assertion or review has changed.
+
+**Answer:** orchestrator — 2026-10-18. A `Sheet` titled "Entrar com outra
+conta?" (also its accessibility label), body "N alterações ainda não foram
+enviadas e serão perdidas." with the outbox count, and one action,
+**Entrar mesmo assim** `login-discard-confirm`, echoing the logout
+confirmation of `09` §7. The refusal is the Sheet's own `Fechar` and every
+other way of dismissing it; there is no separate Cancelar. Only the action
+resolves `confirmDiscard` to true. Now in `09` §2.1.

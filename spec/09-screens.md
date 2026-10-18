@@ -78,6 +78,11 @@ layout of the dashboard.
   render skeletons *(R6.1)*.
 - When the session expired with a non-empty outbox, a note sits above the
   form: "Você tem N alterações esperando para sincronizar. Entre para enviá-las."
+- Logging in as a different user while the outbox is non-empty *(`10` §8.1)*
+  first opens a `Sheet` "Entrar com outra conta?": "N alterações ainda não
+  foram enviadas e serão perdidas." with one action, **Entrar mesmo assim**
+  `login-discard-confirm`. Dismissing the sheet in any way refuses: nothing
+  is adopted and the phone stays as it was *(Q-41)*.
 - When the app moved to the reserve server and has no session there *(`11`
   §4.5)*, the note is: "O servidor principal está fora do ar. Entre de novo
   para usar o servidor reserva — nada foi perdido." `login-reserve-note`. It
