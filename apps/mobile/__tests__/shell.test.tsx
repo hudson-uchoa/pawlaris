@@ -1,5 +1,5 @@
 import { useRef, type ReactElement } from 'react';
-import { ExpoRoot } from 'expo-router';
+import { ExpoRoot, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { AppState, Platform } from 'react-native';
@@ -7,6 +7,7 @@ import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
 import RootLayout from '../app/_layout';
 import AuthLayout from '../app/(auth)/_layout';
 import Login from '../app/(auth)/login';
+import Redeem from '../app/(auth)/redeem';
 import TabsLayout from '../app/(tabs)/_layout';
 import Dashboard from '../app/(tabs)/index';
 import Pets from '../app/(tabs)/pets';
@@ -14,7 +15,7 @@ import Walks from '../app/(tabs)/walks';
 import Settings from '../app/(tabs)/settings';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
-import { wireSession, servers, epoch } from '../src/auth/__tests__/support';
+import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
 import { Kv, serverKey } from '../src/db/kv';
 import { openDatabase } from '../src/db/open';
 import { OutboxRepo } from '../src/db/outboxRepo';
@@ -100,6 +101,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './_layout.tsx': { default: () => <RootLayout dependencies={deps} /> },
     './(auth)/_layout.tsx': { default: AuthLayout },
     './(auth)/login.tsx': { default: Login },
+    './(auth)/redeem.tsx': { default: Redeem },
     './(tabs)/_layout.tsx': { default: TabsLayout },
     './(tabs)/index.tsx': { default: DashboardRoute },
     './(tabs)/pets.tsx': { default: Pets },
@@ -125,6 +127,52 @@ test('R5.1 startup without session renders the login placeholder without HTTP', 
   expect(screen.queryByTestId('dashboard-placeholder')).toBeNull();
   expect(c.http.requests).toHaveLength(0);
   expect(c.socket.instances).toHaveLength(0);
+});
+
+test('P4-4 login layout hides the splash once and invite navigation returns on back', async () => {
+  const c = dependencies();
+  await renderShell(c.deps);
+  expect(screen.getByTestId('login-submit')).toBeOnTheScreen();
+  expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
+  const layout = { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 720 } } };
+  await fireEvent(screen.getByTestId('login-placeholder'), 'layout', layout);
+  await fireEvent(screen.getByTestId('login-placeholder'), 'layout', layout);
+  expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
+  expect(c.http.requests).toHaveLength(0);
+  await fireEvent.press(screen.getByTestId('login-to-redeem'));
+  expect(screen.getByTestId('redeem-submit')).toBeOnTheScreen();
+  expect(c.http.requests).toHaveLength(0);
+  await act(() => { router.back(); });
+  expect(screen.getByTestId('login-submit')).toBeOnTheScreen();
+  expect(c.http.requests).toHaveLength(0);
+});
+
+test.each(['login', 'redeem'] as const)('P4-4 %s route adopts the session and opens skeleton tabs during arrival', async (route) => {
+  const c = dependencies();
+  await renderShell(c.deps);
+  await fireEvent(screen.getByTestId('login-placeholder'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 720 } },
+  });
+  if (route === 'redeem') {
+    await fireEvent.press(screen.getByTestId('login-to-redeem'));
+    await fireEvent.changeText(screen.getByTestId('redeem-code'), '7K2M9QX4TB');
+    await fireEvent.changeText(screen.getByTestId('redeem-name'), 'Test member');
+  }
+  const wire = wireSession('primary', route);
+  c.http.enqueue(response(200, wire), () => new Promise(() => {}));
+  await fireEvent.changeText(screen.getByTestId(`${route}-email`), wire.user.email);
+  await fireEvent.changeText(screen.getByTestId(`${route}-password`), 'test-only-password');
+  await fireEvent.press(screen.getByTestId(`${route}-submit`));
+  expect(JSON.parse(c.kv.get('session_user') ?? 'null')).toEqual(wire.user);
+  expect(screen.getByTestId('dashboard-placeholder')).toBeOnTheScreen();
+  expect(screen.queryByTestId('login-submit')).toBeNull();
+  expect(screen.queryByTestId('redeem-submit')).toBeNull();
+  expect(c.http.requests.map(({ url }) => url)).toEqual([
+    `${servers.primary}/auth/${route}`, `${servers.primary}/sync?since=0&limit=1`,
+  ]);
+  for (const label of Object.values(strings.tabs)) {
+    expect(screen.getByRole('tab', { name: label })).toBeOnTheScreen();
+  }
 });
 
 test('R5.1 startup with a session paints the replica and four tabs before any HTTP', async () => {
