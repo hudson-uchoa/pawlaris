@@ -230,6 +230,7 @@ test('RS-9 same-user reserve login continues real arrival and keeps primary toke
   await fireEvent.changeText(screen.getByTestId('login-password'), credentials.password);
   await fireEvent.press(screen.getByTestId('login-submit'));
   await act(async () => { await c.kick.mock.results[0]?.value; });
+  expect(c.http.requests[0]?.body).toEqual({ email: c.sessionUser.email, password: credentials.password });
   expect(c.secretBox.snapshot()['session_tokens.primary']).toBe(primaryTokens);
   expect(await c.session.accessToken('reserve')).toBe(wire.access_token);
   expect(c.kv.get('signed_out.reserve')).toBeNull();
