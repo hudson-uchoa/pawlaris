@@ -6,7 +6,7 @@ import { replicaContext, type ReplicaContext } from '../../../replica/__tests__/
 import { ReplicaProvider } from '../../../replica/useReplica';
 import { createSyncEvents } from '../../../sync/events';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
-import { ToastProvider } from '../../../ui/primitives/Toast';
+import { ToastHost, ToastProvider } from '../../../ui/primitives/Toast';
 import { SyncToastHost } from '../SyncToastHost';
 
 const initialAppState = AppState.currentState;
@@ -57,12 +57,29 @@ test('R3.21 completion_lost politely announces the winner in family time and lea
   expect(screen.getByRole('button', { name: strings.dismiss })).toBeOnTheScreen();
 });
 
-test('OB-2 mutation_rejected shows the standard toast and unsubscribes on unmount', async () => {
+test('OB-2 mutation_rejected shows the standard toast', async () => {
   const c = await scene();
   const entry = { ...c.factory.outbox(), seq: 1, attempts: 0, serverErrors: 0, nextRetryAt: 0, lastError: null };
   await act(() => { c.events.emit('mutation_rejected', { entry }); });
   expect(screen.getByRole('alert')).toHaveTextContent(strings.toasts.mutationRejected);
-  await c.view.unmount();
-  await act(() => { c.events.emit('mutation_rejected', { entry }); });
-  expect(screen.queryByRole('alert')).toBeNull();
 });
+
+test.each(['completion_lost', 'mutation_rejected'] as const)(
+  'unmounting SyncToastHost unsubscribes from %s while the provider remains mounted', async (event) => {
+    const c = await scene();
+    await c.view.rerender(<ReplicaProvider store={c.store}>
+      <ToastProvider dismissLabel={strings.dismiss}><ToastHost active /></ToastProvider>
+    </ReplicaProvider>);
+    expect(screen.queryByRole('alert')).toBeNull();
+
+    await act(() => {
+      if (event === 'completion_lost') {
+        c.events.emit(event, { winner: c.winner });
+      } else {
+        const entry = { ...c.factory.outbox(), seq: 1, attempts: 0, serverErrors: 0, nextRetryAt: 0, lastError: null };
+        c.events.emit(event, { entry });
+      }
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+  },
+);
