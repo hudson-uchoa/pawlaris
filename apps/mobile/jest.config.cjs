@@ -25,6 +25,7 @@ module.exports = {
     './src/sync/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/assets/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/walks/': { statements: 80, branches: 80, functions: 80, lines: 80 },
+    './src/features/': { statements: 60, branches: 60, functions: 60, lines: 60 },
   },
   transformIgnorePatterns: [
     'node_modules/(?!(.pnpm|.pacquet|(jest-)?react-native|@react-native(-community)?|@react-navigation|standard-navigation|@shopify/react-native-skia|expo(nent)?|@expo(nent)?/.*|lucide-react-native))',
