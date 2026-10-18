@@ -562,6 +562,11 @@ force-stopped app receives nothing). The visible message does not depend on it.
 
 ## 10. Copy
 
+Field labels. A form's **Fields** list names each field in lower case; its
+visible label, also its accessibility label, is that name with a capital
+initial and pt-BR spelling: `email` → **E-mail**, `senha` → **Senha**,
+`código` → **Código**.
+
 Formatting helpers in `apps/mobile/src/i18n/format.ts`:
 
 | Thing | Format | Example |
