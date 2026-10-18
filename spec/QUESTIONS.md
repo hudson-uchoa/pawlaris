@@ -1206,3 +1206,28 @@ and §10" was too narrow: copy may come verbatim from any section of the
 spec that gives it, here `10` §8 and `11` §4.6 for the indicator and the
 screen names of `09` for the tabs. The dismiss button of a toast and of a
 sheet reads `Fechar`, also its accessibility label, now in `09` §10.
+
+## Q-40 — P4-3 — What are the mobile log rotation and export rules?
+**Asked:** 2026-10-18
+**Where:** spec/08-tasks.md P4-3; spec/05-architecture.md §5 and §7;
+spec/09-screens.md §7; spec/11-reserve-server.md §4.3;
+spec/02-spec.md R7.3; apps/mobile/src/platform/logger.ts
+**Problem:** The spec requires a 256 KB rotating mobile log and a text
+export, without defining whether the limit applies to the active file
+or all retained files, how many archives survive, or the line format.
+Section 11 §4.3 requires a rejected reseed row's entity and id to be
+logged without its content. R7.3 forbids credentials in the export.
+The logger tests need a definite rotation boundary and export policy.
+The earlier technical question about this policy remains unanswered.
+**I would assume:** Use UTF-8 JSON lines with an injected-clock UTC
+timestamp and an event field. Interpret the limit as 256 KiB
+(262144 bytes) per file. Before an append would exceed that limit,
+replace one previous archive with the active file and start a new
+active file. Export the archive followed by the active file, oldest
+first. Bootstrap logs a fixed rejected-row event with its entity and
+UUID only; it never passes row contents, credentials or error bodies.
+The performance marker retains its specified console output.
+**Blocking:** yes (the logger slice only). No implementation, tests,
+dependencies, task checkbox or accepted slice has changed. The working
+tree contains this question and COMMIT_MSG.txt. The orchestrator must
+confirm or replace the retention and format policy before this slice.
