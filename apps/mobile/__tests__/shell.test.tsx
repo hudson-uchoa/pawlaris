@@ -2,7 +2,7 @@ import { useRef, type ReactElement } from 'react';
 import { ExpoRoot } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import RootLayout from '../app/_layout';
 import AuthLayout from '../app/(auth)/_layout';
 import Login from '../app/(auth)/login';
@@ -41,6 +41,8 @@ let driver: MemoryDriver;
 
 beforeEach(async () => {
   jest.clearAllMocks();
+  // Pawlaris targets Android; the navigator uses button semantics on iOS.
+  jest.replaceProperty(Platform, 'OS', 'android');
   jest.useFakeTimers({ now: epoch });
   AppState.currentState = 'active';
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
