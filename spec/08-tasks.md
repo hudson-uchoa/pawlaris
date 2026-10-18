@@ -979,7 +979,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   ignitions, the constellation line and the shooting stars; the frame stats
   from `adb shell dumpsys gfxinfo app.pawlaris` taken right after.
 
-- [~] **P4-3 — App shell**
+- [x] **P4-3 — App shell**
   **Depends:** P3-10, P4-2 · **Read:** `09` §1 (startup sequence), §3.1 (the indicator's label) · `10` §8 · `11` §4.6 · `06` §3, §4.4 (SyncIndicator), §4.7 (Sheet, Toast), §5 · `05` §7 (the phone's log)
   **Build:** `app/_layout.tsx` performing the startup sequence of `09` §1 and
   providing db, store, engine, session and theme through context; `(auth)` and
