@@ -13,5 +13,6 @@ export interface AuthScreenServices {
 export type AuthScreenProps = {
   services: AuthScreenServices;
   active: boolean;
+  online?: boolean;
   onLayout?: () => void;
 };

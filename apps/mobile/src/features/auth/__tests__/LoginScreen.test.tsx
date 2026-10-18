@@ -161,7 +161,7 @@ test.each(['confirm', 'close'] as const)('SE-3 different-user login waits for th
   await submit(wire.user.email);
   const sheet = screen.getByRole('dialog', { name: strings.auth.discardTitle });
   expect(within(sheet).getByText(strings.auth.discardTitle)).toBeOnTheScreen();
-  expect(sheet).toHaveTextContent(strings.auth.discardBody(2));
+  expect(within(sheet).getByText(strings.auth.discardBody(2))).toBeOnTheScreen();
   expect(within(sheet).getAllByRole('button')).toHaveLength(2);
   expect(screen.getByTestId('login-discard-confirm')).toHaveTextContent(strings.auth.discardConfirm);
   expect(c.kv.get('session_user')).toBe(before.user);
