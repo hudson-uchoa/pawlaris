@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { AppState, type AppStateStatus } from 'react-native';
 import { getAnimatedStyle } from 'react-native-reanimated';
-import { hold, spring } from '../../motion/tokens';
+import { duration, hold, spring } from '../../motion/tokens';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { Button } from '../Button';
 import { ToastHost, ToastProvider, useToast } from '../Toast';
@@ -114,6 +114,21 @@ describe.each([false, true])('P4-3 Toast motion, Reduce Motion %s', (reduced) =>
     expect(screen.getByRole('alert')).toHaveTextContent(expected);
     await act(async () => { await jest.advanceTimersByTimeAsync(hold.toast / 2 + 250); });
     expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  test('showing the same message after 3000 ms gives it a fresh hold.toast lifetime', async () => {
+    await scene();
+    await settleEntry();
+    await act(async () => { await jest.advanceTimersByTimeAsync(3000); });
+    await fireEvent.press(screen.getByRole('button', { name: 'Show first' }));
+    await settleEntry();
+    await act(async () => { await jest.advanceTimersByTimeAsync(3900); });
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('alert')).toHaveTextContent('First notice');
+    const exitDuration = reduced ? duration.reducedFade : duration.quick;
+    await act(async () => { await jest.advanceTimersByTimeAsync(hold.toast - 3900 + exitDuration + 32); });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(screen.queryByTestId('toast')).toBeNull();
   });
 });
 
