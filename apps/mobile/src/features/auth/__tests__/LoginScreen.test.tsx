@@ -68,6 +68,7 @@ test('R7.7 login shows the accessible Insurge signature without a press action',
 test.each([
   { code: 'R1.5 wrong credentials', reply: response(401, { detail: 'Never display this detail.' }), message: strings.auth.invalidCredentials },
   { code: 'R1.5 Retry-After seconds', reply: { ...response(429), headers: { 'Retry-After': '120' } }, message: strings.auth.rateLimited(2) },
+  { code: 'R1.5 Retry-After rounds up', reply: { ...response(429), headers: { 'Retry-After': '61' } }, message: strings.auth.rateLimited(2) },
   { code: 'R5.1 unavailable network', reply: new Error('Simulated offline transport'), message: strings.auth.networkError },
 ])('$code shows the specified error under the visible form', async ({ reply, message }) => {
   const c = await scene();
