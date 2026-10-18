@@ -9,6 +9,8 @@ export const spring = {
 export const pressScale = 0.97;
 export const sheetDismissFraction = 0.3;
 export const sheetFlingVelocity = 1000;
+// Spec 06 section 4.7: the toast rises and sinks by this distance.
+export const toastTravel = 16;
 
 export const duration = {
   micro: 120,
