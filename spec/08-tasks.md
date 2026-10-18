@@ -1001,7 +1001,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   Reduce Motion.
   **Gate:** `pnpm -C apps/mobile exec jest __tests__/shell.test.tsx src/features/shell src/ui/primitives`
 
-- [~] **P4-4 — Login and redeem**
+- [x] **P4-4 — Login and redeem**
   **Depends:** P4-3, P2-7 · **Read:** `09` §2 · `10` §8.1 · `11` §4.5
   **Build:** the two screens in `features/auth/`, wired to `auth/session` and
   `auth/lifecycle`, over a full-screen `Starfield`, with the Insurge signature
