@@ -15,6 +15,7 @@ import { useReplica } from '../replica/useReplica';
 import { fakeClock } from '../testing/fakeClock';
 import { fakeFileSystem } from '../testing/fakeFileSystem';
 import { fakeHttp } from '../testing/fakeHttp';
+import { fakeLogFiles } from '../testing/fakeLogFiles';
 import { fakeRandom } from '../testing/fakeRandom';
 import { fakeSecretBox } from '../testing/fakeSecretBox';
 import { fakeWebSocket } from '../testing/fakeWebSocket';
@@ -47,12 +48,13 @@ async function context() {
   const socket = fakeWebSocket();
   const perfOutput = jest.fn();
   const fileSystem = fakeFileSystem();
+  const logFiles = fakeLogFiles();
   const deps = {
     driver, clock, ids, http, secretBox, servers, perfOutput, online: true,
     random: fakeRandom(...Array.from({ length: 20 }, () => 0.5)),
-    fileSystem, documentDirectory: 'file:///fake/documents/', WebSocketImpl: socket.WebSocketImpl,
+    fileSystem, logFiles, documentDirectory: 'file:///fake/documents/', WebSocketImpl: socket.WebSocketImpl,
   } satisfies AppDependencies;
-  return { deps, driver, clock, http, secretBox, socket, perfOutput, fileSystem,
+  return { deps, driver, clock, http, secretBox, socket, perfOutput, fileSystem, logFiles,
     factory: rowFactories(clock, ids), kv: new Kv(driver),
     replica: new ReplicaRepo(driver), outbox: new OutboxRepo(driver),
   };
@@ -333,4 +335,30 @@ test('AF-5 bootstrap prefetches a pet avatar after the real pull', async () => {
     uri: `${c.deps.documentDirectory}assets/${asset.id}.jpg`,
   });
   expect(new AssetRepo(c.driver).get(asset.id)?.state).toBe('downloaded');
+});
+
+test('RS-2 rejected reseed rows reach the file logger with identifiers only', async () => {
+  await seedSession('primary', false);
+  const pet = c.factory.pets({ name: 'Excluded row content', revision: 1 });
+  c.replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const read = jest.spyOn(c.logFiles, 'read');
+  runtime = createAppRuntime(c.deps);
+  await flush();
+  expect(read).not.toHaveBeenCalled();
+  expect(c.http.requests).toHaveLength(0);
+  c.http.enqueue(page(), response(422, { detail: 'Excluded response body' }), page(), page());
+  runtime.afterFirstPaint();
+  await flush();
+  const exported = await runtime.logger.exportText();
+  expect(JSON.parse(exported) as unknown).toEqual({
+    ts: new Date(c.clock.now()).toISOString(), level: 'warn', event: 'reseed_row_rejected',
+    entity: 'pets', id: pet.id,
+  });
+  expect(exported).not.toContain(pet.name);
+  expect(exported).not.toContain('Excluded response body');
+  expect(exported).not.toContain(wireSession('primary').access_token);
+  expect(exported).not.toContain(wireSession('primary').refresh_token);
+  expect(warn).not.toHaveBeenCalled();
+  expect(runtime.engine.state.getState().status).toBe('synced');
 });

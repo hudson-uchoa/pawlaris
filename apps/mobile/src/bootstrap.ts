@@ -14,6 +14,7 @@ import { expoFileSystem, getDocumentDirectory } from './platform/expoFileSystem'
 import type { FileSystem } from './platform/fileSystem';
 import { fetchHttp, type Http } from './platform/http';
 import { cryptoIds, type IdGen } from './platform/idGen';
+import { createExpoLogFiles, createLogger, type LogFiles, type Logger } from './platform/logger';
 import { systemRandom, type Random } from './platform/random';
 import { createReplicaApply } from './replica/apply';
 import { hydrate } from './replica/hydrate';
@@ -38,6 +39,7 @@ export interface AppDependencies {
   online: boolean;
   perfOutput?: (message: string) => void;
   documentDirectory?: string;
+  logFiles?: LogFiles;
 }
 
 export interface AppRuntime {
@@ -49,6 +51,7 @@ export interface AppRuntime {
   clock: Clock;
   marker: StartupMarker;
   assetFiles: AssetFiles;
+  logger: Logger;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
   dispose(): void;
@@ -69,17 +72,19 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const api = createApi({ ...deps, session, serverSelect });
   const events = createSyncEvents();
   const marker = createStartupMarker(deps.perfOutput ?? console.log);
+  const documentDirectory = deps.documentDirectory ?? getDocumentDirectory();
+  const logger = createLogger(clock, deps.logFiles ?? createExpoLogFiles(documentDirectory));
   if (sessionUser() !== null && kv.get(serverKey('signed_out', serverSelect.current())) !== '1') {
     hydrate({ driver, store, clock });
   }
   const assetFiles = createAssetFiles({ ...deps, store, session,
-    documentDirectory: deps.documentDirectory ?? getDocumentDirectory(), activeServer: serverSelect.current,
+    documentDirectory, activeServer: serverSelect.current,
   });
   let outbox: Outbox | null = null;
   let outboxUser: string | null = null;
   const wiring = createSyncEngine({ ...deps, store, apply, api, session, serverSelect,
     deferListeners: true, uploads: assetFiles.uploads, prefetchAvatars: assetFiles.prefetchAvatars,
-    logRejectedRow: (entity, id) => { console.warn('Reseed row rejected', entity, id); },
+    logRejectedRow: (entity, id) => { void logger.write('reseed_row_rejected', { entity, id }, 'warn'); },
     outbox: {
       get lastFailure() { return outbox?.lastFailure ?? null; },
       async drain() {
@@ -106,7 +111,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   let painted = false;
   let disposed = false;
   return {
-    db: driver, store, engine, session, events, clock, marker, assetFiles, sessionUser,
+    db: driver, store, engine, session, events, clock, marker, assetFiles, logger, sessionUser,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;
