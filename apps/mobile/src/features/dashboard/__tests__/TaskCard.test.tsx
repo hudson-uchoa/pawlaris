@@ -9,6 +9,7 @@ import { strings } from '../../../i18n/strings';
 import type { HttpResponse } from '../../../platform/http';
 import { selectDayView } from '../../../replica/selectors';
 import { ReplicaProvider, useReplica } from '../../../replica/useReplica';
+import * as StarBurst from '../../../ui/cosmos/starBurst';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { duration } from '../../../ui/motion/tokens';
 import { ToastProvider } from '../../../ui/primitives/Toast';
@@ -252,6 +253,51 @@ describe('09 §3.3 TaskCard visual reference', () => {
 });
 
 describe('TaskCard', () => {
+  test('P5-14 R1/Q-52 per-pet completions seed distinct bursts with the occurrence key and pet id', async () => {
+    jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
+    const generated = jest.spyOn(StarBurst, 'generateStarBurst');
+    const c = await scene();
+    const second = c.seedPet({ name: 'Second pet' });
+    const pets = [c.pet, second];
+    const task = c.seedTask({ pet_ids: pets.map((pet) => pet.id), times_of_day: ['08:00'], completion_mode: 'per_pet' });
+    const key = `${c.date}T08:00`;
+    await paint(c, task, c.date, key);
+    const bursts: StarBurst.BurstParticle[][] = [];
+    for (const pet of pets) {
+      const id = petId(task, key, pet.id);
+      const expected = StarBurst.generateStarBurst(key + pet.id);
+      generated.mockClear();
+      await fireEvent.press(screen.getByTestId(id));
+      expect(screen.getByTestId(id)).toBeChecked();
+      expect(screen.getByTestId(`${id}-burst`, { includeHiddenElements: true })).toBeOnTheScreen();
+      expect(generated).toHaveBeenCalledTimes(1);
+      const actual = generated.mock.results[0]?.value as StarBurst.StarBurst | undefined;
+      expect(actual?.particles).toEqual(expected.particles);
+      if (actual === undefined) throw new Error('The burst particles were not generated');
+      bursts.push(actual.particles);
+    }
+    expect(bursts[0]).not.toEqual(bursts[1]);
+    expect(live(c)).toHaveLength(2);
+  });
+
+  test('P5-14 R1/Q-52 a together completion seeds its burst with the occurrence key', async () => {
+    jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
+    const generated = jest.spyOn(StarBurst, 'generateStarBurst');
+    const c = await scene();
+    const task = c.seedTask({ pet_ids: [c.pet.id], times_of_day: ['08:00'], completion_mode: 'together' });
+    const key = `${c.date}T08:00`;
+    await paint(c, task, c.date, key);
+    const id = checkId(task, key);
+    const expected = StarBurst.generateStarBurst(key);
+    generated.mockClear();
+    await fireEvent.press(screen.getByTestId(id));
+    expect(screen.getByTestId(id)).toBeChecked();
+    expect(screen.getByTestId(`${id}-burst`, { includeHiddenElements: true })).toBeOnTheScreen();
+    expect(generated).toHaveBeenCalledTimes(1);
+    expect(generated.mock.results).toEqual([{ type: 'return', value: expected }]);
+    expect(onlyCompletion(c).occurrence_key).toBe(key);
+  });
+
   test('R3.44 release without photo proof leaves no completion or outbox entry and keeps the star unlit', async () => {
     const c = await scene();
     const task = c.seedTask({ pet_ids: [c.pet.id], times_of_day: [], requires_photo: true });
