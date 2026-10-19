@@ -1488,3 +1488,12 @@ random fixture has been changed in this green session.
 **Blocking:** yes. Stop here with the partial implementation uncommitted;
 the owner or orchestrator must authorize the red-test correction before
 the requested all-green checks can be completed.
+**Answer (2026-10-19, orchestrator):** both are test defects, not spec
+gaps, and both may be fixed in the green commit. For the undo case,
+assert more, not less: inside the dialog, `getByText` the whole
+confirmation, `Desfazer? Feito por <name> às 07:12.`, built from the
+`undoBody` string with the other member's name, instead of the two
+exact `toHaveTextContent` calls. For the network-failure case, give the
+dashboard test context a fixed retry random value through `taskContext`
+to `syncContext`; production backoff and the fake source's strict
+exhaustion stay as they are. The spec is unchanged.
