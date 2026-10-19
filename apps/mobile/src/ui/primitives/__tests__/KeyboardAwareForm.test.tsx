@@ -1,6 +1,6 @@
-import type { ReactElement } from 'react';
+import { createElement, useImperativeHandle, type ReactElement, type Ref } from 'react';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
-import { TextInput, type KeyboardAvoidingViewProps } from 'react-native';
+import { TextInput, type KeyboardAvoidingViewProps, type ViewProps } from 'react-native';
 import { KeyboardAwareForm } from '../KeyboardAwareForm';
 import { Button } from '../Button';
 
@@ -16,7 +16,7 @@ const avoidingView = jest.requireMock<{
 }>('react-native/Libraries/Components/Keyboard/KeyboardAvoidingView').default;
 
 beforeEach(() => { jest.useFakeTimers({ now: 0 }); jest.clearAllMocks(); });
-afterEach(async () => { await cleanup(); jest.useRealTimers(); });
+afterEach(async () => { await cleanup(); jest.restoreAllMocks(); jest.useRealTimers(); });
 
 test('09 §1 the shared form enables built-in keyboard avoidance around its fields and primary action', async () => {
   await render(<KeyboardAwareForm keyboardVerticalOffset={24}>
@@ -47,4 +47,26 @@ test('09 §1 the shared form scrolls with handled keyboard taps and keeps its pr
   await fireEvent(screen.getByTestId('last-field'), 'focus');
   await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
   expect(save).toHaveBeenCalledTimes(1);
+});
+
+test('R3 / 09 §1 the shared form adds its measured window top to the supplied keyboard offset', async () => {
+  const measureInWindow = jest.fn((callback: (x: number, y: number, width: number, height: number) => void) => {
+    callback(0, 56, 400, 700);
+  });
+  function MeasuredView({ ref, ...props }: ViewProps & { ref?: Ref<{ measureInWindow: typeof measureInWindow }> }) {
+    useImperativeHandle(ref, () => ({ measureInWindow }));
+    return createElement('View', props);
+  }
+  const native = jest.requireActual<typeof import('react-native')>('react-native');
+  jest.spyOn(native, 'View', 'get').mockReturnValue(MeasuredView as unknown as typeof native.View);
+  const view = await render(<KeyboardAwareForm keyboardVerticalOffset={24}>
+    <TextInput accessibilityLabel="Name" />
+  </KeyboardAwareForm>);
+  expect(screen.getByTestId('keyboard-avoidance-probe')).toHaveProp('keyboardVerticalOffset', 24);
+  expect(measureInWindow).not.toHaveBeenCalled();
+  const container = view.root;
+  if (container === null) throw new Error('Missing form container');
+  await fireEvent(container, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 700 } } });
+  expect(measureInWindow).toHaveBeenCalledTimes(1);
+  expect(screen.getByTestId('keyboard-avoidance-probe')).toHaveProp('keyboardVerticalOffset', 24 + 56);
 });
