@@ -1362,3 +1362,22 @@ fallback is the same crossfade as Reduce Motion: `duration.reducedFade`
 (150 ms), timing, no spring. That covers a failed measure, a source no
 longer on screen, and Reduce Motion itself. One duration for one look.
 Now in `06` §4.6.
+
+## Q-46 — P4-9 — Where should the user's name and colour controls live?
+**Asked:** 2026-10-19
+**Where:** spec/09-screens.md §7; spec/11-reserve-server.md §5;
+spec/04-api-contract.md §3.
+**Problem:** Settings disables editing one's own name and colour on the
+reserve, but its screen descriptions do not place these controls. The
+six reserve-restricted routes include redeem, which belongs to the auth
+screen, and PATCH /me, whose documented body only lists display_name.
+The Red tests need a location for both profile controls without adding
+a redeem control to Settings or inventing a colour write contract.
+**I would assume:** Put the user's name and colour controls on Family.
+Test that these and the invite, role, remove and password controls are
+disabled on the reserve, and separately test availability for all six
+account actions, including redeem. Do not add a redeem row to Settings.
+The colour write contract must be settled before implementing that write;
+this Red step only defines the typed screen boundary and disabled state.
+**Blocking:** no for Red. The placement assumption is confined to
+apps/mobile/src/features/family/FamilyScreen.tsx.
