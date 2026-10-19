@@ -401,6 +401,9 @@ back       system back: overlay re-mounts at the header frames and animates to t
   finger-tracked interactive back; do not build one.
 - A failed measure (null or zero size) falls back to a crossfade instead of
   animating from garbage.
+- Every fallback — a failed measure, a source no longer on screen, Reduce
+  Motion — is the same crossfade: `duration.reducedFade`, timing, no spring
+  *(Q-45)*.
 
 ### 4.7 Screen transitions
 

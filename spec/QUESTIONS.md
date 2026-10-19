@@ -1357,3 +1357,8 @@ duration is not stated. The null-measure test needs an expected duration.
 (150 ms), with no spring. Confine this duration choice to the fallback
 branch in `apps/mobile/src/ui/motion/hero/` when it is implemented.
 **Blocking:** no. The Red tests use this duration assumption.
+**Answer (2026-10-19, the orchestrator):** as assumed. Every hero
+fallback is the same crossfade as Reduce Motion: `duration.reducedFade`
+(150 ms), timing, no spring. That covers a failed measure, a source no
+longer on screen, and Reduce Motion itself. One duration for one look.
+Now in `06` §4.6.
