@@ -94,8 +94,9 @@ Vocabulary used everywhere:
 ### 2.1 Profiles
 
 - **R2.1** Fields: `name` (required), `species` (`cat` | `dog`, required),
-  `sex` (`female` | `male` | `unknown`), `breed`, `color`, `birthdate`,
-  `microchip_id`, `notes`, avatar photo, `sort_order`.
+  `sex` (`female` | `male` | `unknown`), `breed`, `color` (the coat),
+  `identity_color`, `birthdate`, `microchip_id`, `notes`, avatar photo,
+  `sort_order`.
 - **R2.2** Pets are archived, never deleted. An archived pet disappears from the
   pets grid, from task occurrences and from health reminders — its events
   leave Próximos cuidados and schedule no notification *(ADR-035)* — and its
@@ -105,6 +106,11 @@ Vocabulary used everywhere:
   waits on the network.
 - **R2.4** Age is derived from `birthdate` and *today*; never stored. Format:
   `3 anos`, `1 ano e 4 meses`, `5 meses`, `12 dias`.
+- **R2.13** Breed and coat are chosen from lists that depend on the species
+  (`09` §4.2.1), each with **Outra…**, which takes free text. The stored value
+  is the list's key, or the typed text; a value that is not a key is shown as
+  typed. `identity_color` is one key of the identity palette (`06` §2) or
+  null, which means the pet's derived identity *(ADR-042)*.
 
 ### 2.2 Weight
 
@@ -129,6 +135,13 @@ Vocabulary used everywhere:
   time on the due date.
 - **R2.12** The timeline is reverse-chronological, grouped by month, rendered
   from the replica with no spinner.
+- **R2.14** The timeline also lists the pet's care done through tasks: every
+  live completion of a `vet` or `medication` task that covers the pet (its own
+  completion in `per_pet` mode, the task's completion in `together` mode),
+  with the stored title, who and when. It is computed on the phone from the
+  replica and edited only from the task. The profile offers **Agendar
+  tratamento**, which opens a new task for the pet in category `vet`, for
+  care that repeats *(ADR-042)*.
 
 ---
 

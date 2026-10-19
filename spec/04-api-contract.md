@@ -99,9 +99,9 @@ row has `revision` and `updated_at`; soft-deletable rows have `deleted_at`.
   "revision", "updated_at", "deleted_at" }
 
 // Pet
-{ "id", "name", "species", "sex", "breed", "color", "birthdate", "microchip_id",
-  "avatar_asset_id", "notes", "sort_order", "archived_at", "created_by",
-  "revision", "updated_at", "deleted_at" }
+{ "id", "name", "species", "sex", "breed", "color", "identity_color",
+  "birthdate", "microchip_id", "avatar_asset_id", "notes", "sort_order",
+  "archived_at", "created_by", "revision", "updated_at", "deleted_at" }
 
 // WeightEntry
 { "id", "pet_id", "weight_kg", "measured_at", "note", "created_by",
@@ -496,8 +496,10 @@ DELETE /health-events/{id}                       ⟳ -> HealthEvent
 
 ```jsonc
 // PetCreate — id, name, species required
-{ "id", "name", "species", "sex"?, "breed"?, "color"?, "birthdate"?,
-  "microchip_id"?, "avatar_asset_id"?, "notes"?, "sort_order"? }
+{ "id", "name", "species", "sex"?, "breed"?, "color"?, "identity_color"?,
+  "birthdate"?, "microchip_id"?, "avatar_asset_id"?, "notes"?, "sort_order"? }
+// identity_color: one of the eight identity keys of 06 §2, or null;
+// anything else → 422 (the same check as a member's color)
 // PetPatch — any subset of PetCreate except id and species
 
 // HealthEventCreate — id, pet_id, type, title, occurred_at required

@@ -924,3 +924,22 @@ content it added.
 **Consequence:** `07` §12 and §13; tasks P5-10, P6-6, P7-6 and P8-10, and
 P8-7 now depends on P8-10. The history rewrite changes every commit id
 from P0-6 on; the review files cite the new ids.
+
+### ADR-042 — Pet lists, a chosen identity colour, and care in the health timeline *(2026-10-19)*
+**Context:** testing on the phone, the owner found the pet form's *raça*
+and *cor* unclear as free text: breed should be a list for the species,
+and "cor" read as either the coat or the pet's colour in the app. He also
+asked how a treatment that repeats, such as physiotherapy, fits the
+health timeline, which records single events.
+**Decision (the owner):** breed and coat are lists per species with
+SRD first and **Outra…** for free text; `color` stays the coat, and a new
+`identity_color` lets the family pick the pet's colour in the app from
+the identity palette. Health stays the record of what happened and tasks
+stay what repeats: the profile offers **Agendar tratamento**, and every
+completion of a `vet` or `medication` task shows in the pet's timeline.
+The lists sit in one module keyed by species, so a new species later
+adds its lists and nothing else in the form.
+**Consequence:** R2.1, R2.13, R2.14; `03` pet; `04` Pet and PetCreate;
+`06` §2 (pet identity); `09` §4.2, §4.2.1, §4.3; tasks P5-12 and P5-13.
+The timeline's care items are derived on the phone; the server gains one
+column and no logic.

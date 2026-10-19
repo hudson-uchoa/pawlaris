@@ -219,9 +219,37 @@ A failed sync never un-checks a card. The only visible sign is the indicator.
 
 Fields: foto `pet-avatar` (opens `camera` in avatar mode, or the gallery picker),
 nome* `pet-name`, espécie* `pet-species` (Gato / Cachorro — fixed after
-creation), sexo, raça, cor, nascimento (date picker), microchip, observações.
+creation), sexo, raça `pet-breed`, pelagem `pet-coat`, cor no app
+`pet-identity`, nascimento (date picker), microchip, observações.
+
+- **Raça** and **Pelagem** open a `Sheet` with a search field and the list
+  of §4.2.1 for the chosen species; **Outra…** turns the field into free
+  text. Until a species is chosen they are disabled.
+- **Cor no app** is a row of the eight identity swatches (`06` §2), each a
+  44 dp target labelled with the body's name; none selected means the
+  derived identity, shown as the preview *(R2.13)*.
 **Salvar** `pet-save` → `createPet` / `patchPet` → close. Validation is local
 and inline: "Informe o nome."
+
+#### 4.2.1 Breed and coat lists
+
+Keys live in `packages/shared/src/petLists.ts`, keyed by species, in this
+order; the Portuguese names live in `strings.ts`. A new species later adds
+its enum value, its glyph and its two lists here, and nothing else in the
+form changes.
+
+| Species | Breeds (key → name) |
+|---|---|
+| cat | `srd` SRD (sem raça definida) · `siamese` Siamês · `persian` Persa · `maine_coon` Maine Coon · `angora` Angorá · `ragdoll` Ragdoll · `bengal` Bengal · `british_shorthair` British Shorthair · `exotic` Exótico · `himalayan` Himalaio · `russian_blue` Azul Russo · `birman` Sagrado da Birmânia · `scottish_fold` Scottish Fold · `sphynx` Sphynx · `abyssinian` Abissínio · `chartreux` Chartreux · `bombay` Bombaim |
+| dog | `srd` SRD (sem raça definida) · `shih_tzu` Shih Tzu · `yorkshire` Yorkshire · `poodle` Poodle · `lhasa_apso` Lhasa Apso · `pomeranian` Spitz Alemão (Lulu da Pomerânia) · `golden_retriever` Golden Retriever · `labrador` Labrador · `french_bulldog` Buldogue Francês · `english_bulldog` Buldogue Inglês · `pug` Pug · `dachshund` Dachshund · `pinscher` Pinscher · `maltese` Maltês · `beagle` Beagle · `chihuahua` Chihuahua · `schnauzer` Schnauzer · `border_collie` Border Collie · `german_shepherd` Pastor Alemão · `belgian_shepherd` Pastor Belga · `rottweiler` Rottweiler · `pit_bull` Pit Bull · `siberian_husky` Husky Siberiano · `boxer` Boxer · `cocker_spaniel` Cocker Spaniel · `akita` Akita · `chow_chow` Chow Chow · `dobermann` Dobermann · `jack_russell` Jack Russell · `dalmatian` Dálmata · `brazilian_terrier` Terrier Brasileiro (Fox Paulistinha) · `fila` Fila Brasileiro |
+
+| Species | Coats (key → name) |
+|---|---|
+| cat | `black` Preto · `white` Branco · `gray` Cinza · `orange` Laranja · `cream` Creme · `tabby` Rajado · `tuxedo` Frajola (preto e branco) · `tortoiseshell` Escaminha · `calico` Tricolor · `colorpoint` Siamês (colorpoint) |
+| dog | `black` Preto · `white` Branco · `brown` Marrom · `caramel` Caramelo · `golden` Dourado · `cream` Creme · `gray` Cinza · `brindle` Tigrado · `black_white` Preto e branco · `tricolor` Tricolor · `merle` Merle |
+
+SRD is first because most of the family's pets are; the rest follow the
+order above, not the alphabet. The search ignores case and accents.
 
 Edit adds, for leaders, **Arquivar pet** `pet-archive` with a confirmation
 sheet: "A Aurora sai das tarefas e da lista. O histórico continua guardado."
@@ -243,6 +271,11 @@ none for `unknown` ("Aurora sai das tarefas…").
 4. **Saúde** — timeline *(R2.12)*: month headers, items with type glyph, title,
    date, `próxima: 12/11` when `next_due_on` is set, attachment thumbnail.
    **Adicionar** `health-add` → `pet/[id]/health/new`. Tap an item → `health/[id]`.
+   Care done through tasks *(R2.14)* sits in the same months as items with
+   the task's category glyph, the stored title and `Duda · 08:02`
+   `health-care-<completionId>`; a tap opens `task/[id]`.
+   **Agendar tratamento** `health-schedule` → `task/new` with the pet
+   selected and category Veterinário.
 5. **Passeios** (dogs only) — the 3 most recent walks, **Ver todos** → Passeios tab.
 
 Weight form: peso (decimal keyboard, comma accepted) `weight-value`, data/hora

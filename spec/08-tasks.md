@@ -1156,6 +1156,46 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and the Céu limpo and Pets scenes have no visible edge, in both themes.
   **Not here:** a keyboard library; restyling the forms.
 
+- [ ] **P5-12 — Pet lists and identity colour**
+  **Depends:** P5-11, P4-6 · **Read:** `02` R2.1, R2.13 · `03` pet · `04` Pet,
+  PetCreate · `06` §2 · `09` §4.2, §4.2.1 · `05` ADR-042
+  **Build:** contract first: `identity_color` on Pet, PetCreate and PetPatch,
+  checked against the identity keys like a member's color, with the Alembic
+  migration and the replica column. `packages/shared/src/petLists.ts` with
+  the keys of `09` §4.2.1, and their names in `strings.ts`. The pet form's
+  Raça and Pelagem pickers with search and **Outra…**, and the Cor no app
+  swatches; the pet's identity from `identity_color` wherever it is drawn;
+  the profile and the card show a breed or coat by its name, or as typed.
+  **Tests:** an unknown `identity_color` → 422 and a palette key is stored;
+  the lists hold the keys of §4.2.1 in order with SRD first and every key
+  named in `strings.ts`; the search ignores case and accents; picking a
+  breed stores its key and **Outra…** stores the text; switching species on
+  a new pet clears breed and coat; a stored key renders its name and free
+  text renders as typed; a chosen swatch draws the avatar ring and
+  placeholder in that colour, and none falls back to the derived identity.
+  **Gate:** `uv run --directory services/api pytest tests/sync -q` ·
+  `pnpm -C packages/shared run test` · `pnpm -C apps/mobile run test`
+  **Device:** [ ] On a phone, create a cat and a dog: each shows its own
+  breed list, Outra… takes text, and the chosen colour shows on the card
+  and the profile in both themes.
+  **Not here:** a new species.
+
+- [ ] **P5-13 — Care in the health timeline**
+  **Depends:** P5-12, P5-3 · **Read:** `02` R2.12, R2.14 · `09` §4.3 · `05`
+  ADR-042
+  **Build:** the profile's timeline merges the pet's health events with its
+  care from `vet` and `medication` task completions, grouped by month;
+  **Agendar tratamento** opening `task/new` with the pet and category
+  Veterinário.
+  **Tests:** a live `vet` completion for the pet appears with its stored
+  title, member and time; an undone one, another pet's `per_pet`
+  completion, and a `feeding` completion do not; a `together` completion of
+  a task covering the pet appears; items sort with the events by date;
+  `health-schedule` opens the task form with the pet and category set; no
+  request is made.
+  **Gate:** `pnpm -C apps/mobile exec jest src/features/pets`
+  **Not here:** editing care from the timeline; health events that repeat.
+
 - [ ] **P5-4 — Task detail and history**
   **Depends:** P5-3 · **Read:** `09` §5.3
   **Build:** `task/[id]/index` sections 1, 2 and 4; history in a `FlashList`

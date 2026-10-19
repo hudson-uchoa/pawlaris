@@ -162,8 +162,10 @@ export const identity = [
   `light` or `dark` shade; an unknown key falls back to entry 0. It is the color
   of that person's name in every attribution line — the app's core question is
   "who did this?".
-- A **pet's** identity is `identity[sum of the id's char codes % 8]`. Used for
-  the avatar's orbit ring and for the placeholder when a pet has no photo.
+- A **pet's** identity is the entry whose `key` is its `identity_color`,
+  chosen in the pet form; while that is null, `identity[sum of the id's char
+  codes % 8]`. Used for the avatar's orbit ring and for the placeholder when a
+  pet has no photo *(ADR-042)*.
 - `star` is the color of a completed task. It is never used to signal anything
   else.
 

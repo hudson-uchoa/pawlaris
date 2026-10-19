@@ -248,8 +248,9 @@ CREATE TABLE pet (
   name            text NOT NULL CHECK (length(name) BETWEEN 1 AND 40),
   species         species NOT NULL,
   sex             pet_sex NOT NULL DEFAULT 'unknown',
-  breed           text,
-  color           text,
+  breed           text CHECK (length(breed) <= 40),   -- a list key or free text (R2.13)
+  color           text CHECK (length(color) <= 40),   -- the coat: a list key or free text
+  identity_color  text,                  -- an identity palette key, or null (R2.13)
   birthdate       date,
   microchip_id    text,
   avatar_asset_id uuid,                  -- soft reference, no FK (§8, AS-1)
