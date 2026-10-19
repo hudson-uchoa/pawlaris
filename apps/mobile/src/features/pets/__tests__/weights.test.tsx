@@ -119,6 +119,19 @@ test('R2.5 a comma decimal saves its numeric value locally with injected UTC tim
   expect(c.http.requests).toEqual([]);
 });
 
+test('R2.5 pressing save twice records one weight and closes once', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  await paint(c, form(c, pet.id));
+  await fireEvent.changeText(screen.getByTestId('weight-value'), '4,25');
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  expect(c.outbox.count()).toBe(1);
+  expect(Object.values(c.store.getState().weightEntries).filter((entry) => entry.pet_id === pet.id))
+    .toEqual([expect.objectContaining({ pet_id: pet.id, weight_kg: 4.25 })]);
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+});
+
 test('R2.5 VL-6 three decimals are refused locally without rounding or enqueueing', async () => {
   const c = await scene();
   const pet = c.seedPet();
