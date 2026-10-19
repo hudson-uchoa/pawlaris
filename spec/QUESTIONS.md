@@ -1609,3 +1609,39 @@ edge-fade assertion stays. Under Reduce Motion the celebration still
 draws none of its own circles; the sky's steady planet or morning star
 is not the celebration's. The P5-14 red assertions stay as they are.
 The commit lists each migrated assertion. The spec is unchanged.
+
+## Q-54 — P5-14 — May the dashboard's obsolete sky assertions migrate?
+**Asked:** 2026-10-19
+**Where:** apps/mobile/src/features/dashboard/__tests__/visuals.test.tsx;
+the owner's P5-14 assertion-edit authorization; Q-53; spec/06-ux-motion-spec.md
+sections 1.3 and 4.1.
+**Problem:** The Q-53 migrations pass the complete UI gate: 384 tests in
+19 suites. The next requested gate, the full mobile suite, reports
+1,477 passed and five failed tests in the dashboard visual test file.
+Its two theme cases expect two live sky-gradient nodes, six Points draws
+and three withRepeat calls. Its scroll case expects three parallax
+Groups. Its inactive case expects three Groups to disappear on blur,
+return on focus and start three repeats. Its Reduce Motion case expects
+three Points draws. Those assertions describe the removed three-layer
+renderer, rather than the required cached pictures, one Atlas per sky
+and one cancellable clock. The theme cases also count every sky path as
+an illustration path. The original authorization permits only the listed
+legacy assertions, and Q-53 explicitly covers the additional illustration
+and celebration migrations; this dashboard test file is not named.
+Changing the renderer to satisfy it would contradict the current spec.
+**I would assume:** Migrate only these five cases' obsolete sky queries
+and assertions. Check the two recorded gradients against the exact theme
+colours, the two Atlases and the illustration's own four paths. Assert
+that only the header's sky clock runs. Read the three depth offsets from
+its per-star transforms, preserving -4.8, -9.6 and -19.2 for scroll 120.
+Assert that blur retains the header drawing, stops its clock and does
+not replay card entry; focus resumes motion. Under Reduce Motion retain
+a still Atlas and assert no parallax changes or card-entry animation.
+Scope scene queries structurally as in Q-53; keep every count, geometry,
+palette, bound, accessibility, entry timing and replay expectation that
+still applies. Leave all P5-14 red assertions and every other dashboard
+assertion unchanged. May these additional migrations be included?
+**Blocking:** yes. The dashboard visual test file remains unchanged.
+The requested UI, full mobile, lint and typecheck commands have all run;
+only those five legacy full-suite cases fail. Leave the implementation
+uncommitted and the task checkbox unchanged, as directed by the owner.
