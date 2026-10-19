@@ -1,5 +1,5 @@
 import {
-  isDateKey, localDate, localTime, parseDateKey, petAge, slotInstant, utcDate,
+  addDays, isDateKey, localDate, localTime, parseDateKey, petAge, slotInstant, utcDate,
   type DateKey, type FormValidationError, type Pet, type Recurrence,
 } from '@pawlaris/shared';
 import { strings } from './strings';
@@ -33,6 +33,13 @@ export function formatShortDate(date: DateKey): string {
 export function formatFullDate(date: DateKey): string {
   const { y, m, d } = parseDateKey(date);
   return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
+}
+
+// Q-48: a task that has not started can take effect later than tomorrow.
+export function formatTaskEffectiveDate(effective: DateKey, today: DateKey): string {
+  if (effective === today) return strings.tasks.effectiveToday;
+  if (effective === addDays(today, 1)) return strings.tasks.effectiveTomorrow;
+  return strings.tasks.effectiveDate(formatFullDate(effective));
 }
 
 export function parseFullDate(value: string): DateKey | null {

@@ -58,6 +58,8 @@ function Navigation(): ReactElement {
         <Stack.Screen name="pet/[id]/weight" options={{ presentation: 'modal' }} />
         <Stack.Screen name="pet/[id]/health/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="health/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal' }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="settings/password" />
         <Stack.Screen name="settings/family" />
