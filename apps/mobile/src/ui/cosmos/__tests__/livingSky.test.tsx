@@ -6,8 +6,8 @@ import type { SharedValue } from 'react-native-reanimated';
 import { systemClock } from '../../../platform/clock';
 import { fakeClock } from '../../../testing/fakeClock';
 import * as ReduceMotion from '../../motion/useReduceMotion';
-import { morningStarTint, planetTints } from '../../tokens/cosmos';
-import { generateSky } from '../sky';
+import { morningStarTint, planetTints, starfield } from '../../tokens/cosmos';
+import { generateSky, generateSkyEventSchedule } from '../sky';
 import { StarCheck } from '../StarCheck';
 import { Starfield } from '../Starfield';
 
@@ -127,6 +127,29 @@ test.each(['focus', 'background'] as const)('06 §1.3/§4.1 %s stops the running
   expect(starAlphas(view)).toEqual(running);
   expect(planetAlphas(view)).toEqual(planets);
 });
+
+test.each(['meteor', 'satellite'] as const)('P5-14 R2 the %s is visible only within its scheduled window', async (kind) => {
+  const schedule = generateSkyEventSchedule(42, starfield.scheduleCount);
+  const start = (kind === 'meteor' ? schedule.meteors : schedule.satellites)[0];
+  if (start === undefined) throw new Error('The first sky event is missing');
+  const view = await render(<Starfield active seed={42} width={360} height={800} density="full" />);
+  const events = view.container.queryAll((node) => kind === 'meteor' ? node.type === 'skLine'
+    : node.type === 'skCircle' && node.props.r === starfield.satellite.radius);
+  expect(events).toHaveLength(1);
+  const opacity = (): number => readValue(events[0]?.props.opacity as number | SharedValue<number>);
+  const minimumDuration = kind === 'meteor' ? starfield.meteor.duration : starfield.satellite.duration[0];
+  const maximumDuration = kind === 'meteor' ? starfield.meteor.duration : starfield.satellite.duration[1];
+
+  for (const [milliseconds, alpha] of [
+    [start - 32, 0],
+    [32 + minimumDuration / 2, kind === 'meteor' ? 1 : starfield.satellite.alpha],
+    [maximumDuration - minimumDuration / 2 + 32, 0],
+  ] as const) {
+    clock.advance(milliseconds);
+    await act(() => { jest.advanceTimersByTime(milliseconds); });
+    expect(opacity()).toBe(alpha);
+  }
+}, 60000);
 
 test('06 §5/MO-3 Reduce Motion starts no clock or withRepeat and draws no meteor', async () => {
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
