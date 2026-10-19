@@ -58,6 +58,12 @@ export const strings = {
     heading: 'Saúde',
     add: 'Adicionar',
     title: 'Título',
+    type: 'Tipo',
+    occurredAt: 'Quando',
+    nextDueOn: 'Próxima data',
+    notes: 'Observações',
+    dateTimePlaceholder: 'dd/mm/aaaa hh:mm',
+    datePlaceholder: 'dd/mm/aaaa',
     types: {
       vaccine: 'Vacina',
       medication: 'Medicamento',

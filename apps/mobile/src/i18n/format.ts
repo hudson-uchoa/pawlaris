@@ -35,6 +35,13 @@ export function formatFullDate(date: DateKey): string {
   return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
 }
 
+export function parseFullDate(value: string): DateKey | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  if (match === null) return null;
+  const date = `${match[3]}-${match[2]}-${match[1]}`;
+  return isDateKey(date) ? date : null;
+}
+
 export function formatMonth(month: string): string {
   return monthLabel.format(utcDate(parseDateKey(`${month}-01`)));
 }

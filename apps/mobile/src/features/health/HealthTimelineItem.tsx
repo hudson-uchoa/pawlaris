@@ -44,7 +44,7 @@ export const HealthTimelineItem = memo(function HealthTimelineItem({ event, time
   </Card>;
 });
 
-function HealthAttachment({ assetId, active, onOpen }: { assetId: string; active: boolean; onOpen(): void }): ReactElement {
+export function HealthAttachment({ assetId, active, onOpen }: { assetId: string; active: boolean; onOpen(): void }): ReactElement {
   const files = useContext(AssetFilesContext);
   if (files === null) throw new Error('HealthAttachment requires an AssetFilesProvider');
   const subscribe = useCallback((listener: () => void) => active

@@ -17,6 +17,8 @@ import NewPet from '../app/pet/new';
 import EditPet from '../app/pet/[id]/edit';
 import PetProfile from '../app/pet/[id]/index';
 import PetWeight from '../app/pet/[id]/weight';
+import NewHealthEvent from '../app/pet/[id]/health/new';
+import HealthDetail from '../app/health/[id]';
 import CameraRoute from '../app/camera';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
@@ -119,6 +121,8 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './pet/[id]/edit.tsx': { default: EditPet },
     './pet/[id]/index.tsx': { default: PetProfile },
     './pet/[id]/weight.tsx': { default: PetWeight },
+    './pet/[id]/health/new.tsx': { default: NewHealthEvent },
+    './health/[id].tsx': { default: HealthDetail },
     './camera.tsx': { default: CameraRoute },
   };
   function requireRoute<T>(key: string): T {
@@ -309,6 +313,71 @@ test('P4-6 pet routes save a weight with a toast, edit the pet and return to wal
   await act(() => { router.back(); });
   await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));
   expect(screen.getByTestId('walks-placeholder')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
+});
+
+test('P4-7 R2.10 health routes preserve drafts through attachment capture, edit and confirmed deletion', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const pet = c.factory.pets();
+  const replica = new ReplicaRepo(driver);
+  replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  await renderShell(c.deps);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
+  await fireEvent.press(screen.getByTestId(`pet-card-${pet.id}`));
+  await fireEvent.press(screen.getByTestId('health-add'));
+  await fireEvent.press(screen.getByRole('radio', { name: strings.health.types.vaccine }));
+  await fireEvent.changeText(screen.getByTestId('health-title'), 'Vaccine visit');
+  await fireEvent.changeText(screen.getByTestId('health-next-due-on'), '12/11/2026');
+  await fireEvent.changeText(screen.getByTestId('health-notes'), 'Bring previous results');
+  c.deps.fileSystem.enqueue(() => new Promise(() => {}));
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.photo }));
+  expect(screen.queryByRole('button', { name: strings.camera.gallery })).toBeNull();
+  await fireEvent.press(screen.getByTestId('camera-shutter'));
+  await fireEvent.press(screen.getByTestId('camera-use'));
+  expect(screen.getByTestId('health-title')).toHaveDisplayValue('Vaccine visit');
+  expect(screen.getByTestId('health-notes')).toHaveDisplayValue('Bring previous results');
+  expect(screen.getByTestId('health-next-due-on')).toHaveDisplayValue('12/11/2026');
+  expect(screen.getByRole('radio', { name: strings.health.types.vaccine })).toBeChecked();
+  expect(driver.all('SELECT kind FROM asset_file')).toEqual([{ kind: 'health_attachment' }]);
+  await fireEvent.press(screen.getByTestId('health-save'));
+  expect(screen.getByTestId('pet-profile')).toBeOnTheScreen();
+  const created = new OutboxRepo(driver).head(wire.user.id);
+  if (created === null) throw new Error('The health event was not queued');
+  const event = replica.get('health_events', created.entityId)?.row;
+  if (event === undefined) throw new Error('The health event is missing from the replica');
+  expect(created).toMatchObject({ method: 'POST', path: '/health-events', body: {
+    pet_id: pet.id, type: 'vaccine', title: 'Vaccine visit', next_due_on: '2026-11-12',
+    notes: 'Bring previous results', attachment_asset_id: event.attachment_asset_id,
+  } });
+  expect(event.attachment_asset_id).not.toBeNull();
+  await fireEvent.press(screen.getByTestId(`health-event-${event.id}`));
+  await fireEvent.changeText(screen.getByTestId('health-title'), 'Follow-up visit');
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.photo }));
+  await fireEvent.press(screen.getByTestId('camera-shutter'));
+  await fireEvent.press(screen.getByTestId('camera-use'));
+  expect(screen.getByTestId('health-title')).toHaveDisplayValue('Follow-up visit');
+  await fireEvent.press(screen.getByTestId('health-save'));
+  const edited = replica.get('health_events', event.id)?.row;
+  expect(edited?.title).toBe('Follow-up visit');
+  expect(edited?.attachment_asset_id).not.toBe(event.attachment_asset_id);
+  expect(new OutboxRepo(driver).count()).toBe(2);
+  await fireEvent.press(screen.getByTestId(`health-event-${event.id}`));
+  await fireEvent.press(screen.getByTestId('health-delete'));
+  await fireEvent.press(screen.getByRole('button', { name: strings.dismiss }));
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+  expect(replica.get('health_events', event.id)?.row.title).toBe('Follow-up visit');
+  expect(new OutboxRepo(driver).count()).toBe(2);
+  await fireEvent.press(screen.getByTestId('health-delete'));
+  await fireEvent.press(screen.getByTestId('health-delete-confirm'));
+  expect(screen.getByTestId('pet-profile')).toBeOnTheScreen();
+  expect(screen.queryByTestId(`health-event-${event.id}`)).toBeNull();
+  expect(replica.get('health_events', event.id)).toBeNull();
+  expect(new OutboxRepo(driver).count()).toBe(3);
   expect(c.http.requests).toEqual([]);
 });
 
