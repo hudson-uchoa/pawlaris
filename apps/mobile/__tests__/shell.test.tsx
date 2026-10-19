@@ -25,6 +25,9 @@ import FamilyRoute from '../app/settings/family';
 import DiagnosticsRoute from '../app/settings/diagnostics';
 import PermissionsRoute from '../app/settings/permissions';
 import PasswordRoute from '../app/settings/password';
+import TasksRoute from '../app/tasks/index';
+import NewTaskRoute from '../app/task/new';
+import EditTaskRoute from '../app/task/[id]/edit';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -152,6 +155,9 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './settings/diagnostics.tsx': { default: DiagnosticsRoute },
     './settings/permissions.tsx': { default: PermissionsRoute },
     './settings/password.tsx': { default: PasswordRoute },
+    './tasks/index.tsx': { default: TasksRoute },
+    './task/new.tsx': { default: NewTaskRoute },
+    './task/[id]/edit.tsx': { default: EditTaskRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -163,6 +169,28 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
   });
   return render(<ExpoRoot context={context} location="/" />);
 }
+
+test('P5-1 the task list route opens the edit form until task detail exists', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const replica = new ReplicaRepo(driver);
+  const pet = c.factory.pets();
+  const task = c.factory.task_templates({ pet_ids: [pet.id], created_by: wire.user.id });
+  replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('members', c.factory.members({ id: wire.user.id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('task_templates', task, { pending: false, deleted: false, pullGen: 0 });
+  await renderShell(c.deps);
+  await act(() => { router.push('./tasks'); });
+  expect(screen.getByRole('radio', { name: strings.tasks.active })).toBeChecked();
+  await fireEvent.press(screen.getByRole('button', { name: task.title }));
+  expect(screen.getByTestId('task-title')).toHaveDisplayValue(task.title);
+  expect(screen.getByTestId('task-end')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
+});
 
 test('P4-9 Settings routes open family, password, permissions and the wired diagnostics', async () => {
   openDatabase(driver);

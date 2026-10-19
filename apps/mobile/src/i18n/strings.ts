@@ -5,6 +5,7 @@ export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
   tasks: {
+    heading: 'Tarefas',
     title: 'Título',
     category: 'Categoria',
     categories: {
