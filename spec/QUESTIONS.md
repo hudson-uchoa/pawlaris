@@ -1566,3 +1566,35 @@ times per kind, from mount. `StarCheck` takes an optional
 followed by the pet's id, so two pets of one card never burst alike. The
 bounds tests stay as described. `06` §4.1 now states the units and the
 schedule's signature, and §4.2 the per-pet seed.
+
+## Q-53 — P5-14 — May the remaining obsolete sky assertions migrate?
+**Asked:** 2026-10-19
+**Where:** apps/mobile/src/ui/cosmos/__tests__/illustrations.test.tsx;
+Starfield.test.tsx; ShootingStars.test.tsx; the owner's P5-14 green-step
+assertion-edit authorization; spec/06-ux-motion-spec.md §4.1 and §1.3.
+**Problem:** All twelve P5-14 red cases pass without assertion changes.
+The UI gate also exercises legacy assertions outside the explicitly
+authorized changes. The illustration lifecycle cases require three
+withRepeat calls, three cancelled values and three Points draws. The
+living sky instead has one cancellable clock and one Atlas. EmptyPets
+and EmptyWalks count the entire canvas's circles as illustration shapes,
+which now includes the required nebulae and bright-star halos.
+Starfield's additional-scene case likewise expects only its one scene
+circle in the whole canvas. ShootingStars still expects three Points
+draws and counts every circle, line and matching gradient as celebration
+geometry; under Reduce Motion it expects no circle anywhere, which
+also excludes the required steady planet or morning star. Editing only
+its old layer-opacity assertions cannot resolve those checks. Restoring
+the old renderer would contradict the task and the current spec.
+**I would assume:** Replace only the obsolete illustration lifecycle
+expectations with a running single clock, cancellation preserving its
+drawing, and one Atlas. Replace the remaining three-Points expectation
+with one Atlas. Narrow the scene and celebration queries to their own
+shapes, preserving every expected count, geometry, palette, duration,
+accessibility, cancellation, replay and edge-fade assertion. Leave all
+P5-14 red assertions unchanged. May these additional migrations be
+included in the green step?
+**Blocking:** yes. Leave the implementation and authorized test edits
+uncommitted, and leave the task checkbox unchanged, pending this answer.
+The full mobile test gate has not run after the failing UI gate. No
+commit or push was made, as directed by the owner.
