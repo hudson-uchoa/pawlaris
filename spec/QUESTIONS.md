@@ -1497,3 +1497,31 @@ exact `toHaveTextContent` calls. For the network-failure case, give the
 dashboard test context a fixed retry random value through `taskContext`
 to `syncContext`; production backoff and the fake source's strict
 exhaustion stay as they are. The spec is unchanged.
+
+## Q-51 — P5-3 — May the undo assertion expect the updated mutation time?
+**Asked:** 2026-10-19
+**Where:** spec/10-client-sync.md §3; spec/02-spec.md R3.22;
+apps/mobile/src/features/dashboard/__tests__/TaskCard.test.tsx:306–307.
+**Problem:** After applying exactly the two test fixes authorized by Q-50,
+the undo case reaches its tombstone assertion. It spreads the original
+completion row into the expected object, overriding only undone_at and
+undone_by. The spread also asserts the original updated_at. Earlier in
+the same case, advance(c, 300) advances the injected clock for sheet
+dismissal, so the subsequent undo correctly changes updated_at from
+2026-10-14T01:30:00.000Z to 2026-10-14T01:30:00.300Z. Section 3 requires
+updated_at = now for local mutations, and the existing undoCompletion
+implementation follows that rule. Preserving the old timestamp to pass
+this assertion would violate the spec. Q-50 authorized the confirmation
+and random-fixture fixes, but did not authorize another assertion edit.
+
+The dashboard run now reports 41 passed, 1 failed, 42 total: nine TaskCard
+cases and all 32 existing dashboard tests pass. The only failure is this
+updated_at expectation. Production backoff, the fake random source, and
+this timestamp assertion remain unchanged.
+**I would assume:** Override updated_at alongside undone_at in the
+expected tombstone with new Date(c.clock.now()).toISOString(). Keep the
+spread and every other field assertion, so the test verifies both the
+unchanged completion data and the current mutation timestamp. May this
+additional red-test correction be included in the green change?
+**Blocking:** yes. Stop with the implementation and Q-50 test fixes
+uncommitted, pending authorization for this assertion correction.
