@@ -1419,3 +1419,16 @@ red commit `d1426d7`, not of the spec. Replace it with
 the name must be its own text node inside the row, which is as strict as
 the spec asks and lets the role badge and **Editar nome** share the row.
 No other assertion changes. Nothing in the spec changes.
+
+## Q-48 — P5-1 — What should the fork note say for a future task?
+**Asked:** 2026-10-19
+**Where:** spec/02-spec.md R3.8; spec/09-screens.md §5.1;
+packages/shared/src/taskEdit.ts forkEffectiveDate.
+**Problem:** The effective date is clamped to the old template's starts_on.
+For a task starting later than tomorrow, neither of the two specified
+today/tomorrow notes describes the effective date correctly.
+**I would assume:** Keep the specified notes for today and tomorrow. For a
+later effective date, say "As mudanças de agenda valem a partir de
+<dd/MM/yyyy>." Confine this copy choice to formatTaskEffectiveDate in
+apps/mobile/src/i18n/format.ts and keep using forkEffectiveDate unchanged.
+**Blocking:** no. The form can proceed with the explicit-date fallback.
