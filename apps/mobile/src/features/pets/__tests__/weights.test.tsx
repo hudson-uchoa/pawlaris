@@ -258,7 +258,9 @@ test('R2.4 R2.6 R1.19 profile shows five recent weights and care from every assi
   expect(care.getByText(due.title)).toBeOnTheScreen();
   expect(care.getByText(done.title)).toBeOnTheScreen();
   expect(care.queryByText(unrelated.title)).toBeNull();
-  expect(care.getAllByText(strings.pets.notDone)).toHaveLength(1);
+  const dueRow = within(care.getByTestId(`pet-care-${due.id}-2026-10-13T08:00`));
+  expect(dueRow.getByText('08:00')).toBeOnTheScreen();
+  expect(dueRow.getAllByText(/.+/)).toHaveLength(2);
   expect(care.getByText(/^Duda ·/)).toBeOnTheScreen();
   expect(screen.queryByTestId('pet-walks')).toBeNull();
   expect(screen.queryByTestId('health-add')).toBeNull();
@@ -266,6 +268,32 @@ test('R2.4 R2.6 R1.19 profile shows five recent weights and care from every assi
   await fireEvent.press(screen.getByTestId('weight-add'));
   expect(onEdit).toHaveBeenCalledTimes(1);
   expect(c.onAdd).toHaveBeenCalledTimes(1);
+  expect(c.http.requests).toEqual([]);
+});
+
+test('R1.19 profile labels completed care with who and when and leaves later care unlabelled', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  const member = c.factory.members({ display_name: 'Duda' });
+  const task = c.factory.task_templates({ title: 'Daily care', pet_ids: [pet.id],
+    assigned_to: member.id, times_of_day: ['08:00', '18:00'] });
+  c.driver.transaction(() => {
+    c.apply.applyLocalRow('members', member);
+    c.apply.applyLocalRow('task_templates', task);
+    c.apply.applyLocalRow('task_completions', c.factory.task_completions({
+      task_id: task.id, completed_by: member.id, occurrence_key: '2026-10-13T08:00',
+      completed_at: '2026-10-13T11:05:00.000Z',
+    }));
+  });
+  await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
+    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={jest.fn()} />);
+  const done = within(screen.getByTestId(`pet-care-${task.id}-2026-10-13T08:00`));
+  expect(done.getByText('08:00')).toBeOnTheScreen();
+  expect(done.getByText('Duda · 08:05')).toBeOnTheScreen();
+  const later = within(screen.getByTestId(`pet-care-${task.id}-2026-10-13T18:00`));
+  expect(later.getByText(task.title)).toBeOnTheScreen();
+  expect(later.getByText('18:00')).toBeOnTheScreen();
+  expect(later.getAllByText(/.+/)).toHaveLength(2);
   expect(c.http.requests).toEqual([]);
 });
 

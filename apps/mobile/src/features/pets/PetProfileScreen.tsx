@@ -62,9 +62,9 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
     return <Skeleton width={contentWidth} height={spacing.xxl * 4} active={focused} />;
   }
   const placeholder = <Avatar petId={pet.id} species={pet.species} accessibilityLabel={pet.name} size={spacing.xxl * 2} />;
-  function completionLabel(item: DayViewItem): string {
+  function completionLabel(item: DayViewItem): string | null {
     const completion = item.completions.find((row) => row.pet_id === (item.mode === 'together' ? null : petId));
-    if (completion === undefined) return strings.pets.notDone;
+    if (completion === undefined) return null;
     return [state.members[completion.completed_by]?.display_name,
       formatTime(Date.parse(completion.completed_at), family?.timezone ?? 'UTC')].filter(Boolean).join(' · ');
   }
@@ -98,12 +98,15 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
     </View>
     <View testID="pet-care" style={{ gap: spacing.sm }}>
       <Text variant="heading" accessibilityRole="header">{strings.pets.careToday}</Text>
-      {care.map((item) => <Card key={`${item.taskId}:${item.occurrenceKey}`} accessibilityLabel={item.title}
-        testID={`pet-care-${item.taskId}-${item.occurrenceKey}`}>
-        <Text variant="label">{item.title}</Text>
-        <Text variant="caption" color="textMuted">{item.slotMs === null ? strings.format.allDay : formatTime(item.slotMs, family.timezone)}</Text>
-        <Text variant="caption">{completionLabel(item)}</Text>
-      </Card>)}
+      {care.map((item) => {
+        const label = completionLabel(item);
+        return <Card key={`${item.taskId}:${item.occurrenceKey}`} accessibilityLabel={item.title}
+          testID={`pet-care-${item.taskId}-${item.occurrenceKey}`}>
+          <Text variant="label">{item.title}</Text>
+          <Text variant="caption" color="textMuted">{item.slotMs === null ? strings.format.allDay : formatTime(item.slotMs, family.timezone)}</Text>
+          {label !== null && <Text variant="caption">{label}</Text>}
+        </Card>;
+      })}
     </View>
     {pet.species === 'dog' && <View testID="pet-walks" style={{ gap: spacing.sm }}>
       <Text variant="heading" accessibilityRole="header">{strings.tabs.walks}</Text>

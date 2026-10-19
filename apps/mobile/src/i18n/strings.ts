@@ -47,7 +47,6 @@ export const strings = {
     clearBirthdate: 'Limpar nascimento',
     edit: 'Editar',
     careToday: 'Cuidados de hoje',
-    notDone: 'não feito',
     viewAll: 'Ver todos',
     mixedBreed: 'SRD',
     profileSpecies: {
