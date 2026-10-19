@@ -2,6 +2,7 @@ import { addDays, localDate, type Completion, type TaskTemplate } from '@pawlari
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { AppState, StyleSheet, useColorScheme, type ViewStyle } from 'react-native';
+import { getAnimatedStyle } from 'react-native-reanimated';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { formatCompletionLost, formatTime } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
@@ -9,13 +10,20 @@ import type { HttpResponse } from '../../../platform/http';
 import { selectDayView } from '../../../replica/selectors';
 import { ReplicaProvider, useReplica } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
+import { duration } from '../../../ui/motion/tokens';
 import { ToastProvider } from '../../../ui/primitives/Toast';
 import { starCheck } from '../../../ui/tokens/cosmos';
 import { SyncToastHost } from '../../shell/SyncToastHost';
 import { TaskCard } from '../TaskCard';
+import { CompletionAttribution } from '../CompletionAttribution';
 import { dashboardContext, type DashboardContext } from './support';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
+
+type AnimationAPI = typeof import('react-native-reanimated');
+const animationEntry = jest.requireActual<{ main: string }>('react-native-reanimated/package.json').main;
+const animationRoot = `react-native-reanimated/${animationEntry.replace(/\/index(?:\.js)?$/, '')}`;
+const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>(`${animationRoot}/animation/timing`);
 
 const timezone = 'America/Sao_Paulo';
 const initialAppState = AppState.currentState;
@@ -508,5 +516,48 @@ describe('TaskCard', () => {
     expect(c.outbox.count()).toBe(0);
     expect(c.http.requests).toEqual([]);
     expect(Haptics.impactAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('CompletionAttribution', () => {
+  test.each([false, true])('R3.21 / 06 §4.2 crossfades to the winning member and retains the outgoing label until the fade ends with Reduce Motion %s', async (reduced) => {
+    jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(reduced);
+    const c = await scene();
+    const local = c.seedCompletion(c.task, { occurrence_key: c.date, completed_by: c.sessionUser.id,
+      completed_at: new Date(c.clock.now()).toISOString() });
+    const winner = c.factory.task_completions({ task_id: c.task.id, occurrence_key: c.date,
+      completed_by: c.other.id, completed_at: '2026-10-13T10:12:00Z' });
+    const member = c.store.getState().members[c.sessionUser.id];
+    if (member === undefined) throw new Error('The seeded member is missing');
+    const timing = jest.spyOn(timingAnimation, 'withTiming');
+    const view = await render(<CompletionAttribution completion={local} member={member} timezone={timezone} active />);
+    const outgoingLabel = strings.dashboard.completedBy(member.display_name, formatTime(c.clock.now(), timezone));
+    const incomingLabel = strings.dashboard.completedBy(c.other.display_name, '07:12');
+    expect(screen.getByText(outgoingLabel)).toBeVisible();
+    expect(timing).not.toHaveBeenCalled();
+
+    await view.rerender(<CompletionAttribution completion={winner} member={c.other} timezone={timezone} active />);
+    await advance(c, 0);
+    const outgoing = screen.getByText(outgoingLabel, { includeHiddenElements: true }).parent;
+    const incoming = screen.getByText(incomingLabel).parent;
+    if (outgoing === null || incoming === null) throw new Error('The attribution fade layers are missing');
+    const milliseconds = reduced ? duration.reducedFade : duration.quick;
+    expect(timing).toHaveBeenCalledTimes(1);
+    expect(timing).toHaveBeenCalledWith(1, { duration: milliseconds });
+    expect(outgoing).toHaveAnimatedStyle({ opacity: 1 });
+    expect(incoming).toHaveAnimatedStyle({ opacity: 0 });
+
+    await advance(c, milliseconds / 2);
+    expect(within(outgoing).getByText(outgoingLabel, { includeHiddenElements: true })).toBeOnTheScreen();
+    expect(Number(getAnimatedStyle(outgoing).opacity)).toBeGreaterThan(0);
+    expect(Number(getAnimatedStyle(outgoing).opacity)).toBeLessThan(1);
+    expect(Number(getAnimatedStyle(incoming).opacity)).toBeGreaterThan(0);
+    expect(Number(getAnimatedStyle(incoming).opacity)).toBeLessThan(1);
+    await advance(c, milliseconds / 2 + 32);
+    expect(outgoing).toHaveAnimatedStyle({ opacity: 0 });
+    expect(incoming).toHaveAnimatedStyle({ opacity: 1 });
+    expect(screen.getByText(incomingLabel)).toBeVisible();
+    expect(screen.queryByText(outgoingLabel)).toBeNull();
+    expect(c.http.requests).toEqual([]);
   });
 });
