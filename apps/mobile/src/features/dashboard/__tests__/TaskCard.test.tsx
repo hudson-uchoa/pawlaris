@@ -244,6 +244,26 @@ describe('09 §3.3 TaskCard visual reference', () => {
 });
 
 describe('TaskCard', () => {
+  test('R3.44 release without photo proof leaves no completion or outbox entry and keeps the star unlit', async () => {
+    const c = await scene();
+    const task = c.seedTask({ pet_ids: [c.pet.id], times_of_day: [], requires_photo: true });
+    const { onMoveToDone } = await paint(c, task);
+    const check = screen.getByTestId(checkId(task, c.date));
+    expect(check).toBeEnabled();
+    expect(check).not.toBeChecked();
+    await fireEvent(check, 'pressIn');
+    await fireEvent.press(check);
+    await advance(c, 400);
+    expect(Object.values(c.store.getState().completions)).toEqual([]);
+    expect(c.replica.range('task_completions', c.date, c.date)).toEqual([]);
+    expect(c.outbox.count()).toBe(0);
+    expect(screen.getByTestId(checkId(task, c.date))).not.toBeChecked();
+    expect(c.kick).not.toHaveBeenCalled();
+    expect(c.http.requests).toEqual([]);
+    expect(Haptics.impactAsync).not.toHaveBeenCalled();
+    expect(onMoveToDone).not.toHaveBeenCalled();
+  });
+
   test('R3.18 does not complete on press-in', async () => {
     const c = await scene();
     const { onMoveToDone } = await paint(c);
