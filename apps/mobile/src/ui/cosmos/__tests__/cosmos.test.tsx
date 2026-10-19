@@ -2,7 +2,6 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-
 import * as Haptics from 'expo-haptics';
 import { useState, type ReactElement } from 'react';
 import { AppState, Linking, StyleSheet, useColorScheme, type AppStateStatus, type ViewStyle } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { Skeleton } from '../../primitives/Skeleton';
 import { Text } from '../../primitives/Text';
@@ -17,10 +16,12 @@ import { InsurgeMark } from '../insurgeMark';
 import { Orbit } from '../Orbit';
 import { PoweredBy } from '../PoweredBy';
 import { ShootingStars } from '../ShootingStars';
-import { Sparks } from '../Sparks';
 import { StarCheck } from '../StarCheck';
 import { Starfield } from '../Starfield';
-import { generateStars } from '../stars';
+import { generateSky, starRadius } from '../sky';
+import { Skia } from '@shopify/react-native-skia';
+import { morningStarTint, planetTints, starTints } from '../../tokens/cosmos';
+import { atlasAlphas, atlasColors, atlasTransforms } from './skyDrawing';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
@@ -130,68 +131,88 @@ describe('StarCheck', () => {
 });
 
 describe('Starfield', () => {
-  test('generateStars is deterministic for a seed and stays inside the bounds', async () => {
+  test('generateSky is deterministic for a seed and stays inside the bounds', async () => {
     const view = await render(<Starfield active={false} seed={42} width={360} height={240} density="header" />);
-    const expected = generateStars(42, 60, 360, 240);
-    const points = drawNodes(view, 'skPoints').flatMap((node) => node.props.points as { x: number; y: number }[]);
-    expect(points).toHaveLength(60);
-    expect(points).toEqual(expect.arrayContaining(expected.map(({ x, y }) => ({ x, y }))));
-    for (const point of points) {
+    const expected = generateSky(42, { width: 360, height: 240, density: 'band' }).stars;
+    const points = atlasTransforms(view).map((transform, index) => {
+      const star = expected[index];
+      if (star === undefined) throw new Error('Missing generated star');
+      const inset = starRadius(star.magnitude) * 2;
+      return { x: transform.tx + inset, y: transform.ty + inset };
+    });
+    expect(points).toHaveLength(70);
+    points.forEach((point, index) => {
+      expect(point.x).toBeCloseTo(expected[index]?.x ?? 0);
+      expect(point.y).toBeCloseTo(expected[index]?.y ?? 0);
       expect(point.x).toBeGreaterThanOrEqual(0);
       expect(point.x).toBeLessThan(360);
       expect(point.y).toBeGreaterThanOrEqual(0);
       expect(point.y).toBeLessThan(240);
-    }
+    });
+    const retained = atlasTransforms(view).map((transform) => [transform.tx, transform.ty]);
     await view.rerender(<Starfield active={false} seed={42} width={360} height={240} density="header" />);
-    expect(drawNodes(view, 'skPoints').flatMap((node) => node.props.points)).toEqual(points);
+    expect(atlasTransforms(view).map((transform) => [transform.tx, transform.ty])).toEqual(retained);
     await view.rerender(<Starfield active={false} seed={42} width={360} height={800} density="full" />);
-    expect(drawNodes(view, 'skPoints').flatMap((node) => node.props.points)).toHaveLength(120);
+    await act(async () => { await jest.advanceTimersByTimeAsync(0); });
+    expect(atlasTransforms(view)).toHaveLength(160);
   });
 
-  test('stops its shared values when the screen loses focus', async () => {
+  test('stops its shared clock when the screen loses focus', async () => {
     const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
     const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
     const view = await render(<Starfield active={false} seed={42} width={360} height={240} testID="sky" />);
     expect(repeat).not.toHaveBeenCalled();
     await view.rerender(<Starfield active seed={42} width={360} height={240} testID="sky" />);
-    expect(repeat).toHaveBeenCalledTimes(3);
+    const initial = atlasAlphas(view);
+    await act(async () => { await jest.advanceTimersByTimeAsync(700); });
+    expect(atlasAlphas(view)).not.toEqual(initial);
     cancel.mockClear();
     repeat.mockClear();
     await view.rerender(<Starfield active={false} seed={42} width={360} height={240} testID="sky" />);
     const stopped = [...new Set(cancel.mock.calls.map(([value]) => value))];
-    expect(stopped).toHaveLength(3);
+    expect(stopped).toHaveLength(1);
     const values = stopped.map((value) => value.value);
+    const drawing = atlasAlphas(view);
     await act(async () => { await jest.advanceTimersByTimeAsync(10600); });
     expect(stopped.map((value) => value.value)).toEqual(values);
+    expect(atlasAlphas(view)).toEqual(drawing);
     expect(repeat).not.toHaveBeenCalled();
     expect(screen.getByTestId('sky', { includeHiddenElements: true })).toBeOnTheScreen();
-    expect(drawNodes(view, 'skPoints')).toHaveLength(3);
+    expect(drawNodes(view, 'skAtlas')).toHaveLength(1);
   });
 
   test.each(['light', 'dark'] as const)('renders in %s from tokens only', async (scheme) => {
     jest.mocked(useColorScheme).mockReturnValue(scheme);
     const color = scheme === 'light' ? light : dark;
+    const gradient = jest.spyOn(Skia.Shader, 'MakeLinearGradient');
     const view = await render(<Starfield active={false} seed={42} width={360} height={240} nebula testID="sky" />);
     expect(screen.getByTestId('sky', { includeHiddenElements: true })).toHaveStyle({ width: 360, height: 240 });
     expect(drawNodes(view, 'View')).toHaveLength(1);
-    const gradients = drawNodes(view, 'skLinearGradient');
-    expect(gradients).toHaveLength(1);
-    expect(gradients[0]?.props.colors).toEqual([color.skyTop, color.skyBottom]);
-    const nebula = drawNodes(view, 'skRadialGradient');
+    expect(drawNodes(view, 'skPicture')).toHaveLength(1);
+    expect(gradient).toHaveBeenCalledTimes(1);
+    expect(gradient.mock.calls[0]?.[2]).toEqual([Skia.Color(color.skyTop), Skia.Color(color.skyBottom)]);
+    const nebula = drawNodes(view, 'skRadialGradient').filter((node) =>
+      [color.nebulaA, color.nebulaB].includes(node.props.colors[0]));
     expect(nebula).toHaveLength(2);
     expect(nebula.map((node) => (node.props.colors as string[])[0])).toEqual([color.nebulaA, color.nebulaB]);
-    const points = drawNodes(view, 'skPoints');
-    expect(points).toHaveLength(3);
-    expect(points.every((node) => node.props.color === color.starfield)).toBe(true);
-    const palette = new Set<string>(Object.values(color));
+    expect(drawNodes(view, 'skAtlas')).toHaveLength(1);
+    const stars = generateSky(42, { width: 360, height: 240, density: 'band' }).stars
+      .filter((star) => scheme === 'dark' || star.magnitude <= 2);
+    expect(atlasColors(view).map((tint) => Array.from(tint).slice(0, 3)))
+      .toEqual(stars.map((star) => Array.from(Skia.Color(scheme === 'light' ? color.starfield : star.tint)).slice(0, 3)));
+    const palette = new Set<string>([...Object.values(color), ...starTints, ...planetTints, morningStarTint]);
     for (const node of view.container.queryAll((node) => typeof node.props.color === 'string')) {
       expect(palette.has(node.props.color)).toBe(true);
     }
     const sky = screen.getByTestId('sky', { includeHiddenElements: true });
     expect(sky.props.importantForAccessibility).toBe('no-hide-descendants');
+    const picture = drawNodes(view, 'skPicture')[0]?.props.picture as unknown;
+    await view.rerender(<Starfield active seed={42} width={360} height={240} nebula testID="sky" />);
+    expect(drawNodes(view, 'skPicture')[0]?.props.picture).toBe(picture);
+    expect(gradient).toHaveBeenCalledTimes(1);
   });
 
-  test('P6 cancels its shared values when the app enters the background', async () => {
+  test('P6 cancels its shared clock when the app enters the background', async () => {
     let notify: () => void = () => { throw new Error('Missing app lifecycle subscription'); };
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
       notify = () => { (listener as (state: AppStateStatus) => void)('background'); };
@@ -199,13 +220,17 @@ describe('Starfield', () => {
     });
     const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
     const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
-    await render(<Starfield active seed={42} width={360} height={240} testID="sky" />);
-    expect(repeat).toHaveBeenCalledTimes(3);
+    const view = await render(<Starfield active seed={42} width={360} height={240} testID="sky" />);
+    const initial = atlasAlphas(view);
+    await act(async () => { await jest.advanceTimersByTimeAsync(700); });
+    expect(atlasAlphas(view)).not.toEqual(initial);
     cancel.mockClear();
     repeat.mockClear();
     await act(() => { AppState.currentState = 'background'; notify(); });
-    expect(new Set(cancel.mock.calls.map(([value]) => value)).size).toBe(3);
+    expect(new Set(cancel.mock.calls.map(([value]) => value)).size).toBe(1);
+    const drawing = atlasAlphas(view);
     await act(async () => { await jest.advanceTimersByTimeAsync(10600); });
+    expect(atlasAlphas(view)).toEqual(drawing);
     expect(repeat).not.toHaveBeenCalled();
     expect(screen.getByTestId('sky', { includeHiddenElements: true })).toBeOnTheScreen();
   });
@@ -290,14 +315,16 @@ describe.each(['light', 'dark'] as const)('illustrations in %s', (scheme) => {
   ] as const;
 
   test.each(illustrations)('%s renders a themed scene with a Starfield', async (_name, Illustration) => {
+    const gradient = jest.spyOn(Skia.Shader, 'MakeLinearGradient');
     const view = await render(<Illustration active={false} width={240} height={160} testID="scene" />);
     expect(screen.getByTestId('scene', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(drawNodes(view, 'View')).toHaveLength(1);
-    expect(drawNodes(view, 'skPoints')).toHaveLength(3);
+    expect(drawNodes(view, 'skAtlas')).toHaveLength(1);
     const color = scheme === 'light' ? light : dark;
-    expect(drawNodes(view, 'skLinearGradient').some((node) =>
-      JSON.stringify(node.props.colors) === JSON.stringify([color.skyTop, color.skyBottom]))).toBe(true);
-    const palette = new Set<string>(Object.values(color));
+    expect(drawNodes(view, 'skPicture')).toHaveLength(1);
+    expect(gradient.mock.calls.some(([, , colors]) => JSON.stringify(colors)
+      === JSON.stringify([Skia.Color(color.skyTop), Skia.Color(color.skyBottom)]))).toBe(true);
+    const palette = new Set<string>([...Object.values(color), ...starTints]);
     for (const node of view.container.queryAll((node) => typeof node.props.color === 'string')) {
       expect(palette.has(node.props.color)).toBe(true);
     }
@@ -307,20 +334,6 @@ describe.each(['light', 'dark'] as const)('illustrations in %s', (scheme) => {
 });
 
 describe('cosmos pieces', () => {
-  test('Sparks renders six decorative sparks and none under Reduce Motion', async () => {
-    function Burst(): ReactElement {
-      const progress = useSharedValue(0);
-      return <Sparks progress={progress} active testID="burst" />;
-    }
-    const view = await render(<Burst />);
-    const sparks = screen.getByTestId('burst', { includeHiddenElements: true });
-    expect(sparks.props.importantForAccessibility).toBe('no-hide-descendants');
-    expect(sparks.children).toHaveLength(6);
-    jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
-    await view.rerender(<Burst />);
-    expect(screen.queryByTestId('burst', { includeHiddenElements: true })).toBeNull();
-  });
-
   test('ConstellationLine joins supplied points only while the occurrence is complete', async () => {
     const points = [{ x: 24, y: 24 }, { x: 72, y: 24 }, { x: 120, y: 24 }];
     const view = await render(<ConstellationLine points={points} width={144} height={48} complete={false} active testID="constellation" />);
@@ -355,7 +368,7 @@ describe('cosmos pieces', () => {
       <ShootingStars active play width={360} height={240} />
     </Starfield>);
     expect(drawNodes(view, 'View')).toHaveLength(1);
-    expect(drawNodes(view, 'skPoints')).toHaveLength(3);
+    expect(drawNodes(view, 'skAtlas')).toHaveLength(1);
     // Q-38 permits only a zero-duration cut to end the still bright hold.
     expect(timing.mock.calls.every(([, config]) => config?.duration === 0)).toBe(true);
     expect(spring).not.toHaveBeenCalled();

@@ -1,19 +1,19 @@
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
-import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ReactElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnUI } from 'react-native-worklets';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle as SvgCircle, Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 import { duration, spring } from '../motion/tokens';
 import { useAnimationActive } from '../motion/useAnimationActive';
 import { useReduceMotion } from '../motion/useReduceMotion';
 import { useTheme } from '../theme';
 import { accessibility } from '../tokens/accessibility';
-import { starCheck } from '../tokens/cosmos';
+import { burst as burstTokens, starCheck } from '../tokens/cosmos';
 import { radius } from '../tokens/radius';
 import { spacing } from '../tokens/spacing';
 import { starPath } from './glyphs';
-import { Sparks } from './Sparks';
+import { StarBurstCanvas } from './BurstCanvas';
 
 export type StarCheckProps = {
   checked: boolean;
@@ -31,7 +31,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const glyph = starPath(starCheck.size / 2, starCheck.size / 2, starCheck.starRadius);
 
 export function StarCheck({ checked, accessibilityLabel, onPress, active, disabled = false,
-  testID, children, badge = false }: StarCheckProps): ReactElement {
+  occurrenceKey, testID, children, badge = false }: StarCheckProps): ReactElement {
   const { color, scheme } = useTheme();
   const reduced = useReduceMotion();
   const animationActive = useAnimationActive(active && !disabled);
@@ -42,7 +42,11 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
   const fill = useSharedValue(checked ? 1 : 0);
   const starScale = useSharedValue(checked ? 1 : 0);
   const starOpacity = useSharedValue(checked ? 1 : 0);
-  const burst = useSharedValue(1);
+  const halo = useSharedValue(checked ? burstTokens.halo.settled : 0);
+  const [burstPlaying, setBurstPlaying] = useState(false);
+  const finishBurst = useCallback(() => { setBurstPlaying(false); }, []);
+  const haloId = useId();
+  if (burstPlaying && (!animationActive || reduced)) setBurstPlaying(false);
 
   useEffect(() => {
     const changed = previousChecked.current !== checked;
@@ -51,7 +55,7 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
     if (changed || !animationActive) localPress.current = false;
     motionEnabled.set(animationActive && !reduced);
     scale.set(1);
-    burst.set(1);
+    halo.set(checked ? burstTokens.halo.settled : 0);
     if (!animationActive || !changed) {
       fill.set(checked ? 1 : 0);
       starScale.set(reduced || checked ? 1 : 0);
@@ -67,8 +71,10 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
         starOpacity.set(1);
         starScale.set(0);
         starScale.set(withSequence(withSpring(starCheck.ignitionScale, spring.bouncy), withSpring(1, spring.bouncy)));
-        burst.set(0);
-        burst.set(withTiming(1, { duration: duration.burst }));
+        if (localIgnition) {
+          halo.set(withSequence(withTiming(burstTokens.halo.peak, { duration: duration.micro }),
+            withTiming(burstTokens.halo.settled, { duration: burstTokens.duration - duration.micro })));
+        }
       } else {
         starScale.set(withTiming(0, { duration: duration.quick }));
         starOpacity.set(withTiming(0, { duration: duration.quick }));
@@ -80,9 +86,9 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
       cancelAnimation(fill);
       cancelAnimation(starScale);
       cancelAnimation(starOpacity);
-      cancelAnimation(burst);
+      cancelAnimation(halo);
     };
-  }, [checked, animationActive, reduced, scale, motionEnabled, fill, starScale, starOpacity, burst]);
+  }, [checked, animationActive, reduced, scale, motionEnabled, fill, starScale, starOpacity, halo]);
 
   function feedback(pressed: boolean): void {
     'worklet';
@@ -92,11 +98,16 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
   const pressedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
   const fillStyle = useAnimatedStyle(() => ({ opacity: fill.get() }));
   const starStyle = useAnimatedStyle(() => ({ opacity: starOpacity.get(), transform: [{ scale: starScale.get() }] }));
+  const haloStyle = useAnimatedStyle(() => ({ opacity: halo.get() }));
   return <AnimatedPressable testID={testID} accessible accessibilityRole="checkbox"
     accessibilityLabel={accessibilityLabel} accessibilityState={{ checked, disabled }} disabled={disabled}
     onPressIn={() => { scheduleOnUI(feedback, true); }}
     onPressOut={() => { scheduleOnUI(feedback, false); }}
-    onPress={() => { if (!disabled) { localPress.current = !checked; onPress(); } }}
+    onPress={() => { if (!disabled) {
+      localPress.current = !checked;
+      setBurstPlaying(!checked && animationActive && !reduced);
+      onPress();
+    } }}
     style={[{ minWidth: accessibility.minTouchTarget, minHeight: accessibility.minTouchTarget,
       alignItems: 'center', justifyContent: 'center' }, pressedStyle]}>
     {children}
@@ -106,6 +117,19 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
     <View accessible={false} importantForAccessibility="no-hide-descendants"
       style={{ width: starCheck.size, height: starCheck.size, borderRadius: radius.avatar,
         borderWidth: starCheck.strokeWidth, borderColor: color.textMuted, opacity: disabled ? 0.4 : 1 }}>
+      <Animated.View pointerEvents="none" style={[{ position: 'absolute',
+        width: burstTokens.halo.radius * 2, height: burstTokens.halo.radius * 2,
+        left: starCheck.size / 2 - burstTokens.halo.radius - starCheck.strokeWidth,
+        top: starCheck.size / 2 - burstTokens.halo.radius - starCheck.strokeWidth,
+        borderRadius: radius.avatar }, haloStyle]}>
+        <Svg width={burstTokens.halo.radius * 2} height={burstTokens.halo.radius * 2} accessible={false}>
+          <Defs><RadialGradient id={haloId}>
+            <Stop offset="0" stopColor={color.star} /><Stop offset="1" stopColor={color.star} stopOpacity={0} />
+          </RadialGradient></Defs>
+          <SvgCircle cx={burstTokens.halo.radius} cy={burstTokens.halo.radius}
+            r={burstTokens.halo.radius} fill={`url(#${haloId})`} />
+        </Svg>
+      </Animated.View>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.accentSoft, borderRadius: radius.avatar }, fillStyle]} />
       <Animated.View testID={testID === undefined || badge ? undefined : `${testID}-star`}
         style={[StyleSheet.absoluteFill, starStyle]}>
@@ -116,8 +140,12 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
         </Svg>
       </Animated.View>
     </View>
-    <Sparks active={animationActive && checked && !reduced} progress={burst}
-      {...(testID === undefined || badge ? {} : { testID: `${testID}-sparks` })} />
+    {burstPlaying && animationActive && checked && !reduced && <View pointerEvents="none"
+      testID={testID === undefined || badge ? undefined : `${testID}-sparks`}
+      style={StyleSheet.absoluteFill} accessible={false} importantForAccessibility="no-hide-descendants">
+      <StarBurstCanvas occurrenceKey={occurrenceKey ?? testID ?? accessibilityLabel} onDone={finishBurst}
+        {...(testID === undefined ? {} : { testID: `${testID}-burst` })} />
+    </View>}
     </View>
   </AnimatedPressable>;
 }

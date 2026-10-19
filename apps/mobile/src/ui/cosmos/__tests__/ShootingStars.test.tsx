@@ -1,4 +1,4 @@
-import { Circle } from '@shopify/react-native-skia';
+import { Circle, Group } from '@shopify/react-native-skia';
 import { act, cleanup, render } from '@testing-library/react-native';
 import { AppState, useColorScheme, type AppStateStatus } from 'react-native';
 import { ReduceMotion as MotionPolicy, type SharedValue } from 'react-native-reanimated';
@@ -6,6 +6,8 @@ import * as ReduceMotion from '../../motion/useReduceMotion';
 import { dark, light } from '../../tokens/color';
 import { ShootingStars } from '../ShootingStars';
 import { Starfield } from '../Starfield';
+import { generateSky } from '../sky';
+import { atlasAlphas } from './skyDrawing';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
@@ -24,17 +26,45 @@ function Scene({ play = true, active = true, width = 360, height = 240 }: {
   play?: boolean; active?: boolean; width?: number; height?: number;
 }) {
   return <Starfield seed={42} width={width} height={height} active={active}>
-    <ShootingStars width={width} height={height} active={active} play={play} />
+    <Group transform={[{ translateX: 0 }]}>
+      <ShootingStars width={width} height={height} active={active} play={play} />
+    </Group>
   </Starfield>;
 }
 
-function layerOpacities(view: RenderedView): number[] {
-  return view.container.queryAll((node) => node.type === 'skPoints')
-    .map((node) => (node.props.opacity as SharedValue<number>).get() * Number(node.parent?.props.opacity ?? 1));
+function starOpacities(view: RenderedView): number[] {
+  return atlasAlphas(view);
+}
+
+function expectOrdinary(view: RenderedView, scheme: 'light' | 'dark' = 'dark'): void {
+  const stars = generateSky(42, { width: 360, height: 240, density: 'band' }).stars
+    .filter((star) => scheme === 'dark' || star.magnitude <= 2);
+  const alphas = starOpacities(view);
+  expect(alphas).toHaveLength(stars.length);
+  stars.forEach((star, index) => {
+    const base = (0.25 + (6 - star.magnitude) * 0.14) * (scheme === 'light' ? 0.4 : 1);
+    const amplitude = star.magnitude <= 2 ? 0.15 : star.magnitude <= 4 ? 0.35 : 0.5;
+    expect(alphas[index]).toBeGreaterThanOrEqual(base * (1 - amplitude) - 0.000001);
+    expect(alphas[index]).toBeLessThanOrEqual(base + 0.000001);
+  });
+}
+
+function expectBright(view: RenderedView): void {
+  const alphas = starOpacities(view);
+  expect(alphas.length).toBeGreaterThan(0);
+  expect(alphas.every((alpha) => alpha === 1)).toBe(true);
+}
+
+// The fixture's own placement Group encloses only the celebration, including
+// its empty reduced-motion output. Ambient sky nodes remain outside it.
+function celebrationNodes(view: RenderedView, type: string) {
+  const groups = view.container.queryAll((node) => node.type === 'skGroup'
+    && Array.isArray(node.props.transform));
+  return groups.flatMap((group) => group.queryAll((node) => node !== group && node.type === type));
 }
 
 function meteors(view: RenderedView) {
-  return view.container.queryAll((node) => node.type === 'skGroup' && node.props.transform !== undefined);
+  return celebrationNodes(view, 'skGroup').filter((node) => node.props.transform !== undefined);
 }
 
 beforeEach(() => {
@@ -56,14 +86,14 @@ test.each(['light', 'dark'] as const)('Q-38 five meteors share one canvas and us
   const color = scheme === 'light' ? light : dark;
   const view = await render(<Scene />);
   expect(view.container.queryAll((node) => node.type === 'View')).toHaveLength(1);
-  expect(view.container.queryAll((node) => node.type === 'skPoints')).toHaveLength(3);
-  const heads = view.container.queryAll((node) => node.type === 'skCircle');
+  expect(view.container.queryAll((node) => node.type === 'skAtlas')).toHaveLength(1);
+  const heads = celebrationNodes(view, 'skCircle');
   expect(heads).toHaveLength(5);
   for (const head of heads) {
     expect(head.props.color).toBe(color.star);
     expect(head.props.r).toBe(2);
   }
-  const tails = view.container.queryAll((node) => node.type === 'skLine');
+  const tails = celebrationNodes(view, 'skLine');
   expect(tails).toHaveLength(5);
   for (const tail of tails) {
     const start = tail.props.p1 as { x: number; y: number };
@@ -71,7 +101,7 @@ test.each(['light', 'dark'] as const)('Q-38 five meteors share one canvas and us
     expect(Math.hypot(end.x - start.x, end.y - start.y)).toBeCloseTo(60);
     expect(tail.props.strokeWidth).toBe(1.75);
   }
-  const gradients = view.container.queryAll((node) => node.type === 'skLinearGradient' && node.props.colors[1] === color.star);
+  const gradients = celebrationNodes(view, 'skLinearGradient').filter((node) => node.props.colors[1] === color.star);
   expect(gradients).toHaveLength(5);
   for (const gradient of gradients) expect((gradient.props.colors[0] as Float32Array)[3]).toBe(0);
 });
@@ -104,24 +134,21 @@ test('Q-38 one 1600 ms timeline staggers five 960 ms diagonal crossings by 160 m
 test.each(['light', 'dark'] as const)('Q-38 the %s sky rises to full, holds, and settles to its ordinary opacity', async (scheme) => {
   jest.mocked(useColorScheme).mockReturnValue(scheme);
   const view = await render(<Scene />);
-  const base = scheme === 'light' ? [0.098, 0.154, 0.224] : [0.35, 0.55, 0.8];
-  layerOpacities(view).forEach((opacity, index) => expect(opacity).toBeCloseTo(base[index] ?? 0));
+  const base = starOpacities(view);
+  expectOrdinary(view, scheme);
   await act(async () => { await jest.advanceTimersByTimeAsync(100); });
-  layerOpacities(view).forEach((opacity, index) => {
+  starOpacities(view).forEach((opacity, index) => {
     expect(opacity).toBeGreaterThan(base[index] ?? 0);
     expect(opacity).toBeLessThan(1);
   });
   await act(async () => { await jest.advanceTimersByTimeAsync(150); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   await act(async () => { await jest.advanceTimersByTimeAsync(1100); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   await act(async () => { await jest.advanceTimersByTimeAsync(150); });
-  layerOpacities(view).forEach((opacity) => { expect(opacity).toBeGreaterThan(0); expect(opacity).toBeLessThan(1); });
+  starOpacities(view).forEach((opacity) => { expect(opacity).toBeGreaterThan(0); expect(opacity).toBeLessThan(1); });
   await act(async () => { await jest.advanceTimersByTimeAsync(160); });
-  layerOpacities(view).forEach((opacity, index) => {
-    expect(opacity).toBeGreaterThanOrEqual((base[index] ?? 0) * 0.55);
-    expect(opacity).toBeLessThanOrEqual(base[index] ?? 0);
-  });
+  expectOrdinary(view, scheme);
 });
 
 test.each(['light', 'dark'] as const)('Q-38 Reduce Motion cuts to a still bright %s sky for 1600 ms without meteors or fades', async (scheme) => {
@@ -133,19 +160,18 @@ test.each(['light', 'dark'] as const)('Q-38 Reduce Motion cuts to a still bright
   const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
   const view = await render(<Scene />);
   await act(async () => { await jest.advanceTimersByTimeAsync(0); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   expect(meteors(view)).toHaveLength(0);
-  expect(view.container.queryAll((node) => node.type === 'skCircle' || node.type === 'skLine')).toHaveLength(0);
+  expect([...celebrationNodes(view, 'skCircle'), ...celebrationNodes(view, 'skLine')]).toHaveLength(0);
   expect(timing.mock.calls).toEqual([[1600, { duration: 0 }]]);
   expect(delay.mock.calls[0]?.[0]).toBe(1600);
   expect(delay.mock.calls[0]?.[2]).toBe(MotionPolicy.Never);
   expect(spring).not.toHaveBeenCalled();
   expect(repeat).not.toHaveBeenCalled();
   await act(async () => { await jest.advanceTimersByTimeAsync(1590); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   await act(async () => { await jest.advanceTimersByTimeAsync(90); });
-  const expected = scheme === 'light' ? [0.098, 0.154, 0.224] : [0.35, 0.55, 0.8];
-  layerOpacities(view).forEach((opacity, index) => expect(opacity).toBeCloseTo(expected[index] ?? 0));
+  expectOrdinary(view, scheme);
 });
 
 test('Q-38 rerenders and size changes never replay a consumed request, but a new play edge does', async () => {
@@ -197,7 +223,7 @@ test.each(['focus', 'background', 'play false', 'unmount'] as const)('P6/Q-38 %s
   expect(stopped.map((value) => value.value)).toEqual(values);
   if (reason !== 'unmount') expect(meteors(view)).toHaveLength(0);
   if (reason === 'focus' || reason === 'background') {
-    expect(layerOpacities(view)).toEqual([0.35, 0.55, 0.8]);
+    expectOrdinary(view);
   }
   if (reason === 'background') {
     await act(() => { AppState.currentState = 'active'; listeners.forEach((notify) => notify('active')); });
@@ -217,7 +243,7 @@ test.each(['focus', 'background', 'play false', 'unmount'] as const)('P6/Q-38 %s
   });
   const view = await render(<Scene />);
   await act(async () => { await jest.advanceTimersByTimeAsync(400); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
   const timing = jest.spyOn(timingAnimation, 'withTiming');
   if (reason === 'background') {
@@ -232,7 +258,7 @@ test.each(['focus', 'background', 'play false', 'unmount'] as const)('P6/Q-38 %s
   const values = stopped.map((value) => value.value);
   await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
   expect(stopped.map((value) => value.value)).toEqual(values);
-  if (reason !== 'unmount') expect(layerOpacities(view)).toEqual([0.35, 0.55, 0.8]);
+  if (reason !== 'unmount') expectOrdinary(view);
   if (reason === 'background') {
     await act(() => { AppState.currentState = 'active'; listeners.forEach((notify) => notify('active')); });
   } else if (reason === 'focus') {
@@ -248,11 +274,11 @@ test('Q-38 switching Reduce Motion on cuts to still brightness for the remaining
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   await view.rerender(<Scene />);
   expect(meteors(view)).toHaveLength(0);
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   expect(delay.mock.calls[0]?.[0]).toBeGreaterThan(1100);
   expect(delay.mock.calls[0]?.[0]).toBeLessThan(1300);
   await act(async () => { await jest.advanceTimersByTimeAsync(1300); });
-  expect(layerOpacities(view)).toEqual([0.35, 0.55, 0.8]);
+  expectOrdinary(view);
   const timing = jest.spyOn(timingAnimation, 'withTiming');
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
   await view.rerender(<Scene />);
@@ -264,22 +290,22 @@ test('Q-38 removing ShootingStars restores the retained Starfield and cancels it
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   const view = await render(<Scene />);
   await act(async () => { await jest.advanceTimersByTimeAsync(400); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   await view.rerender(<Starfield seed={42} width={360} height={240} active>
     <Circle cx={12} cy={12} r={2} color={dark.star} />
   </Starfield>);
   await act(async () => { await jest.advanceTimersByTimeAsync(0); });
-  expect(layerOpacities(view)).toEqual([0.35, 0.55, 0.8]);
+  expectOrdinary(view);
   expect(meteors(view)).toHaveLength(0);
   await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
-  expect(layerOpacities(view)).toEqual([0.35, 0.55, 0.8]);
+  expectOrdinary(view);
 });
 
 test('Q-38 switching Reduce Motion off during its hold cancels the cut without replaying meteors', async () => {
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   const view = await render(<Scene />);
   await act(async () => { await jest.advanceTimersByTimeAsync(400); });
-  expect(layerOpacities(view)).toEqual([1, 1, 1]);
+  expectBright(view);
   const timing = jest.spyOn(timingAnimation, 'withTiming');
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
   await view.rerender(<Scene />);
@@ -287,5 +313,5 @@ test('Q-38 switching Reduce Motion off during its hold cancels the cut without r
   expect(meteors(view).map((node) => (node.props.opacity as SharedValue<number>).get())).toEqual([0, 0, 0, 0, 0]);
   expect(timing.mock.calls.filter(([target]) => target === 1600)).toHaveLength(0);
   await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
-  layerOpacities(view).forEach((opacity, index) => expect(opacity).toBeLessThanOrEqual([0.35, 0.55, 0.8][index] ?? 0));
+  expectOrdinary(view);
 });

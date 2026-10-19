@@ -6,13 +6,32 @@ export const starTints = ['#CFE0FF', '#FFFFFF', '#FFF1D6', '#FFD0A0', '#FFB4A0']
 export const planetTints = ['#C8A27A', '#9DB8B2', '#B9A5C9'] as const;
 export const morningStarTint = '#FFF6E0';
 
-// Spec 06 section 4.1, Q-36. Layer paints and parallax factors are in stars.ts.
+// Spec 06 section 4.1, Q-36 and Q-52. Times are milliseconds, lengths dp.
 export const starfield = {
-  count: { header: 60, full: 120 },
-  twinkleMin: 0.55,
-  lightOpacity: 0.28,
+  count: { header: 70, band: 70, full: 160 },
+  magnitudeWeights: [1, 3, 8, 18, 30, 40],
+  tintWeights: [15, 45, 25, 10, 5],
+  period: [1800, 6000],
+  radius: { minimum: 0.5, step: 0.35 },
+  alpha: { minimum: 0.25, step: 0.14 },
+  amplitude: [0.15, 0.35, 0.5],
+  parallax: [0.16, 0.08, 0.04],
+  halo: { radius: 4, alpha: 0.25 },
+  spikes: { radius: 6 },
+  sprite: { size: 32, radius: 8 },
+  lightOpacity: 0.4,
+  planet: { radius: [1.6, 2.4], alpha: [0.45, 0.6] },
+  morning: { radius: 2.4, alpha: 0.9, y: 0.8, x: 0.65 },
+  band: { angle: [20, 35], width: 0.25, alpha: 0.1, blur: 0.08,
+    dustCount: 300, dustRadius: 0.4, dustAlpha: [0.06, 0.15] },
+  meteor: { interval: [18000, 45000], length: [80, 140], angle: [20, 35],
+    duration: 700, strokeWidth: 1.75, headRadius: 1.5 },
+  satellite: { interval: [60000, 120000], duration: [25000, 40000], radius: 1, alpha: 0.5 },
+  scheduleCount: 128,
   nebula: {
     opacity: 0.18,
+    minimum: 0.14,
+    maximum: 0.22,
     blurSigma: 0.08,
     clouds: [
       { color: 'nebulaA', x: 0.25, y: 0.25, radius: 0.6 },
@@ -21,8 +40,15 @@ export const starfield = {
   },
 } as const;
 
-// Spec 06 section 4.2. Interior glyph size and ring stroke follow the icons;
-// spark size follows the spacing scale (visual choices for P4-2 review).
+// Spec 06 section 4.2. Drag is exponential; gravity is dp/s².
+export const burst = {
+  count: 14, sparkles: 8, jitter: 12, speed: [40, 110], size: [1.5, 4],
+  gravity: 30, drag: 2, duration: 700, canvasSize: 192,
+  halo: { peak: 1, settled: 0.4, radius: 20 },
+  ring: { fromRadius: 14, toRadius: 40, strokeWidth: 1.5, alpha: 0.6, duration: 420 },
+} as const;
+
+// Spec 06 section 4.2. Interior glyph size and ring stroke follow the icons.
 export const starCheck = {
   size: 28,
   strokeWidth: icon.strokeWidth,
@@ -32,13 +58,6 @@ export const starCheck = {
   pressScale: 0.92,
   ignitionScale: 1.15,
   badgeScale: 0.65,
-} as const;
-
-export const sparks = {
-  count: 6,
-  distance: spacing.md,
-  size: spacing.xxs,
-  firstAngle: -Math.PI / 2,
 } as const;
 
 // Spec 06 sections 4.3 and 4.4. Visual choices for P4-2 review.

@@ -25,9 +25,6 @@ export const duration = {
 } as const;
 
 export const ambient = {
-  twinkleA: 2800,
-  twinkleB: 4100,
-  twinkleC: 5300,
   orbit: 24000,
   syncOrbit: 1200,
   breath: 4000,

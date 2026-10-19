@@ -164,6 +164,7 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
       {onOpenTask === undefined ? body : <PressableScale accessibilityLabel={item.title}
         onPress={openTask} active={active} style={{ flex: 1, minWidth: 0 }}>{body}</PressableScale>}
       {item.mode === 'together' && <StarCheck checked={complete} accessibilityLabel={item.title}
+        occurrenceKey={item.occurrenceKey}
         testID={`task-check-${item.taskId}-${item.occurrenceKey}`} active={active} disabled={readOnly}
         onPress={together} />}
       {item.mode === 'per_pet' && <Text variant="label">{item.progress.done}/{item.progress.total}</Text>}
@@ -175,6 +176,7 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
             testID={`task-constellation-${item.taskId}-${item.occurrenceKey}`} />
         </View>
         {item.pets.map((pet) => <PetControl key={pet.id} pet={pet} width={petWidth}
+          occurrenceKey={item.occurrenceKey}
           completion={item.completions.find((row) => row.pet_id === pet.id) ?? null} members={members}
           timezone={timezone} active={active} disabled={readOnly} onToggle={toggle} onAvatarLayout={measureAvatar}
           testID={`task-pet-${item.taskId}-${item.occurrenceKey}-${pet.id}`} />)}

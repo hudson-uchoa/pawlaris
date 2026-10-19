@@ -1,11 +1,9 @@
-import { act, cleanup, fireEvent, render, renderHook, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
 import { AppState, StyleSheet, processColor, useColorScheme, type AppStateStatus, type ViewStyle } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { dark, light } from '../../tokens/color';
 import { pairs } from '../../tokens/pairs';
-import { Sparks } from '../Sparks';
 import { StarCheck } from '../StarCheck';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
@@ -123,25 +121,4 @@ test.each(['focus', 'background', 'reduce motion'] as const)('P6/P9 %s cancels i
   expect(stopped.map((value) => value.value)).toEqual(values);
   expect(screen.getByTestId('care-star', { includeHiddenElements: true }))
     .toHaveAnimatedStyle({ opacity: 1, transform: [{ scale: 1 }] });
-});
-
-test('Sparks sends six 4 dp sparkles along evenly spaced paths for 16 dp and fades them out', async () => {
-  const hook = await renderHook(() => useSharedValue(0));
-  await render(<Sparks active progress={hook.result.current} testID="burst" />);
-  const burst = screen.getByTestId('burst', { includeHiddenElements: true });
-  expect(burst.children).toHaveLength(6);
-  await act(async () => { hook.result.current.set(0.5); await jest.advanceTimersByTimeAsync(0); });
-  burst.children.forEach((child, index) => {
-    if (typeof child === 'string') throw new Error('Unexpected spark text');
-    const angle = -Math.PI / 2 + index * Math.PI / 3;
-    expect(child).toHaveStyle({ width: 4, height: 4 });
-    expect(child).toHaveAnimatedStyle({ opacity: 0.5, transform: [
-      { translateX: Math.cos(angle) * 8 }, { translateY: Math.sin(angle) * 8 }, { scale: 0.5 },
-    ] });
-  });
-  await act(async () => { hook.result.current.set(1); await jest.advanceTimersByTimeAsync(0); });
-  for (const child of burst.children) {
-    if (typeof child === 'string') throw new Error('Unexpected spark text');
-    expect(child).toHaveAnimatedStyle({ opacity: 0 });
-  }
 });

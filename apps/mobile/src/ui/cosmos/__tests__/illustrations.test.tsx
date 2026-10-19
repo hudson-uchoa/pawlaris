@@ -8,6 +8,7 @@ import { ClearSky } from '../illustrations/ClearSky';
 import { EmptyHealth } from '../illustrations/EmptyHealth';
 import { EmptyPets } from '../illustrations/EmptyPets';
 import { EmptyWalks } from '../illustrations/EmptyWalks';
+import { atlasAlphas, atlasTransforms } from './skyDrawing';
 
 jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
@@ -20,6 +21,16 @@ const initialAppState = AppState.currentState;
 const scenes = [
   ['ClearSky', ClearSky], ['EmptyPets', EmptyPets], ['EmptyWalks', EmptyWalks], ['EmptyHealth', EmptyHealth],
 ] as const;
+
+// Each illustration owns a static placement Group outside the ambient sky.
+function sceneGroup(view: Awaited<ReturnType<typeof render>>) {
+  const groups = view.container.queryAll((node) => node.type === 'skGroup'
+    && Array.isArray(node.props.transform) && node.props.transform.length === 3);
+  expect(groups).toHaveLength(1);
+  const group = groups[0];
+  if (group === undefined) throw new Error('Missing illustration placement group');
+  return group;
+}
 
 // Rasterize the rendered drawing with the installed Skia CPU backend. This
 // checks pixels without prescribing a gradient or mask implementation.
@@ -98,7 +109,7 @@ afterEach(async () => {
 
 test('ClearSky draws a crescent and a few gold stars', async () => {
   const view = await render(<ClearSky width={240} height={160} active={false} />);
-  const paths = view.container.queryAll((node) => node.type === 'skPath');
+  const paths = sceneGroup(view).queryAll((node) => node.type === 'skPath');
   const moons = paths.filter((node) => node.props.color === dark.textMuted);
   expect(moons).toHaveLength(1);
   expect((moons[0]?.props.path as string).match(/ A/g)).toHaveLength(2);
@@ -107,8 +118,8 @@ test('ClearSky draws a crescent and a few gold stars', async () => {
 
 test('EmptyPets draws a dotted paw with four toes, all unlit', async () => {
   const view = await render(<EmptyPets width={240} height={160} active={false} />);
-  const pads = view.container.queryAll((node) => node.type === 'skPath');
-  const toes = view.container.queryAll((node) => node.type === 'skCircle');
+  const pads = sceneGroup(view).queryAll((node) => node.type === 'skPath');
+  const toes = sceneGroup(view).queryAll((node) => node.type === 'skCircle');
   expect(pads).toHaveLength(1);
   expect(toes).toHaveLength(4);
   for (const shape of [...pads, ...toes]) {
@@ -117,16 +128,16 @@ test('EmptyPets draws a dotted paw with four toes, all unlit', async () => {
     expect(shape.children).toHaveLength(1);
     expect(shape.children[0]).toEqual(expect.objectContaining({ type: 'skDashPathEffect' }));
   }
-  expect(view.container.queryAll((node) => node.props.color === dark.star)).toHaveLength(0);
+  expect(sceneGroup(view).queryAll((node) => node.props.color === dark.star)).toHaveLength(0);
 });
 
 test('EmptyWalks places a ring behind and in front of a planet within a dashed orbit', async () => {
   const view = await render(<EmptyWalks width={240} height={160} active={false} />);
-  const orbit = view.container.queryAll((node) => node.type === 'skOval');
+  const orbit = sceneGroup(view).queryAll((node) => node.type === 'skOval');
   expect(orbit).toHaveLength(1);
   expect(orbit[0]?.props.style).toBe('stroke');
   expect(orbit[0]?.children[0]).toEqual(expect.objectContaining({ type: 'skDashPathEffect' }));
-  const shapes = view.container.queryAll((node) => node.type === 'skPath' || node.type === 'skCircle');
+  const shapes = sceneGroup(view).queryAll((node) => node.type === 'skPath' || node.type === 'skCircle');
   expect(shapes.map((shape) => [shape.type, shape.props.color])).toEqual([
     ['skPath', dark.accent], ['skCircle', dark.accentSoft], ['skCircle', dark.accent], ['skPath', dark.accent],
   ]);
@@ -134,8 +145,8 @@ test('EmptyWalks places a ring behind and in front of a planet within a dashed o
 
 test('EmptyHealth draws one gold star above a horizontal horizon', async () => {
   const view = await render(<EmptyHealth width={240} height={160} active={false} />);
-  const stars = view.container.queryAll((node) => node.type === 'skPath');
-  const horizons = view.container.queryAll((node) => node.type === 'skLine');
+  const stars = sceneGroup(view).queryAll((node) => node.type === 'skPath');
+  const horizons = sceneGroup(view).queryAll((node) => node.type === 'skLine');
   expect(stars).toHaveLength(1);
   expect(horizons).toHaveLength(1);
   expect(stars[0]?.props.color).toBe(dark.star);
@@ -158,8 +169,12 @@ describe.each(scenes)('%s activity', (_name, Illustration) => {
     });
     const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
     const view = await render(<Illustration width={240} height={160} active testID="scene" />);
-    expect(repeat).toHaveBeenCalledTimes(3);
+    expect(repeat).not.toHaveBeenCalled();
+    const initial = atlasAlphas(view);
     await act(async () => { await jest.advanceTimersByTimeAsync(100); });
+    const drawing = atlasAlphas(view);
+    expect(drawing).not.toEqual(initial);
+    const positions = atlasTransforms(view).map(({ tx, ty }) => [tx, ty]);
     repeat.mockClear();
     const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
     if (reason === 'background') {
@@ -169,16 +184,18 @@ describe.each(scenes)('%s activity', (_name, Illustration) => {
       await view.rerender(<Illustration width={240} height={160} active={reason !== 'focus'} testID="scene" />);
     }
     const stopped = [...new Set(cancel.mock.calls.map(([value]) => value))];
-    expect(stopped).toHaveLength(3);
+    expect(stopped).toHaveLength(1);
     const values = stopped.map((value) => value.value);
     await act(async () => { await jest.advanceTimersByTimeAsync(10600); });
     expect(stopped.map((value) => value.value)).toEqual(values);
+    expect(atlasAlphas(view)).toEqual(drawing);
+    expect(atlasTransforms(view).map(({ tx, ty }) => [tx, ty])).toEqual(positions);
     expect(repeat).not.toHaveBeenCalled();
     expect(screen.getByTestId('scene', { includeHiddenElements: true })).toBeOnTheScreen();
     expect(screen.getByTestId('scene', { includeHiddenElements: true }).props.importantForAccessibility)
       .toBe('no-hide-descendants');
-    expect(view.container.queryAll((node) => node.type === 'skPoints')).toHaveLength(3);
-    expect(view.container.queryAll((node) => ['skPath', 'skCircle', 'skOval', 'skLine'].includes(node.type)).length)
+    expect(view.container.queryAll((node) => node.type === 'skAtlas')).toHaveLength(1);
+    expect(sceneGroup(view).queryAll((node) => ['skPath', 'skCircle', 'skOval', 'skLine'].includes(node.type)).length)
       .toBeGreaterThan(0);
   });
 });
