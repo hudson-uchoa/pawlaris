@@ -14,6 +14,10 @@ export const strings = {
     permissions: 'Permissões',
     diagnostics: 'Diagnóstico',
     logout: 'Sair',
+    logoutConfirmation: (count: number): string =>
+      `${count} alterações ainda não foram enviadas e serão perdidas. Sair mesmo assim?`,
+    incorrectPassword: 'Senha atual incorreta.',
+    operationFailed: 'Não foi possível concluir. Tente de novo.',
     currentPassword: 'Senha atual',
     newPassword: 'Nova senha',
     save: 'Salvar',

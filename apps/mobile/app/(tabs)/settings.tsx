@@ -1,7 +1,16 @@
 import type { ReactElement } from 'react';
-import { PlaceholderScreen } from '../../src/features/shell/PlaceholderScreen';
-import { strings } from '../../src/i18n/strings';
+import { useIsFocused, useRouter } from 'expo-router';
+import { View } from 'react-native';
+import { useApp } from '../../src/appContext';
+import { SettingsScreen } from '../../src/features/settings/SettingsScreen';
 
 export default function Settings(): ReactElement {
-  return <PlaceholderScreen title={strings.tabs.settings} testID="settings-placeholder" />;
+  const app = useApp();
+  const router = useRouter();
+  const active = useIsFocused();
+  const user = app.sessionUser();
+  if (user === null) return <View />;
+  return <SettingsScreen services={{ sessionUser: () => user, connection: app.engine.state,
+    lifecycle: app.lifecycle }} active={active}
+    onOpen={(destination) => { router.push(`../settings/${destination}`); }} />;
 }

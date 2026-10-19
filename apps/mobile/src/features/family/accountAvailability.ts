@@ -4,7 +4,8 @@ export type AccountAction = 'invite' | 'name' | 'password' | 'role' | 'remove';
 export type AccountAvailability = 'available' | 'offline' | 'reserve';
 
 export function accountAvailability(
-  _action: AccountAction, _connection: ConnectionState,
+  _action: AccountAction, connection: ConnectionState,
 ): AccountAvailability {
-  throw new Error('not implemented');
+  if (connection.status !== 'synced' && connection.status !== 'syncing') return 'offline';
+  return connection.server === 'reserve' ? 'reserve' : 'available';
 }

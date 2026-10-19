@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 import { createApi } from './api/client';
 import { createAssetFiles, type AssetFiles } from './assets/files';
 import { createLifecycle, type Lifecycle } from './auth/lifecycle';
+import { changePassword } from './auth/changePassword';
 import { expoSecretBox, type SecretBox } from './auth/secretBox';
 import { createSession, type Session } from './auth/session';
 import { readServers, type Servers } from './config/servers';
@@ -52,6 +53,7 @@ export interface AppRuntime {
   store: ReplicaStore;
   engine: Engine;
   session: Session;
+  changePassword(currentPassword: string, newPassword: string): Promise<void>;
   lifecycle: Lifecycle;
   events: SyncEvents;
   clock: Clock;
@@ -140,6 +142,14 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   return {
     db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
     camera, photoCapture,
+    changePassword: (currentPassword, newPassword) => changePassword({
+      api, session, connection: engine.state,
+      sessionUser: () => {
+        const user = sessionUser();
+        if (user === null) throw new Error('Password changes require a session');
+        return user;
+      },
+    }, currentPassword, newPassword),
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;
