@@ -330,3 +330,17 @@ test('R6.3 hides an empty care section and the ready empty state offers task cre
   await fireEvent.press(screen.getByTestId('tasks-manage'));
   expect(c.onManage).toHaveBeenCalledTimes(1);
 });
+
+test.each(['all', 'user'] as const)(
+  'R6.11 a member ignores the stored leader scope %s and sees only their own and unassigned tasks', async (choice) => {
+    const c = await scene('member');
+    c.kv.set('scope_filter', choice === 'all' ? 'all' : `user:${c.other.id}`);
+    const mine = seedTask(c, { assigned_to: c.sessionUser.id });
+    const shared = seedTask(c, { assigned_to: null });
+    const other = seedTask(c, { assigned_to: c.other.id });
+    await paint(c);
+    expect(screen.queryByTestId(cardId(other, today(c)))).toBeNull();
+    expect(screen.getByTestId(cardId(mine, today(c)))).toBeOnTheScreen();
+    expect(screen.getByTestId(cardId(shared, today(c)))).toBeOnTheScreen();
+  },
+);
