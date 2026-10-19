@@ -8,9 +8,10 @@ import { Text } from '../../ui/primitives/Text';
 import { spacing } from '../../ui/tokens/spacing';
 import { PetAvatar } from './PetAvatar';
 
-export function UpcomingCare({ items, pets, onOpenPet }: {
+export function UpcomingCare({ items, pets, active, onOpenPet }: {
   items: readonly UpcomingCareItem[];
   pets: Readonly<Record<string, Pet>>;
+  active: boolean;
   onOpenPet(id: string): void;
 }): ReactElement | null {
   if (items.length === 0) return null;
@@ -18,19 +19,20 @@ export function UpcomingCare({ items, pets, onOpenPet }: {
     <Text variant="heading" accessibilityRole="header">{strings.dashboard.upcomingCare}</Text>
     {items.map((item) => {
       const pet = pets[item.pet_id];
-      return pet === undefined ? null : <CareRow key={item.id} item={item} pet={pet} onOpenPet={onOpenPet} />;
+      return pet === undefined ? null : <CareRow key={item.id} item={item} pet={pet} active={active} onOpenPet={onOpenPet} />;
     })}
   </View>;
 }
 
-const CareRow = memo(function CareRow({ item, pet, onOpenPet }: {
+const CareRow = memo(function CareRow({ item, pet, active, onOpenPet }: {
   item: UpcomingCareItem;
   pet: Pet;
+  active: boolean;
   onOpenPet(id: string): void;
 }): ReactElement {
   const open = useCallback(() => { onOpenPet(pet.id); }, [onOpenPet, pet.id]);
   return <Card testID={`care-event-${item.id}`} accessibilityLabel={`${pet.name}, ${item.title}`}
-    active={false} onPress={open} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+    active={active} onPress={open} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
     <PetAvatar pet={pet} />
     <View style={{ flex: 1, gap: spacing.xxs }}>
       <Text variant="label">{item.title}</Text>

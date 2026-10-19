@@ -192,6 +192,36 @@ test('P5-1 the task list route opens the edit form until task detail exists', as
   expect(c.http.requests).toEqual([]);
 });
 
+test('P5-2 the dashboard tab reads the replica and wires task and care navigation', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const replica = new ReplicaRepo(driver);
+  const pet = c.factory.pets();
+  const task = c.factory.task_templates({ pet_ids: [pet.id], times_of_day: [], created_by: wire.user.id });
+  const care = c.factory.health_events({ pet_id: pet.id, next_due_on: '2026-10-13' });
+  replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('members', c.factory.members({ id: wire.user.id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('task_templates', task, { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('health_events', care, { pending: false, deleted: false, pullGen: 0 });
+  await renderShell(c.deps);
+  expect(screen.getByTestId(`task-card-${task.id}-2026-10-13`)).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('scope-all'));
+  expect(c.kv.get('scope_filter')).toBe('all');
+  await fireEvent.press(screen.getByTestId(`care-event-${care.id}`));
+  expect(screen.getByTestId('pet-profile')).toBeOnTheScreen();
+  await act(() => { router.back(); });
+  await fireEvent.press(screen.getByTestId('task-add'));
+  expect(screen.getByTestId('task-title')).toBeOnTheScreen();
+  await act(() => { router.back(); });
+  await fireEvent.press(screen.getByTestId('tasks-manage'));
+  expect(screen.getByRole('radio', { name: strings.tasks.active })).toBeChecked();
+  expect(c.http.requests).toEqual([]);
+});
+
 test('P4-9 Settings routes open family, password, permissions and the wired diagnostics', async () => {
   openDatabase(driver);
   const c = dependencies();
@@ -234,7 +264,7 @@ test('R5.1 startup without session renders the login placeholder without HTTP', 
   await renderShell(c.deps);
   expect(screen.getByTestId('login-placeholder')).toBeOnTheScreen();
   expect(screen.getByText(strings.appName)).toBeOnTheScreen();
-  expect(screen.queryByTestId('dashboard-placeholder')).toBeNull();
+  expect(screen.queryByTestId('dashboard')).toBeNull();
   expect(c.http.requests).toHaveLength(0);
   expect(c.socket.instances).toHaveLength(0);
 });
@@ -296,7 +326,7 @@ test.each(['login', 'redeem'] as const)('P4-4 %s route adopts the session and op
   await fireEvent.changeText(screen.getByTestId(`${route}-password`), 'test-only-password');
   await fireEvent.press(screen.getByTestId(`${route}-submit`));
   expect(JSON.parse(c.kv.get('session_user') ?? 'null')).toEqual(wire.user);
-  expect(screen.getByTestId('dashboard-placeholder')).toBeOnTheScreen();
+  expect(screen.getByTestId('dashboard')).toBeOnTheScreen();
   expect(screen.queryByTestId('login-submit')).toBeNull();
   expect(screen.queryByTestId('redeem-submit')).toBeNull();
   expect(c.http.requests.map(({ url }) => url)).toEqual([
@@ -318,7 +348,7 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   replica.upsert('family', c.factory.family(), { pending: false, deleted: false, pullGen: 0 });
   replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
   c.http.enqueue(() => {
-    expect(screen.getByTestId('dashboard-placeholder')).toBeOnTheScreen();
+    expect(screen.getByTestId('dashboard')).toBeOnTheScreen();
     return new Promise(() => {});
   });
   const hide = jest.spyOn(SplashScreen, 'hideAsync').mockResolvedValue(undefined);
@@ -329,7 +359,7 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
     expect(c.http.requests).toHaveLength(0);
   });
   await renderShell(c.deps, observeDashboard);
-  const dashboard = screen.getByTestId('dashboard-placeholder');
+  const dashboard = screen.getByTestId('dashboard');
   expect(observeDashboard).toHaveBeenCalledTimes(1);
   expect(dashboard).toBeOnTheScreen();
   for (const label of Object.values(strings.tabs)) {
@@ -556,8 +586,8 @@ test('P4-3 dashboard marker ignores skeleton layouts and emits once after family
   const app = observeDashboard.mock.calls[0]?.[0];
   if (app === undefined) throw new Error('Dashboard did not render');
   const layout = { nativeEvent: { layout: { x: 0, y: 0, width: 360, height: 720 } } };
-  const dashboard = screen.getByTestId('dashboard-placeholder');
-  expect(dashboard.queryAll((node) => node.props.importantForAccessibility === 'no-hide-descendants')).toHaveLength(5);
+  const dashboard = screen.getByTestId('dashboard');
+  expect(screen.getAllByTestId(/^dashboard-skeleton-/)).toHaveLength(5);
   expect(c.deps.perfOutput).not.toHaveBeenCalled();
   await fireEvent(dashboard, 'layout', layout);
   await fireEvent(dashboard, 'layout', layout);
@@ -566,11 +596,12 @@ test('P4-3 dashboard marker ignores skeleton layouts and emits once after family
   const family = c.factory.family({ id: wire.user.family_id });
   await act(() => {
     new ReplicaRepo(driver).upsert('family', family, { pending: false, deleted: false, pullGen: 0 });
+    new ReplicaRepo(driver).upsert('members', c.factory.members({ id: wire.user.id }), { pending: false, deleted: false, pullGen: 0 });
     hydrate({ driver, store: app.store, clock: c.deps.clock });
   });
   expect(app.store.getState().family).toEqual(family);
-  const hydratedDashboard = screen.getByTestId('dashboard-placeholder');
-  expect(hydratedDashboard.queryAll((node) => node.props.importantForAccessibility === 'no-hide-descendants')).toHaveLength(0);
+  const hydratedDashboard = screen.getByTestId('dashboard');
+  expect(screen.queryAllByTestId(/^dashboard-skeleton-/)).toHaveLength(0);
   expect(c.deps.perfOutput).not.toHaveBeenCalled();
   await fireEvent(hydratedDashboard, 'layout', layout);
   expect(c.deps.perfOutput).toHaveBeenCalledTimes(1);
@@ -597,7 +628,7 @@ test.each(['primary', 'reserve'] as const)('SE-2 signed_out on %s survives resta
   const beforeOutbox = driver.all('SELECT * FROM outbox');
   const first = await renderShell(c.deps);
   expect(screen.getByTestId('login-placeholder')).toBeOnTheScreen();
-  expect(screen.queryByTestId('dashboard-placeholder')).toBeNull();
+  expect(screen.queryByTestId('dashboard')).toBeNull();
   expect(driver.all('SELECT * FROM replica')).toEqual(beforeRows);
   expect(driver.all('SELECT * FROM outbox')).toEqual(beforeOutbox);
   await first.unmount();

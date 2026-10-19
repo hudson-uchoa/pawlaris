@@ -58,6 +58,7 @@ export interface AppDependencies {
 
 export interface AppRuntime {
   db: SqlDriver;
+  preferences: Pick<Kv, 'get' | 'set'>;
   store: ReplicaStore;
   engine: Engine;
   session: Session;
@@ -167,7 +168,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     rebuild: () => rebuildLocalData({ driver, store, clock, engine }),
   };
   return {
-    db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
+    db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
     camera, photoCapture, familyActions, diagnostics,
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,

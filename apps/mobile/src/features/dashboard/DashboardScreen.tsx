@@ -1,10 +1,15 @@
 import { addDays, localDate, upcomingCare, type DayView, type DayViewItem } from '@pawlaris/shared';
 import { useCallback, useContext, useMemo, useState, type ReactElement } from 'react';
-import { FlatList, RefreshControl, View, useWindowDimensions, type ListRenderItemInfo } from 'react-native';
+import { RefreshControl, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type ListRenderItemInfo } from 'react-native';
+import Animated, { LinearTransition, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { strings } from '../../i18n/strings';
 import { selectDayView, selectMembers } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
+import { Starfield } from '../../ui/cosmos/Starfield';
+import { ClearSky } from '../../ui/cosmos/illustrations/ClearSky';
+import { useAnimationActive } from '../../ui/motion/useAnimationActive';
+import { useReduceMotion } from '../../ui/motion/useReduceMotion';
 import { Button } from '../../ui/primitives/Button';
 import { EmptyState } from '../../ui/primitives/EmptyState';
 import { PressableScale } from '../../ui/primitives/PressableScale';
@@ -12,8 +17,11 @@ import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { spacing } from '../../ui/tokens/spacing';
+import { illustrations } from '../../ui/tokens/cosmos';
 import { SyncIndicator } from '../shell/SyncIndicator';
 import { DashboardTaskCard } from './DashboardTaskCard';
+import { DashboardEntry } from './DashboardEntry';
+import { dashboardMotion } from './motion';
 import { DayHeader } from './DayHeader';
 import { ScopeFilter } from './ScopeFilter';
 import { UpcomingCare } from './UpcomingCare';
@@ -23,7 +31,7 @@ import { useNow } from './useNow';
 type Group = 'overdue' | 'now' | 'later' | 'done';
 type Row = { key: string } & (
   | { kind: 'section'; group: Group; count: number }
-  | { kind: 'task'; item: DayViewItem }
+  | { kind: 'task'; item: DayViewItem; index: number }
   | { kind: 'skeleton' }
   | { kind: 'empty' }
 );
@@ -38,12 +46,13 @@ function readScope(preferences: DashboardServices['preferences']): DashboardScop
 function listRows(view: DayView, loading: boolean, expanded: boolean): Row[] {
   if (loading) return Array.from({ length: 5 }, (_, index) => ({ key: `skeleton-${index}`, kind: 'skeleton' }));
   const rows: Row[] = [];
+  let index = 0;
   for (const group of ['overdue', 'now', 'later', 'done'] as const) {
     const items = view[group];
     if (items.length === 0) continue;
     rows.push({ key: `section-${group}`, kind: 'section', group, count: items.length });
     if (group === 'done' && !expanded) continue;
-    for (const item of items) rows.push({ key: `${item.taskId}:${item.occurrenceKey}`, kind: 'task', item });
+    for (const item of items) rows.push({ key: `${item.taskId}:${item.occurrenceKey}`, kind: 'task', item, index: index++ });
   }
   if (rows.length === 0) rows.push({ key: 'empty', kind: 'empty' });
   return rows;
@@ -55,6 +64,18 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { width } = useWindowDimensions();
+  const focused = useAnimationActive(active);
+  const reduced = useReduceMotion();
+  const motionEnabled = focused && !reduced;
+  const scrollY = useSharedValue(0);
+  const scroll = useAnimatedScrollHandler((event) => {
+    scrollY.set(event.contentOffset.y);
+  });
+  const [headerHeight, setHeaderHeight] = useState(spacing.xxl * 3);
+  const measureHeader = useCallback((event: LayoutChangeEvent) => {
+    setHeaderHeight(event.nativeEvent.layout.height + spacing.md * 2);
+  }, []);
+  const [entered] = useState(() => new Set<string>());
   const now = useNow(services.clock, 60_000, active);
   const family = useReplica((state) => state.family);
   const ready = useReplica((state) => state.ready);
@@ -96,45 +117,56 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
   }, [services.engine]);
   const painted = useCallback(() => {
     services.afterFirstPaint();
-    if (!loading) services.marker.dashboardInteractive();
-  }, [services, loading]);
+    if (!loading && focused) services.marker.dashboardInteractive();
+  }, [services, loading, focused]);
   const renderRow = useCallback(({ item: row }: ListRenderItemInfo<Row>): ReactElement => {
     if (row.kind === 'skeleton') return <View testID={`dashboard-${row.key}`}>
-      <Skeleton width={Math.max(0, width - spacing.md * 2)} height={spacing.xxl * 3} active={false} />
+      <Skeleton width={Math.max(0, width - spacing.md * 2)} height={spacing.xxl * 3} active={focused} />
     </View>;
-    if (row.kind === 'empty') return <EmptyState title={strings.dashboard.emptyTitle} active={false}
+    if (row.kind === 'empty') return <EmptyState title={strings.dashboard.emptyTitle} active={focused}
+      illustration={<ClearSky width={illustrations.width} height={illustrations.height} active={false} />}
       action={{ label: strings.dashboard.createTask, accessibilityLabel: strings.dashboard.createTask, onPress: onAdd }} />;
-    if (row.kind === 'task') return <DashboardTaskCard item={row.item} members={members}
-      viewerId={user?.id ?? ''} date={date} timezone={family?.timezone ?? 'UTC'} />;
+    if (row.kind === 'task') return <DashboardEntry id={row.key} index={row.index} enabled={motionEnabled} entered={entered}>
+      <DashboardTaskCard item={row.item} members={members}
+        viewerId={user?.id ?? ''} date={date} timezone={family?.timezone ?? 'UTC'} />
+    </DashboardEntry>;
     const label = row.group === 'overdue' ? strings.dashboard.overdue(row.count)
       : row.group === 'done' ? strings.dashboard.done(row.count) : strings.dashboard[row.group];
     return row.group === 'done' ? <PressableScale testID="section-done" accessibilityLabel={label}
-      accessibilityState={{ expanded }} onPress={toggleDone} active={false}>
+      accessibilityState={{ expanded }} onPress={toggleDone} active={focused}>
       <Text variant="heading">{label}</Text>
     </PressableScale> : <Text testID={`section-${row.group}`} variant="heading" accessibilityRole="header"
       color={row.group === 'overdue' ? 'danger' : 'text'}>{label}</Text>;
-  }, [width, onAdd, members, user?.id, date, family?.timezone, expanded, toggleDone]);
+  }, [width, onAdd, members, user?.id, date, family?.timezone, expanded, toggleDone, focused, motionEnabled, entered]);
 
-  return <View style={{ flex: 1, backgroundColor: color.bg }} onLayout={painted}>
-    <FlatList testID="dashboard-list" data={rows} keyExtractor={rowKey} renderItem={renderRow}
+  return <View testID="dashboard" style={{ flex: 1, backgroundColor: color.bg }} onLayout={painted}>
+    <View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: headerHeight + (insets?.top ?? 0), overflow: 'hidden' }]}>
+      <Starfield seed={dashboardMotion.skySeed} width={width} height={headerHeight + (insets?.top ?? 0)}
+        active={focused} {...(motionEnabled ? { scrollY } : {})} />
+    </View>
+    <Animated.FlatList testID="dashboard-list" data={rows} keyExtractor={rowKey} renderItem={renderRow}
+      {...(motionEnabled ? { itemLayoutAnimation: LinearTransition, onScroll: scroll } : {})}
+      scrollEventThrottle={16}
       contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
         paddingBottom: spacing.xxl * 2 + (insets?.bottom ?? 0), gap: spacing.sm }}
       refreshControl={<RefreshControl testID="dashboard-refresh" refreshing={refreshing} onRefresh={refresh}
         colors={[color.accent]} tintColor={color.accent} />}
-      ListHeaderComponent={<View style={{ gap: spacing.md }}>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
-          <DayHeader date={date} today={today} active={false} onChange={changeDay} />
-          <SyncIndicator connection={services.engine.state} active={false} />
+      ListHeaderComponent={<View key={loading ? 'loading' : 'ready'} onLayout={painted} style={{ gap: spacing.md }}>
+        <View onLayout={measureHeader} style={{ gap: spacing.md }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
+            <DayHeader date={date} today={today} active={focused} onChange={changeDay} />
+            <SyncIndicator connection={services.engine.state} active={focused} />
+          </View>
+          <Button testID="tasks-manage" label={strings.tasks.heading} accessibilityLabel={strings.tasks.heading}
+            active={focused} onPress={onManage} />
         </View>
-        <Button testID="tasks-manage" label={strings.tasks.heading} accessibilityLabel={strings.tasks.heading}
-          active={false} onPress={onManage} />
         {!loading && viewer !== undefined && <ScopeFilter viewer={viewer} members={familyMembers} value={scope}
-          active={false} onChange={changeScope} />}
-        <UpcomingCare items={care} pets={pets} onOpenPet={onOpenPet} />
+          active={focused} onChange={changeScope} />}
+        <UpcomingCare items={care} pets={pets} active={focused} onOpenPet={onOpenPet} />
       </View>} />
     {!loading && <View style={{ position: 'absolute', right: spacing.md, bottom: spacing.md + (insets?.bottom ?? 0) }}>
       <Button testID="task-add" label={strings.dashboard.add} accessibilityLabel={strings.dashboard.addTask}
-        onPress={onAdd} active={false} />
+        onPress={onAdd} active={focused} />
     </View>}
   </View>;
 }
