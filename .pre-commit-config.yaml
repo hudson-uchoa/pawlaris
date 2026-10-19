@@ -59,6 +59,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: guard-content
+        name: No phone media, large files or LAN addresses
+        entry: node scripts/guard-content.mjs
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: guard-commit-msg
         name: Conventional commit message
         entry: node scripts/guard-commit-msg.mjs
