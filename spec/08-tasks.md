@@ -1126,6 +1126,36 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   within 3 seconds. Evidence: a recording showing both screens, or the output of
   a stopwatch script reading both via `adb`.
 
+- [ ] **P5-11 — Fixes from the first phone test**
+  **Depends:** P4-4, P4-9, P5-1, P5-2 · **Read:** `09` §1 (the keyboard
+  rule), §2.1, §3.1, §7 · `06` §4.10, §4.12
+  **Build:** `PoweredBy` with its items centred on the row's middle. The
+  dashboard's header as `09` §3.1 now says it: the Hoje tab without the
+  navigation header, so one title and one `SyncIndicator`; the chevrons and
+  the label centred on one line; Tarefas as a quiet text action. The empty
+  scenes of `06` §4.10 with no visible box, and every empty state's button
+  as compact as Hoje's. One title per screen (`09` §1): the Pets tab loses
+  its second "Pets"; Arquivados shows only when a pet is archived. The
+  author line in Ajustes names both authors (`09` §7). Every screen with a
+  text field — login, redeem, the pet, weight and health forms, the task
+  form, password, family — follows the keyboard rule of `09` §1, through one
+  shared form container in `ui/primitives`.
+  **Tests:** the Hoje tab renders one `sync-indicator` and no navigation
+  header; `tasks-manage` is a text action, not a full-width button; each
+  empty scene's sky fades at its edges; the Pets tab shows its title once
+  and no Arquivados row with no archived pet; the signature row centres its
+  items, not on the baseline; each form screen renders inside the shared
+  container, which avoids the keyboard and keeps taps while it is open; on
+  login, the return key on `login-email` focuses `login-password`, and on
+  `login-password` it submits.
+  **Gate:** `pnpm -C apps/mobile run test`
+  **Device:** [ ] On both phones, in each form, focus the last field: it and
+  the primary button show above the keyboard, and every other field can be
+  reached by scrolling with the keyboard open. The Insurge mark sits level
+  with *powered by Insurge* on login and in Ajustes. Hoje shows one header,
+  and the Céu limpo and Pets scenes have no visible edge, in both themes.
+  **Not here:** a keyboard library; restyling the forms.
+
 - [ ] **P5-4 — Task detail and history**
   **Depends:** P5-3 · **Read:** `09` §5.3
   **Build:** `task/[id]/index` sections 1, 2 and 4; history in a `FlashList`

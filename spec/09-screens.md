@@ -45,6 +45,19 @@ app/permission/location.tsx        rationale ladder
 Forms are modal routes (native stack, `presentation: 'modal'`). Short choices
 (confirmations, pickers with a handful of options) use the `Sheet` primitive.
 
+**One title per screen.** A screen's title is its navigation header (on
+Hoje, the dashboard's own header, §3.1). No screen repeats it as a heading
+in its content.
+
+**The keyboard never hides the form.** Every screen with a text field
+scrolls, and while the keyboard is open the field in focus and the screen's
+primary button sit above it: the content lifts by the keyboard's height
+(React Native's `KeyboardAvoidingView`, no added dependency), and every
+other field is reachable by scrolling without closing the keyboard
+(`keyboardShouldPersistTaps="handled"`). The keyboard's return key moves to
+the next field (`returnKeyType="next"`), and on the last field it submits
+the form. Only the `powered-by` signature stays behind the keyboard (§2.1).
+
 ### Startup sequence
 
 ```
@@ -110,7 +123,13 @@ in `apps/mobile/src/replica/selectors.ts`, which wraps `buildDayView` from
 ### 3.1 Layout, top to bottom
 
 1. **Header** — the day label and the sync indicator, over a `Starfield` band
-   *(06 §4.1)* that parallaxes with the list's scroll.
+   *(06 §4.1)* that parallaxes with the list's scroll. It is the screen's
+   only header: the Hoje tab hides the navigation header that the other tabs
+   show, so the title and the `SyncIndicator` appear once.
+   - The chevrons and the label sit on one line, centred on its middle.
+   - **Tarefas** `tasks-manage` is a quiet text action at the right of the
+     header, never a full-width button: the FAB is the screen's one
+     prominent action.
    - Label: `Hoje`, `Ontem`, `Amanhã`, otherwise `qua., 14 de out.`
    - `day-prev` / `day-next` chevrons move one day; limits −90 / +30 *(R6.2)*.
      Tapping the label when it is not today returns to today (`day-today`).
@@ -131,7 +150,7 @@ in `apps/mobile/src/replica/selectors.ts`, which wraps `buildDayView` from
 8. **Concluídas (n)** `section-done` — collapsed by default; tap to expand.
 9. Empty section headers are not rendered.
 
-Bottom-right FAB **+** `task-add` → `task/new`. A header action **Tarefas**
+Bottom-right FAB **+** `task-add` → `task/new`. The header action **Tarefas**
 `tasks-manage` → `tasks/index`.
 
 ### 3.2 States
@@ -192,8 +211,8 @@ A failed sync never un-checks a card. The only visible sign is the indicator.
   name, age *(R2.4)*.
 - Press-in → scale; release → hero transition to `pet/[id]` *(06 §4.6)*.
 - **+ Adicionar** `pet-add` → `pet/new`.
-- Leaders see **Arquivados (n)** `pets-archived` at the bottom, expanding a list
-  with **Desarquivar**.
+- Leaders see **Arquivados (n)** `pets-archived` at the bottom when n > 0,
+  expanding a list with **Desarquivar**.
 - Empty: the unlit-constellation scene *(06 §4.10)*, "Nenhuma estrela por aqui ainda." + **Adicionar pet**.
 
 ### 4.2 Pet form — `pet/new`, `pet/[id]/edit`
@@ -398,7 +417,7 @@ Rows: **Família** → `settings/family` · **Trocar senha** → `settings/passw
 `settings/diagnostics` · **Sair** `logout`.
 
 Below the rows, centred, 32 dp under **Sair**: **Pawlaris · criado por Hudson
-Uchoa** `settings-author` in `caption` and `textMuted`, and under it the
+Uchoa & Eduarda Miranda** `settings-author` in `caption` and `textMuted`, and under it the
 Insurge signature `powered-by` *(`06` §4.12, R7.7)*, which here is a link:
 it opens `https://insurge.pages.dev` in the browser.
 

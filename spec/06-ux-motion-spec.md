@@ -456,6 +456,12 @@ On a screen that already has an animated sky (the dashboard's header),
 the scene is drawn still, so the screen keeps one animated canvas
 (§1.3 rule 5) *(Q-49)*.
 
+A scene has no visible box. Its sky fades to transparent at every edge,
+so the scene melts into the screen's background in both themes; a hard
+edge on any side is a defect. The scene, its line of copy and its one
+button are the `EmptyState` primitive's and look the same on every screen:
+the button is compact and centred under the copy, never full width.
+
 All of it is authored for this project. **No GoPuppy assets**, no stock
 illustration packs.
 
@@ -561,9 +567,12 @@ export const insurge = {
 } as const;
 ```
 
-**The line.** `PoweredBy` (`ui/cosmos/PoweredBy.tsx`) lays out, centred on
-one baseline: the mark at 18 dp, 8 dp of space, *powered by* in `caption`
-and `textMuted`, then *Insurge* in `label` and `text`. The two strings live
+**The line.** `PoweredBy` (`ui/cosmos/PoweredBy.tsx`) lays out one row,
+centred on the screen, each item centred on the row's vertical middle: the
+mark at 18 dp, 8 dp of space, *powered by* in `caption` and `textMuted`,
+then *Insurge* in `label` and `text`. The two words share one baseline. The
+mark is not set on the text's baseline: a glyph sitting on it rides above
+the words, as the owner saw on the phone. The two strings live
 in `strings.ts` as `brand.poweredBy` and `brand.insurge` and are not
 translated. To assistive technology the line is one element labelled
 "powered by Insurge". Given an `href`, it is a link with a 44 dp touch
