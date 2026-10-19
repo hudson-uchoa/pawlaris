@@ -1,7 +1,10 @@
 import { addDays, localDate, type TaskTemplate } from '@pawlaris/shared';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import { AppState, type RefreshControlProps } from 'react-native';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
+import { formatCareDue } from '../../../i18n/format';
+import { strings } from '../../../i18n/strings';
 import { selectDayView } from '../../../replica/selectors';
 import { createReplicaStore, type ReplicaStore } from '../../../replica/store';
 import { ReplicaProvider } from '../../../replica/useReplica';
@@ -11,10 +14,21 @@ import { DayHeader } from '../DayHeader';
 import { ScopeFilter } from '../ScopeFilter';
 import { dashboardContext, type DashboardContext } from './support';
 
+// The preset's RefreshControl renders a native placeholder without props.
+jest.mock('react-native/Libraries/Components/RefreshControl/RefreshControl', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return { __esModule: true, default: function RefreshControl(props: RefreshControlProps) {
+    return React.createElement(View, props);
+  } };
+});
+
 let context: DashboardContext | undefined;
+const initialAppState = AppState.currentState;
 
 beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
+  AppState.currentState = 'active';
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
 });
 
@@ -25,6 +39,7 @@ afterEach(async () => {
   context = undefined;
   jest.restoreAllMocks();
   jest.useRealTimers();
+  AppState.currentState = initialAppState;
   expect(requests).toEqual([]);
 });
 
@@ -264,4 +279,54 @@ test('R6.14 pull-to-refresh kicks the engine and keeps the list while the pull i
   await act(async () => { finish?.(); await pending; });
   expect(screen.getByTestId(id)).toBeOnTheScreen();
   expect(c.store.getState().taskTemplates).toBe(before);
+});
+
+test('R2.11 R6.3 upcoming care includes overdue through seven days and opens the pet', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  const archived = c.seedPet({ archived_at: new Date(c.clock.now()).toISOString() });
+  const visible = [-9, 0, 3, 7].map((days) => c.factory.health_events({
+    pet_id: pet.id, title: `Care ${days}`, next_due_on: addDays(today(c), days),
+  }));
+  const hidden = [
+    c.factory.health_events({ pet_id: pet.id, next_due_on: addDays(today(c), 8) }),
+    c.factory.health_events({ pet_id: archived.id, next_due_on: today(c) }),
+    c.factory.health_events({ pet_id: pet.id, next_due_on: null }),
+    c.factory.health_events({ pet_id: pet.id, next_due_on: today(c), deleted_at: new Date(c.clock.now()).toISOString() }),
+  ];
+  c.driver.transaction(() => {
+    for (const event of [...visible, ...hidden]) c.apply.applyLocalRow('health_events', event);
+  });
+  await paint(c);
+  expect(screen.getByTestId('section-care')).toBeOnTheScreen();
+  expect(screen.getAllByTestId(/^care-event-/).map((row) => row.props.testID))
+    .toEqual(visible.map((event) => `care-event-${event.id}`));
+  for (const [index, days] of [-9, 0, 3, 7].entries()) {
+    const event = visible[index];
+    if (event === undefined) throw new Error('The seeded care event is missing');
+    const row = screen.getByTestId(`care-event-${event.id}`);
+    expect(within(row).getByText(event.title)).toBeOnTheScreen();
+    expect(within(row).getByText(formatCareDue(days))).toBeOnTheScreen();
+    await fireEvent.press(row);
+    expect(c.onOpenPet).toHaveBeenLastCalledWith(pet.id);
+  }
+  await fireEvent.press(screen.getByTestId('day-next'));
+  expect(screen.queryByTestId('section-care')).toBeNull();
+  await fireEvent.press(screen.getByTestId('day-today'));
+  expect(screen.getByTestId('section-care')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('day-prev'));
+  expect(screen.queryByTestId('section-care')).toBeNull();
+});
+
+test('R6.3 hides an empty care section and the ready empty state offers task creation', async () => {
+  const c = await scene();
+  await paint(c);
+  expect(screen.queryByTestId('section-care')).toBeNull();
+  expect(screen.getByRole('header', { name: strings.dashboard.emptyTitle })).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: strings.dashboard.createTask }));
+  expect(c.onAdd).toHaveBeenCalledTimes(1);
+  await fireEvent.press(screen.getByTestId('task-add'));
+  expect(c.onAdd).toHaveBeenCalledTimes(2);
+  await fireEvent.press(screen.getByTestId('tasks-manage'));
+  expect(c.onManage).toHaveBeenCalledTimes(1);
 });

@@ -75,6 +75,18 @@ export function formatDayLabel(date: DateKey): string {
   return dayLabel.format(utcDate(parseDateKey(date)));
 }
 
+export function formatDashboardDay(date: DateKey, today: DateKey): string {
+  if (date === today) return strings.dashboard.today;
+  if (date === addDays(today, -1)) return strings.dashboard.yesterday;
+  if (date === addDays(today, 1)) return strings.dashboard.tomorrow;
+  return formatDayLabel(date);
+}
+
+export function formatCareDue(daysUntil: number): string {
+  if (daysUntil === 0) return strings.dashboard.dueToday;
+  return daysUntil < 0 ? strings.dashboard.overdueBy(-daysUntil) : strings.dashboard.dueIn(daysUntil);
+}
+
 export function formatDecimal(value: number, fractionDigits: number): string {
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits,
