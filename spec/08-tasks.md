@@ -1130,6 +1130,8 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Depends:** P5-3 · **Read:** `09` §5.3
   **Build:** `task/[id]/index` sections 1, 2 and 4; history in a `FlashList`
   (install `@shopify/flash-list`), paging from `replicaRepo.range`.
+  A row of `tasks/index` opens this screen; until now it opened
+  `task/[id]/edit` (P5-1 review).
   **Tests:** history lists done and `não feito` rows for the last 30 days;
   undone completions absent; older ranges load on scroll; a forked template's
   history starts at its own `starts_on`.
