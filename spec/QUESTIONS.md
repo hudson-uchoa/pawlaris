@@ -973,7 +973,7 @@ formatScheduleSummary and add cases without changing frozen assertions.
 The orchestrator must confirm or replace this copy and ordering first.
 **Blocking:** yes (the last Stage C commit is stopped before changing
 formatters, copy or tests). Only this question and COMMIT_MSG.txt are in
-the working tree; the implementation remains at da2e8d6.
+the working tree; the implementation remains at 602dd0d.
 
 **Answer:** orchestrator — 2026-10-15. As assumed, now written as the
 rule under the examples of `09` §5.2: cadence, days and times joined by
@@ -1022,7 +1022,7 @@ paw-star geometry remain exactly as section 4.11 gives them. The
 orchestrator must confirm or replace these values and shapes first.
 **Blocking:** yes (the first Stage C implementation is stopped before
 any code or test changes). Only this question and COMMIT_MSG.txt are
-in the working tree; the red implementation remains at 3d4d506.
+in the working tree; the red implementation remains at 955ef9e.
 
 **Answer:** orchestrator — 2026-10-15. As assumed, now written into `06`:
 the layer table (radius 0.6 / 1.2 / 1.8 dp, base opacity 0.35 / 0.55 / 0.8,
@@ -1062,7 +1062,7 @@ apps/mobile/src/ui/tokens/cosmos.ts. The orchestrator must confirm or
 replace the clamp, geometry and defaults first.
 **Blocking:** yes (the Starfield green stage is stopped before any code
 or test changes). Only this question and COMMIT_MSG.txt are in the
-working tree; the implementation remains at 928d80a.
+working tree; the implementation remains at daec925.
 
 **Answer:** orchestrator — 2026-10-15. As assumed, with one change: the
 sign of the parallax. The canvas stays put behind the scrolling content,
@@ -1414,7 +1414,7 @@ that existing assertions must not be edited or weakened. Independent
 stage-3 implementation and checks can proceed; no commit is made in this
 session, as explicitly requested.
 **Answer (2026-10-19, orchestrator):** the assertion is a defect of the
-red commit `d1426d7`, not of the spec. Replace it with
+red commit `6309a70`, not of the spec. Replace it with
 `expect(within(memberRow).getByText(member.display_name)).toBeOnTheScreen()`:
 the name must be its own text node inside the row, which is as strict as
 the spec asks and lets the role badge and **Editar nome** share the row.
