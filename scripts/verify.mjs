@@ -76,6 +76,10 @@ const GATES = [
     requires: 'apps/mobile/tsconfig.json',
     cmd: 'pnpm -C apps/mobile exec tsc --noEmit' },
 
+  { id: 'config:mobile',    group: 'typecheck', task: 'P0-5', spec: '07 §1.2',
+    requires: 'apps/mobile/app.config.ts',
+    cmd: 'pnpm -C apps/mobile exec expo config --type public --json' },
+
   { id: 'test:mobile',      group: 'test',      task: 'P0-5', spec: '07 §6, §7',
     requires: 'apps/mobile/package.json',
     cmd: 'pnpm -C apps/mobile run test' },
