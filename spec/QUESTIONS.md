@@ -1645,3 +1645,12 @@ assertion unchanged. May these additional migrations be included?
 The requested UI, full mobile, lint and typecheck commands have all run;
 only those five legacy full-suite cases fail. Leave the implementation
 uncommitted and the task checkbox unchanged, as directed by the owner.
+**Answer (2026-10-19, orchestrator):** as assumed, under Q-53's rules:
+queries narrowed structurally, never by loosening a count or a bound;
+the depth offsets -4.8, -9.6 and -19.2 at scroll 120 stay; blur keeps
+the drawing and stops the clock without replaying card entry; Reduce
+Motion keeps a still `Atlas` with no parallax change and no entry
+animation. Any other test that asserts the removed three-layer renderer
+migrates the same way without a new question, listed in the commit.
+A test that fails for any other reason is a question. The spec is
+unchanged.
