@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import { useState } from 'react';
-import { AppState, Pressable, Text, View } from 'react-native';
+import { AppState, Dimensions, Pressable, Text, View } from 'react-native';
 import Animated, { measure } from 'react-native-reanimated';
 import { duration, spring } from '../../tokens';
 import * as ReduceMotion from '../../useReduceMotion';
@@ -117,18 +117,52 @@ test('MO-1: Reduce Motion takes the 150 ms crossfade path without scheduling a s
   expect(screen.queryByTestId('hero-overlay', { includeHiddenElements: true })).toBeNull();
 });
 
-test.each(['source', 'target'] as const)('P4-8: a null %s measure takes the crossfade path', async (endpoint) => {
+test.each([
+  'null source',
+  'null target',
+  'zero-width source avatar',
+  'off-screen source avatar on Back',
+  'null name with a valid avatar',
+] as const)('P4-8: measuring %s takes the crossfade path', async (failure) => {
   const animateSpring = jest.spyOn(springAnimation, 'withSpring');
   const timing = jest.spyOn(timingAnimation, 'withTiming');
-  await navigate(endpoint);
+  if (failure === 'zero-width source avatar') {
+    measurement.measure.mockImplementationOnce(() => frame(20, 80, 0, 64));
+  } else if (failure === 'null name with a valid avatar') {
+    measurement.measure.mockImplementationOnce(() => frame(20, 80, 64, 64))
+      .mockImplementationOnce(() => null);
+  }
+  await navigate(failure === 'null source' ? 'source' : failure === 'null target' ? 'target' : null);
+  const back = failure === 'off-screen source avatar on Back';
+  if (back) {
+    const sourceAvatar = measurement.measure.mock.calls[0]?.[0];
+    expect(sourceAvatar).toBeDefined();
+    await advance(2000);
+    frames.set(sourceAvatar, frame(20, Dimensions.get('window').height + 1, 64, 64));
+    measurement.measure.mockClear();
+    animateSpring.mockClear();
+    timing.mockClear();
+    await fireEvent.press(screen.getByTestId('back'));
+    expect(measurement.measure.mock.calls).toContainEqual([sourceAvatar]);
+    expect(screen.getByTestId('hero-overlay', { includeHiddenElements: true })).toBeOnTheScreen();
+  }
   expect(measurement.measure).toHaveBeenCalled();
+  expect(animateSpring).not.toHaveBeenCalled();
   // Q-45: measurement failures use the same fade duration as Reduce Motion.
-  expect(timing.mock.calls.some(([value, config]) => value === 1 && config?.duration === duration.reducedFade)).toBe(true);
+  expect(timing.mock.calls.some(([value, config]) => value === (back ? 0 : 1) && config?.duration === duration.reducedFade)).toBe(true);
   await advance(duration.reducedFade + 32);
-  expect(screen.getByTestId('target-body')).toHaveAnimatedStyle({ opacity: 1 });
-  expect(screen.getByTestId('target-avatar')).toHaveAnimatedStyle({ opacity: 1 });
+  if (back) {
+    expect(screen.queryByTestId('target-avatar', { includeHiddenElements: true })).toBeNull();
+    expect(screen.getByTestId('source-avatar')).toHaveAnimatedStyle({ opacity: 1 });
+    expect(screen.getByTestId('source-name')).toHaveAnimatedStyle({ opacity: 1 });
+  } else {
+    expect(screen.getByTestId('target-body')).toHaveAnimatedStyle({ opacity: 1 });
+    expect(screen.getByTestId('target-avatar')).toHaveAnimatedStyle({ opacity: 1 });
+  }
   expect(animateSpring).not.toHaveBeenCalled();
   expect(screen.queryByTestId('hero-overlay', { includeHiddenElements: true })).toBeNull();
+  expect(screen.queryByTestId('avatar-copy', { includeHiddenElements: true })).toBeNull();
+  expect(screen.queryByTestId('name-copy', { includeHiddenElements: true })).toBeNull();
 });
 
 test('P4-8: the overlay unmounts after the spring settles with no leaked view', async () => {
