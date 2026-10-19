@@ -1324,3 +1324,17 @@ pet's archive does, because it takes a medical record out of the
 history: "Excluir este registro de saúde?" with one action, **Excluir**
 `health-delete-confirm`, which calls `deleteHealthEvent` and closes;
 dismissing the sheet keeps the record. Now in `09` §4.3.
+
+## Q-44 — P4-7 — How should the embedded health timeline scroll before P5-3?
+**Asked:** 2026-10-19
+**Where:** spec/06-ux-motion-spec.md §1.3; spec/08-tasks.md P4-7 and P5-3;
+spec/09-screens.md §4.3; apps/mobile/package.json.
+**Problem:** The profile owns a ScrollView with its five sections. The
+motion spec requires FlashList for health history, but the dependency is
+not installed and its installation belongs to P5-3. This session forbids
+installations. The embedded section needs to show its grouped events now.
+**I would assume:** Render the month groups as Views within the existing
+profile scroll container in `HealthTimelineSection.tsx` for this stage.
+Do not add a nested scrolling list or install a dependency. The
+orchestrator can settle the final list arrangement before accepting P4-7.
+**Blocking:** no for stage 1; the grouping and timeline tests can proceed.
