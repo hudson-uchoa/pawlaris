@@ -5,7 +5,8 @@ import type { Mutations } from '../../sync/mutations';
 export interface PetScreenServices {
   clock: Clock;
   sessionUser(): AuthUser;
-  mutations: Pick<Mutations, 'createPet' | 'patchPet' | 'archivePet' | 'unarchivePet'>;
+  mutations: Pick<Mutations,
+    'createPet' | 'patchPet' | 'archivePet' | 'unarchivePet' | 'createWeight' | 'deleteWeight'>;
 }
 
 export type PetScreenProps = {

@@ -46,6 +46,14 @@ export const strings = {
     year: 'Ano',
     clearBirthdate: 'Limpar nascimento',
   },
+  weights: {
+    empty: 'Registre pelo menos dois pesos para ver a evolução.',
+    confirm: 'Sim, salvar',
+    correct: 'Corrigir',
+    delete: 'Excluir',
+    confirmation: (previous: string, next: string): string =>
+      `${previous} kg → ${next} kg — está certo?`,
+  },
   auth: {
     loginEmail: 'E-mail',
     password: 'Senha',
