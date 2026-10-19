@@ -2,6 +2,10 @@ export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
+  pets: {
+    archived: (count: number): string => `Arquivados (${count})`,
+    cat: 'Gato',
+  },
   auth: {
     loginEmail: 'E-mail',
     password: 'Senha',
