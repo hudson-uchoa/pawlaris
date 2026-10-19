@@ -1450,3 +1450,8 @@ only the header twinkles. Confine this choice to the empty-row branch in
 apps/mobile/src/features/dashboard/DashboardScreen.tsx.
 **Blocking:** no. The scene is visible and the screen has only one
 animated canvas. The orchestrator can settle the scene's motion on review.
+**Answer (2026-10-19, orchestrator):** as assumed. Principle 5 of `06`
+§1.3 (one animated canvas per screen) wins over the illustration's
+twinkle: on a screen that already has an animated sky, the empty scene is
+drawn still. On the dashboard, the header twinkles and Céu limpo is
+still. Now in `06` §4.10.

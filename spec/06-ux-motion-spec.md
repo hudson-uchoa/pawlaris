@@ -452,6 +452,10 @@ Empty states are small scenes **drawn in code** with Skia from primitives
 | No walks yet | a small ringed planet with a dashed orbit | Nenhum passeio registrado. |
 | No health events | a single star above a horizon line | Nada registrado ainda. |
 
+On a screen that already has an animated sky (the dashboard's header),
+the scene is drawn still, so the screen keeps one animated canvas
+(§1.3 rule 5) *(Q-49)*.
+
 All of it is authored for this project. **No GoPuppy assets**, no stock
 illustration packs.
 
