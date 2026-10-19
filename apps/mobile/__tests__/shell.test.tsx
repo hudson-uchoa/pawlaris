@@ -15,6 +15,8 @@ import Walks from '../app/(tabs)/walks';
 import Settings from '../app/(tabs)/settings';
 import NewPet from '../app/pet/new';
 import EditPet from '../app/pet/[id]/edit';
+import PetProfile from '../app/pet/[id]/index';
+import PetWeight from '../app/pet/[id]/weight';
 import CameraRoute from '../app/camera';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
@@ -115,6 +117,8 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './(tabs)/settings.tsx': { default: Settings },
     './pet/new.tsx': { default: NewPet },
     './pet/[id]/edit.tsx': { default: EditPet },
+    './pet/[id]/index.tsx': { default: PetProfile },
+    './pet/[id]/weight.tsx': { default: PetWeight },
     './camera.tsx': { default: CameraRoute },
   };
   function requireRoute<T>(key: string): T {
@@ -274,6 +278,38 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   await fireEvent.press(screen.getByTestId('pet-save'));
   expect(screen.getByTestId(`pet-card-${pet.id}`)).toHaveTextContent('Atlas');
   expect(replica.get('pets', pet.id)?.row.avatar_asset_id).toBeTruthy();
+});
+
+test('P4-6 pet routes save a weight with a toast, edit the pet and return to walks without HTTP', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const pet = c.factory.pets({ species: 'dog' });
+  const replica = new ReplicaRepo(driver);
+  replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  await renderShell(c.deps);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
+  await fireEvent.press(screen.getByTestId(`pet-card-${pet.id}`));
+  expect(screen.getByTestId('pet-profile')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('weight-add'));
+  expect(screen.getByTestId('weight-value')).toBeOnTheScreen();
+  await fireEvent.changeText(screen.getByTestId('weight-value'), '4,25');
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  expect(screen.queryByTestId('weight-save')).toBeNull();
+  expect(screen.getByTestId('weight-latest')).toHaveTextContent(strings.weights.kilograms('4,25'));
+  expect(screen.getByRole('alert', { name: strings.toasts.weightRecorded })).toBeOnTheScreen();
+  expect(new OutboxRepo(driver).head(wire.user.id)).toMatchObject({
+    method: 'POST', path: '/weights', body: { pet_id: pet.id, weight_kg: 4.25 },
+  });
+  await fireEvent.press(screen.getByTestId('pet-edit'));
+  expect(screen.getByTestId('pet-name')).toHaveDisplayValue(pet.name);
+  await act(() => { router.back(); });
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));
+  expect(screen.getByTestId('walks-placeholder')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
 });
 
 test('P4-3 dashboard marker ignores skeleton layouts and emits once after family hydration', async () => {

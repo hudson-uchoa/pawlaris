@@ -2,7 +2,7 @@ import type { WeightEntry } from '@pawlaris/shared';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
-import { formatDecimal, formatValidationError } from '../../../i18n/format';
+import { formatDateTime, formatDecimal, formatValidationError } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
@@ -161,5 +161,117 @@ test('R2.8 deleting a profile weight removes only that entry and enqueues its DE
   expect(c.outbox.head(c.sessionUser.id)).toMatchObject({
     method: 'DELETE', path: `/weights/${removed.id}`, entityId: removed.id,
   });
+  expect(c.http.requests).toEqual([]);
+});
+
+test('R2.5 edited family date and note save once and notify before closing', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  const onSaved = jest.fn(() => {
+    expect(c.outbox.count()).toBe(1);
+    expect(c.onClose).not.toHaveBeenCalled();
+  });
+  await paint(c, <WeightFormScreen services={c.services} petId={pet.id} active onClose={c.onClose} onSaved={onSaved} />);
+  expect(screen.getByTestId('weight-value').props.keyboardType).toBe('decimal-pad');
+  expect(screen.getByTestId('weight-measured-at')).toHaveDisplayValue(formatDateTime(c.clock.now(), 'America/Sao_Paulo'));
+  await fireEvent.changeText(screen.getByTestId('weight-value'), '4,25');
+  await fireEvent.changeText(screen.getByTestId('weight-measured-at'), '12/10/2026 23:15');
+  await fireEvent.changeText(screen.getByTestId('weight-note'), 'After dinner');
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  expect(c.outbox.head(c.sessionUser.id)).toMatchObject({ body: {
+    pet_id: pet.id, weight_kg: 4.25, measured_at: '2026-10-13T02:15:00.000Z', note: 'After dinner',
+  } });
+  expect(c.outbox.count()).toBe(1);
+  expect(onSaved).toHaveBeenCalledTimes(1);
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+});
+
+test('R2.7 confirmation compares the latest measurement for this pet, excluding older and foreign entries', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  seedWeight(c, { pet_id: pet.id, weight_kg: 4 });
+  seedWeight(c, { pet_id: pet.id, weight_kg: 12, measured_at: new Date(c.clock.now() - 86_400_000).toISOString() });
+  const other = c.seedPet({ name: 'Atlas' });
+  seedWeight(c, { pet_id: other.id, weight_kg: 20, measured_at: new Date(c.clock.now() + 1000).toISOString() });
+  await paint(c, form(c, pet.id));
+  await fireEvent.changeText(screen.getByTestId('weight-value'), '4,50');
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(c.outbox.head(c.sessionUser.id)).toMatchObject({ body: { pet_id: pet.id, weight_kg: 4.5 } });
+});
+
+test.each(['4,250', '4.255'])('R2.5 VL-6 input precision %s is rejected before enqueueing', async (value) => {
+  const c = await scene();
+  const pet = c.seedPet();
+  await paint(c, form(c, pet.id));
+  await fireEvent.changeText(screen.getByTestId('weight-value'), value);
+  await fireEvent.press(screen.getByTestId('weight-save'));
+  expect(screen.getByRole('alert')).toHaveTextContent(formatValidationError({ field: 'weight_kg', code: 'out_of_range' }));
+  expect(c.outbox.count()).toBe(0);
+});
+
+test('R2.4 R2.6 R1.19 profile shows five recent weights and care from every assignee for this pet only', async () => {
+  const c = await scene();
+  const pet = c.seedPet({ birthdate: '2023-10-13' });
+  const otherPet = c.seedPet({ name: 'Atlas' });
+  const weights = Array.from({ length: 7 }, (_, index) => seedWeight(c, { pet_id: pet.id,
+    weight_kg: 4 + index / 10, measured_at: new Date(c.clock.now() - index * 86_400_000).toISOString() }));
+  seedWeight(c, { pet_id: otherPet.id, weight_kg: 10 });
+  const member = c.factory.members({ display_name: 'Duda' });
+  const due = c.factory.task_templates({ title: 'Shared care', assigned_to: member.id,
+    pet_ids: [pet.id, otherPet.id], completion_mode: 'per_pet' });
+  const done = c.factory.task_templates({ title: 'Finished care', assigned_to: member.id, pet_ids: [pet.id] });
+  const unrelated = c.factory.task_templates({ title: 'Other pet care', pet_ids: [otherPet.id] });
+  c.driver.transaction(() => {
+    c.apply.applyLocalRow('members', member);
+    for (const task of [due, done, unrelated]) c.apply.applyLocalRow('task_templates', task);
+    c.apply.applyLocalRow('task_completions', c.factory.task_completions({
+      task_id: due.id, pet_id: otherPet.id, completed_by: member.id, occurrence_key: '2026-10-13T08:00',
+    }));
+    c.apply.applyLocalRow('task_completions', c.factory.task_completions({
+      task_id: done.id, pet_id: null, completed_by: member.id, occurrence_key: '2026-10-13T08:00',
+    }));
+  });
+  const onEdit = jest.fn();
+  await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
+    onEdit={onEdit} onAddWeight={c.onAdd} onWalks={jest.fn()} />);
+  expect(screen.getByText([strings.pets.profileSpecies.cat.female, `3 ${strings.format.year[1]}`, strings.pets.mixedBreed].join(' · ')))
+    .toBeOnTheScreen();
+  expect(screen.getByTestId('weight-latest')).toHaveTextContent(strings.weights.kilograms(formatDecimal(4, 2)));
+  expect(screen.getAllByTestId(/^weight-entry-/).map((row) => row.props.testID))
+    .toEqual(weights.slice(0, 5).map((entry) => `weight-entry-${entry.id}`));
+  const care = within(screen.getByTestId('pet-care'));
+  expect(care.getByText(due.title)).toBeOnTheScreen();
+  expect(care.getByText(done.title)).toBeOnTheScreen();
+  expect(care.queryByText(unrelated.title)).toBeNull();
+  expect(care.getAllByText(strings.pets.notDone)).toHaveLength(1);
+  expect(care.getByText(/^Duda ·/)).toBeOnTheScreen();
+  expect(screen.queryByTestId('pet-walks')).toBeNull();
+  expect(screen.queryByTestId('health-add')).toBeNull();
+  await fireEvent.press(screen.getByTestId('pet-edit'));
+  await fireEvent.press(screen.getByTestId('weight-add'));
+  expect(onEdit).toHaveBeenCalledTimes(1);
+  expect(c.onAdd).toHaveBeenCalledTimes(1);
+  expect(c.http.requests).toEqual([]);
+});
+
+test('R1.19 dog profile shows its three newest finished walks and opens the walks tab', async () => {
+  const c = await scene();
+  const pet = c.seedPet({ species: 'dog' });
+  const otherPet = c.seedPet({ species: 'dog', name: 'Atlas' });
+  const walks = Array.from({ length: 4 }, (_, index) => c.factory.walk_sessions({ pet_id: pet.id, status: 'finished',
+    started_at: new Date(c.clock.now() - index * 86_400_000).toISOString(), ended_at: new Date(c.clock.now()).toISOString() }));
+  c.driver.transaction(() => {
+    for (const walk of [...walks, c.factory.walk_sessions({ pet_id: pet.id }),
+      c.factory.walk_sessions({ pet_id: otherPet.id, status: 'finished' })]) c.apply.applyLocalRow('walk_sessions', walk);
+  });
+  const onWalks = jest.fn();
+  await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
+    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={onWalks} />);
+  expect(screen.getAllByTestId(/^pet-walk-/).map((row) => row.props.testID))
+    .toEqual(walks.slice(0, 3).map((walk) => `pet-walk-${walk.id}`));
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));
+  expect(onWalks).toHaveBeenCalledTimes(1);
   expect(c.http.requests).toEqual([]);
 });

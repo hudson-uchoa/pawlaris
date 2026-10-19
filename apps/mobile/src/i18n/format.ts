@@ -1,6 +1,6 @@
 import {
-  localTime, parseDateKey, petAge, utcDate,
-  type DateKey, type FormValidationError, type Recurrence,
+  isDateKey, localDate, localTime, parseDateKey, petAge, slotInstant, utcDate,
+  type DateKey, type FormValidationError, type Pet, type Recurrence,
 } from '@pawlaris/shared';
 import { strings } from './strings';
 
@@ -30,6 +30,24 @@ export function formatShortDate(date: DateKey): string {
 export function formatFullDate(date: DateKey): string {
   const { y, m, d } = parseDateKey(date);
   return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
+}
+
+export function formatDateTime(instantMs: number, timezone: string): string {
+  return `${formatFullDate(localDate(instantMs, timezone))} ${formatTime(instantMs, timezone)}`;
+}
+
+export function parseDateTime(value: string, timezone: string): number | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4}) ([01]\d|2[0-3]):([0-5]\d)$/.exec(value.trim());
+  if (match === null) return null;
+  const date = `${match[3]}-${match[2]}-${match[1]}`;
+  if (!isDateKey(date)) return null;
+  return slotInstant(date, `${match[4]}:${match[5]}`, timezone);
+}
+
+export function formatPetSummary(pet: Pet, now: number, timezone: string): string {
+  const parts = [strings.pets.profileSpecies[pet.species][pet.sex]];
+  const age = pet.birthdate === null ? null : formatPetAge(pet.birthdate, localDate(now, timezone));
+  return [...parts, ...(age === null ? [] : [age]), pet.breed || strings.pets.mixedBreed].join(' · ');
 }
 
 export function formatDayLabel(date: DateKey): string {
