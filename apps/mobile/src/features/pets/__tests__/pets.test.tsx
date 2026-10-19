@@ -79,7 +79,7 @@ test('R2.2 archived pets and the archived section are hidden from members', asyn
   expect(screen.queryByTestId('pets-archived')).toBeNull();
 });
 
-test('R2.2 leaders reveal archived pets under the counted archived section', async () => {
+test('R2.2 / 09 §4.1 leaders reveal archived pets and hide the row after the last unarchive', async () => {
   const c = await scene();
   const live = c.seedPet();
   const archived = c.seedPet({ name: 'Vega', archived_at: new Date(c.clock.now()).toISOString() });
@@ -92,11 +92,30 @@ test('R2.2 leaders reveal archived pets under the counted archived section', asy
   expect(screen.getByTestId(`pet-card-${archived.id}`)).toHaveTextContent(archived.name);
   await fireEvent.press(screen.getByRole('button', { name: strings.pets.unarchive }));
   expect(c.store.getState().pets[archived.id]?.archived_at).toBeNull();
-  expect(screen.getByTestId('pets-archived')).toHaveTextContent(strings.pets.archived(0));
+  expect(screen.queryByTestId('pets-archived')).toBeNull();
   expect(c.outbox.head(c.sessionUser.id)).toMatchObject({
     method: 'POST', path: `/pets/${archived.id}/unarchive`, entityId: archived.id,
   });
   expect(c.http.requests).toEqual([]);
+});
+
+test.each([false, true])('09 §4.1 no archived row is shown with zero archived pets and a live pet: %s', async (hasLivePet) => {
+  const c = await scene();
+  if (hasLivePet) c.seedPet();
+  await paint(c, grid(c));
+  expect(screen.queryByTestId('pets-archived')).toBeNull();
+});
+
+test('06 §4.10 the empty Pets action is compact and centred inside EmptyState', async () => {
+  const c = await scene();
+  const view = await paint(c, grid(c));
+  const action = screen.getByTestId('pet-add');
+  const emptyState = view.container.queryAll((node) => node.queryAll((child) => child.props.testID === 'pet-add').length > 0
+    && node.queryAll((child) => child.props.children === strings.pets.emptyTitle).length > 0
+    && node.props.style?.alignItems === 'center');
+  expect(emptyState.length).toBeGreaterThan(0);
+  await fireEvent.press(action);
+  expect(c.onAdd).toHaveBeenCalledTimes(1);
 });
 
 test('R2.1 the empty grid offers pet-add and a card opens its pet', async () => {

@@ -44,6 +44,12 @@ test('R7.7 Settings shows the author line and the existing Insurge signature', a
   expect(c.http.requests).toEqual([]);
 });
 
+test('09 §7 the author line names both Hudson Uchoa and Eduarda Miranda', async () => {
+  const c = await scene();
+  await paint(c, <SettingsScreen services={c.services} active onOpen={c.onOpen} />);
+  expect(screen.getByTestId('settings-author')).toHaveTextContent(/Hudson Uchoa & Eduarda Miranda/);
+});
+
 test('R7.7 ADR-036 pressing the signature opens the Insurge address through fake Linking', async () => {
   const c = await scene();
   const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);

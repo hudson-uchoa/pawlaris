@@ -1,7 +1,7 @@
 import { addDays, localDate, type Completion, type TaskTemplate } from '@pawlaris/shared';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import * as Haptics from 'expo-haptics';
-import { AppState } from 'react-native';
+import { AppState, StyleSheet, useColorScheme, type ViewStyle } from 'react-native';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { formatCompletionLost, formatTime } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
@@ -10,9 +10,12 @@ import { selectDayView } from '../../../replica/selectors';
 import { ReplicaProvider, useReplica } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { ToastProvider } from '../../../ui/primitives/Toast';
+import { starCheck } from '../../../ui/tokens/cosmos';
 import { SyncToastHost } from '../../shell/SyncToastHost';
 import { TaskCard } from '../TaskCard';
 import { dashboardContext, type DashboardContext } from './support';
+
+jest.mock('react-native/Libraries/Utilities/useColorScheme');
 
 const timezone = 'America/Sao_Paulo';
 const initialAppState = AppState.currentState;
@@ -21,6 +24,7 @@ let context: DashboardContext | undefined;
 beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
   AppState.currentState = 'active';
+  jest.mocked(useColorScheme).mockReturnValue('dark');
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
   jest.spyOn(Haptics, 'impactAsync').mockResolvedValue(undefined);
 });
@@ -105,6 +109,142 @@ async function advance(c: Scene, milliseconds: number): Promise<void> {
   c.clock.advance(milliseconds);
   await act(async () => { await jest.advanceTimersByTimeAsync(milliseconds); });
 }
+
+type RenderedNode = ReturnType<typeof screen.getByTestId>;
+
+function contains(root: RenderedNode, target: RenderedNode): boolean {
+  return root === target || root.queryAll((node) => node === target).length > 0;
+}
+
+function commonContainer(root: RenderedNode, targets: readonly RenderedNode[]): RenderedNode {
+  const common = [...new Set([root, ...root.queryAll(() => true)])]
+    .filter((node) => targets.every((target) => contains(node, target))).at(-1);
+  if (common === undefined) throw new Error('The rendered controls have no common container');
+  return common;
+}
+
+function branchIndex(root: RenderedNode, target: RenderedNode): number {
+  return root.children.findIndex((child) => typeof child !== 'string' && contains(child, target));
+}
+
+function styleOf(node: RenderedNode): ViewStyle {
+  return StyleSheet.flatten<ViewStyle>(node.props.style) ?? {};
+}
+
+describe('09 §3.3 TaskCard visual reference', () => {
+  test.each(['pending', 'done'] as const)('%s card keeps avatars left, title over its meta or done line, then time and checkbox in one row', async (state) => {
+    const c = await scene();
+    const task = c.seedTask({ pet_ids: [c.pet.id], times_of_day: ['08:00'], assigned_to: c.other.id });
+    const key = `${c.date}T08:00`;
+    if (state === 'done') c.seedCompletion(task, { occurrence_key: key,
+      completed_by: c.other.id, completed_at: '2026-10-13T10:12:00Z' });
+    await paint(c, task, c.date, key);
+    const card = screen.getByTestId(`task-card-${task.id}-${key}`);
+    const title = within(card).getByText(task.title);
+    const line = within(card).getByText(state === 'done'
+      ? strings.dashboard.completedBy(c.other.display_name, '07:12') : c.other.display_name);
+    const time = within(card).getByText('08:00');
+    const check = screen.getByTestId(checkId(task, key));
+    const avatars = card.queryAll((node) => node.props.accessibilityRole === 'image');
+    expect(avatars).toHaveLength(1);
+    const avatar = avatars[0];
+    if (avatar === undefined) throw new Error('The seeded pet avatar is missing');
+    const row = commonContainer(card, [avatar, title, time, check]);
+    expect(row).toHaveStyle({ flexDirection: 'row', alignItems: 'center' });
+    // A row ancestor alone is insufficient: the old card puts avatars, title
+    // and time in the same column branch beside the checkbox.
+    expect(branchIndex(row, avatar)).toBeLessThan(branchIndex(row, title));
+    expect(branchIndex(row, title)).toBeLessThan(branchIndex(row, time));
+    expect(branchIndex(row, time)).toBeLessThanOrEqual(branchIndex(row, check));
+    if (branchIndex(row, time) === branchIndex(row, check)) {
+      const trailing = commonContainer(row, [time, check]);
+      expect(trailing).toHaveStyle({ flexDirection: 'row' });
+      expect(branchIndex(trailing, time)).toBeLessThan(branchIndex(trailing, check));
+    }
+    const middle = commonContainer(card, [title, line]);
+    expect(contains(row, middle)).toBe(true);
+    expect(styleOf(middle).flexDirection ?? 'column').toBe('column');
+    expect(branchIndex(middle, title)).toBeLessThan(branchIndex(middle, line));
+    expect(contains(middle, avatar)).toBe(false);
+    expect(contains(middle, time)).toBe(false);
+    expect(title).toHaveProp('numberOfLines', 1);
+    expect(title).toHaveProp('ellipsizeMode', 'tail');
+    expect(c.http.requests).toEqual([]);
+  });
+
+  test.each([360, 560])('per_pet toggles stay below the header with two per line at %i dp', async (width) => {
+    const c = await scene();
+    const pets = [c.pet, ...Array.from({ length: 4 }, (_, index) => c.seedPet({ name: `Pet ${index + 2}` }))];
+    const task = c.seedTask({ pet_ids: pets.map((pet) => pet.id), completion_mode: 'per_pet', times_of_day: ['08:00'] });
+    const key = `${c.date}T08:00`;
+    await paint(c, task, c.date, key);
+    const card = screen.getByTestId(`task-card-${task.id}-${key}`);
+    const toggles = within(card).getAllByTestId(/^task-pet-/);
+    expect(toggles.map((toggle) => toggle.props.testID)).toEqual(pets.map((pet) => petId(task, key, pet.id)));
+    expect(screen.queryByTestId(checkId(task, key))).toBeNull();
+    const grid = commonContainer(card, toggles);
+    await fireEvent(grid, 'layout', { nativeEvent: { layout: { x: 0, y: 0, width, height: 240 } } });
+    const title = within(card).getByText(task.title);
+    const headerAndGrid = commonContainer(card, [title, grid]);
+    expect(styleOf(headerAndGrid).flexDirection ?? 'column').toBe('column');
+    expect(branchIndex(headerAndGrid, title)).toBeLessThan(branchIndex(headerAndGrid, grid));
+    const branches = grid.children.filter((child): child is RenderedNode => typeof child !== 'string'
+      && toggles.some((toggle) => contains(child, toggle)));
+    if (branches.length === 3) {
+      // Explicit pair rows and a wrapping two-column grid are both valid.
+      expect(branches.map((branch) => toggles.filter((toggle) => contains(branch, toggle)).length)).toEqual([2, 2, 1]);
+      for (const branch of branches) expect(branch).toHaveStyle({ flexDirection: 'row' });
+    } else {
+      expect(branches).toHaveLength(5);
+      expect(grid).toHaveStyle({ flexDirection: 'row', flexWrap: 'wrap' });
+      const gap = Number(styleOf(grid).columnGap ?? styleOf(grid).gap ?? 0);
+      const widths = branches.map((branch) => {
+        const ownStyle = styleOf(branch);
+        const ownWidth = ownStyle.flexBasis ?? ownStyle.width;
+        if (typeof ownWidth === 'number') return ownWidth;
+        if (typeof ownWidth === 'string' && ownWidth.endsWith('%')) return width * Number.parseFloat(ownWidth) / 100;
+        return Math.max(...[branch, ...branch.queryAll(() => true)].map((node) => {
+          const style = styleOf(node);
+          const value = style.flexBasis ?? style.width;
+          return typeof value === 'number' ? value : 0;
+        }));
+      });
+      expect((widths[0] ?? 0) + (widths[1] ?? 0) + gap).toBeLessThanOrEqual(width);
+      expect((widths[0] ?? 0) + (widths[1] ?? 0) + (widths[2] ?? 0) + 2 * gap).toBeGreaterThan(width);
+    }
+    expect(c.outbox.count()).toBe(0);
+    expect(c.http.requests).toEqual([]);
+  });
+
+  describe.each(['light', 'dark'] as const)('future checkboxes in %s', (scheme) => {
+    test.each(['together', 'per_pet'] as const)('%s shows visible disabled checkboxes with rings at 40 percent opacity', async (mode) => {
+      jest.mocked(useColorScheme).mockReturnValue(scheme);
+      const c = await scene();
+      const task = c.seedTask({ pet_ids: [c.pet.id], completion_mode: mode, times_of_day: [] });
+      const future = addDays(c.date, 1);
+      await paint(c, task, future);
+      const id = mode === 'together' ? checkId(task, future) : petId(task, future, c.pet.id);
+      const check = screen.getByTestId(id);
+      expect(check).toBeVisible();
+      expect(check).toBeDisabled();
+      await fireEvent(check, 'pressIn');
+      await fireEvent.press(check);
+      expect(live(c)).toEqual([]);
+      expect(c.outbox.count()).toBe(0);
+      expect(c.kick).not.toHaveBeenCalled();
+      expect(c.http.requests).toEqual([]);
+      expect(Haptics.impactAsync).not.toHaveBeenCalled();
+      const rings = check.queryAll((node) => styleOf(node).borderWidth === starCheck.strokeWidth
+        && styleOf(node).width === starCheck.size && styleOf(node).height === starCheck.size);
+      expect(rings).toHaveLength(1);
+      const ring = rings[0];
+      if (ring === undefined) throw new Error('The visible checkbox ring is missing');
+      const opacity = [...new Set([check, ...check.queryAll(() => true)])].filter((node) => contains(node, ring))
+        .reduce((alpha, node) => alpha * Number(styleOf(node).opacity ?? 1), 1);
+      expect(opacity).toBeCloseTo(0.4);
+    });
+  });
+});
 
 describe('TaskCard', () => {
   test('R3.18 does not complete on press-in', async () => {

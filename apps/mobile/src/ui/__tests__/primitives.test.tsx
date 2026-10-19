@@ -53,6 +53,21 @@ afterEach(() => {
 });
 
 describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
+  test('06 §4.10 EmptyState centres a compact action under its copy', async () => {
+    jest.useFakeTimers({ now: 0 });
+    jest.mocked(useColorScheme).mockReturnValue(scheme);
+    const onPress = jest.fn();
+    const view = await render(<EmptyState title="No entries" active={false}
+      action={{ label: 'Add entry', accessibilityLabel: 'Add entry', onPress }} />);
+    const button = screen.getByRole('button', { name: 'Add entry' });
+    const style = StyleSheet.flatten<ViewStyle>(button.props.style);
+    expect(style?.width).not.toBe('100%');
+    expect(style?.alignSelf).not.toBe('stretch');
+    expect(style?.flex).not.toBe(1);
+    expect(view.root).toHaveStyle({ alignItems: 'center' });
+    await fireEvent.press(button);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
   const color = scheme === 'light' ? light : dark;
   beforeEach(() => {
     AppState.currentState = 'active';

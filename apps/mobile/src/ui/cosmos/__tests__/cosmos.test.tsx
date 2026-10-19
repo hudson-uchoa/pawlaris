@@ -230,6 +230,17 @@ describe('motion', () => {
 describe.each(['light', 'dark'] as const)('PoweredBy in %s', (scheme) => {
   beforeEach(() => { jest.mocked(useColorScheme).mockReturnValue(scheme); });
 
+  test('06 §4.12 the signature row centres the mark and words vertically while the words share a baseline', async () => {
+    const view = await render(<PoweredBy active={false} testID="signature" />);
+    const rows = view.container.queryAll((node) => StyleSheet.flatten<ViewStyle>(node.props.style)?.flexDirection === 'row');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveStyle({ alignItems: 'center', justifyContent: 'center', gap: 8 });
+    const wordLines = view.container.queryAll((node) => node.type === 'Text'
+      && node.queryAll((child) => child.props.children === 'powered by').length > 0
+      && node.queryAll((child) => child.props.children === 'Insurge').length > 0);
+    expect(wordLines).toHaveLength(1);
+  });
+
   test('ADR-036 renders the mark and both words on one labelled line', async () => {
     const color = scheme === 'light' ? light : dark;
     const view = await render(<PoweredBy active={false} testID="signature" />);

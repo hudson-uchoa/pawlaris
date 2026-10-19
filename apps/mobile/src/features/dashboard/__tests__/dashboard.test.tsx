@@ -1,7 +1,7 @@
 import { addDays, localDate, type TaskTemplate } from '@pawlaris/shared';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import { AppState, type RefreshControlProps } from 'react-native';
+import { AppState, StyleSheet, type RefreshControlProps, type ViewStyle } from 'react-native';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { formatCareDue, formatDashboardDay } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
@@ -10,6 +10,7 @@ import { createReplicaStore, type ReplicaStore } from '../../../replica/store';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { DashboardScreen } from '../DashboardScreen';
+import * as Buttons from '../../../ui/primitives/Button';
 import { DayHeader } from '../DayHeader';
 import { ScopeFilter } from '../ScopeFilter';
 import { dashboardContext, type DashboardContext } from './support';
@@ -63,6 +64,31 @@ async function paint(c: DashboardContext, children: ReactNode = dashboard(c), st
     <AssetFilesProvider files={c.files}>{children}</AssetFilesProvider>
   </ReplicaProvider>);
 }
+
+test('09 §3.1 tasks-manage is a compact text action with no filled Button', async () => {
+  const c = await scene();
+  const button = jest.spyOn(Buttons, 'Button');
+  await paint(c);
+  const action = screen.getByTestId('tasks-manage');
+  const style = StyleSheet.flatten<ViewStyle>(action.props.style);
+  expect([undefined, 'transparent']).toContain(style?.backgroundColor);
+  expect(style?.width).not.toBe('100%');
+  expect(button.mock.calls.some(([props]) => props.testID === 'tasks-manage')).toBe(false);
+  await fireEvent.press(action);
+  expect(c.onManage).toHaveBeenCalledTimes(1);
+});
+
+test.each(['2026-10-13', '2026-10-14'])('09 §3.1 day label %s and both chevrons are vertically centred on one line', async (date) => {
+  const view = await render(<DayHeader date={date} today="2026-10-13" active={false} onChange={jest.fn()} />);
+  const row = view.container.queryAll((node) => StyleSheet.flatten<ViewStyle>(node.props.style)?.flexDirection === 'row')[0];
+  expect(row).toBeDefined();
+  expect(row).toHaveStyle({ flexDirection: 'row', alignItems: 'center' });
+  expect(screen.getByTestId('day-prev')).toHaveStyle({ justifyContent: 'center', alignItems: 'center' });
+  expect(screen.getByTestId('day-next')).toHaveStyle({ justifyContent: 'center', alignItems: 'center' });
+  if (date !== '2026-10-13') {
+    expect(screen.getByTestId('day-today')).toHaveStyle({ justifyContent: 'center', alignItems: 'center' });
+  }
+});
 
 function seedTask(c: DashboardContext, overrides: Partial<TaskTemplate> = {}): TaskTemplate {
   const pet = c.seedPet();

@@ -1,5 +1,7 @@
 import { act, cleanup, render, screen } from '@testing-library/react-native';
 import { AppState, useColorScheme, type AppStateStatus } from 'react-native';
+import { AlphaType, ColorType, NodeType, Skia, type SkColor } from '@shopify/react-native-skia';
+import type { Node } from '@shopify/react-native-skia/lib/typescript/src/sksg/Node';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { dark } from '../../tokens/color';
 import { ClearSky } from '../illustrations/ClearSky';
@@ -19,11 +21,72 @@ const scenes = [
   ['ClearSky', ClearSky], ['EmptyPets', EmptyPets], ['EmptyWalks', EmptyWalks], ['EmptyHealth', EmptyHealth],
 ] as const;
 
+// Rasterize the rendered drawing with the installed Skia CPU backend. This
+// checks pixels without prescribing a gradient or mask implementation.
+const { StaticContainer } = jest.requireActual<
+  typeof import('@shopify/react-native-skia/lib/typescript/src/sksg/StaticContainer')
+>('@shopify/react-native-skia/lib/module/sksg/StaticContainer');
+
+function backendColors(colors: SkColor[]): SkColor[] {
+  // jestEnv initializes CanvasKit outside Jest's VM; its colour-array check
+  // needs a typed array from that realm rather than the VM's Array class.
+  const backend = globalThis as unknown as { CanvasKit: { Color(r: number, g: number, b: number): Float32Array } };
+  const BackendFloat32Array = backend.CanvasKit.Color(0, 0, 0).constructor as Float32ArrayConstructor;
+  return new BackendFloat32Array(colors.flatMap((color) => Array.from(color))) as unknown as SkColor[];
+}
+
+function drawing(node: Awaited<ReturnType<typeof render>>['container'] | string): Node {
+  if (typeof node === 'string') throw new Error('Unexpected text inside the Skia scene');
+  return { type: node.type as NodeType, props: node.props, children: node.children.map(drawing) };
+}
+
+describe.each(['light', 'dark'] as const)('06 §4.10 scenes in %s', (scheme) => {
+  test.each(scenes)('%s sky fades to transparent along all four edges without a visible box', async (_name, Illustration) => {
+    jest.mocked(useColorScheme).mockReturnValue(scheme);
+    const width = 240;
+    const height = 160;
+    await render(<Illustration width={width} height={height} active={false} testID="edge-scene" />);
+    const scene = screen.getByTestId('edge-scene', { includeHiddenElements: true });
+    const renderer = new StaticContainer(Skia, -1);
+    renderer.root = scene.children.map(drawing);
+    renderer.redraw();
+    const surface = Skia.Surface.MakeOffscreen(width, height);
+    if (surface === null) throw new Error('The Skia test backend could not create a surface');
+    try {
+      renderer.drawOnCanvas(surface.getCanvas());
+      surface.flush();
+      const image = surface.makeImageSnapshot();
+      try {
+        const pixels = image.readPixels(0, 0, { width, height, colorType: ColorType.RGBA_8888, alphaType: AlphaType.Unpremul });
+        if (pixels === null) throw new Error('The Skia test backend could not read pixels');
+        const alpha = (x: number, y: number) => pixels[(y * width + x) * 4 + 3] ?? 0;
+        const edges = [
+          Array.from({ length: width }, (_, x) => alpha(x, 0)),
+          Array.from({ length: width }, (_, x) => alpha(x, height - 1)),
+          Array.from({ length: height }, (_, y) => alpha(0, y)),
+          Array.from({ length: height }, (_, y) => alpha(width - 1, y)),
+        ];
+        // Allow subpixel antialiasing at the outermost pixel centres.
+        for (const edge of edges) expect(Math.max(...edge)).toBeLessThanOrEqual(8);
+        const inward = Array.from({ length: Math.floor(height / 2) }, (_, y) => alpha(width / 2, y));
+        expect(Math.max(...inward)).toBeGreaterThan(8);
+        expect(new Set(inward.filter((value) => value > 8 && value < 247)).size).toBeGreaterThan(2);
+      } finally { image.dispose(); }
+    } finally { renderer.unmount(); surface.dispose(); }
+  });
+});
+
 beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
   AppState.currentState = 'active';
   jest.mocked(useColorScheme).mockReturnValue('dark');
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
+  const linear = Skia.Shader.MakeLinearGradient.bind(Skia.Shader);
+  const radial = Skia.Shader.MakeRadialGradient.bind(Skia.Shader);
+  jest.spyOn(Skia.Shader, 'MakeLinearGradient').mockImplementation((start, end, colors, ...rest) =>
+    linear(start, end, backendColors(colors), ...rest));
+  jest.spyOn(Skia.Shader, 'MakeRadialGradient').mockImplementation((center, radius, colors, ...rest) =>
+    radial(center, radius, backendColors(colors), ...rest));
 });
 
 afterEach(async () => {

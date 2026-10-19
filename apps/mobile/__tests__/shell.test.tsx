@@ -192,6 +192,42 @@ test('P5-1 the task list route opens the edit form until task detail exists', as
   expect(c.http.requests).toEqual([]);
 });
 
+test('09 §3.1 the Hoje tab renders exactly one sync-indicator', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  expect(screen.getAllByTestId('sync-indicator')).toHaveLength(1);
+  expect(c.http.requests).toEqual([]);
+});
+
+test('09 §1 / 09 §3.1 the Hoje tab has its day title and tab label without a navigation header', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  expect(screen.getByRole('tab', { name: strings.tabs.index })).toBeOnTheScreen();
+  expect(screen.getAllByText(strings.tabs.index)).toHaveLength(2);
+  expect(c.http.requests).toEqual([]);
+});
+
+test('09 §1 the Pets tab shows its navigation title once and keeps its tab label', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
+  // The title and the tab label remain; the content must not repeat the title.
+  expect(screen.getAllByText(strings.tabs.pets)).toHaveLength(2);
+  expect(c.http.requests).toEqual([]);
+});
+
 test('P5-2 the dashboard tab reads the replica and wires task and care navigation', async () => {
   openDatabase(driver);
   const c = dependencies();
