@@ -48,6 +48,7 @@ export const strings = {
   },
   weights: {
     empty: 'Registre pelo menos dois pesos para ver a evolução.',
+    measurement: (value: string, date: string): string => `${value} kg · ${date}`,
     confirm: 'Sim, salvar',
     correct: 'Corrigir',
     delete: 'Excluir',
