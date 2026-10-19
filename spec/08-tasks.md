@@ -1206,6 +1206,19 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   another day's view; the still fallback under reduce motion.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/dashboard`
 
+- [ ] **P5-10 — Repository content audit**
+  **Depends:** P5-9 · **Read:** `07` §13 · `05` ADR-041
+  **Build:** `docs/audits/P5.md`, from reading every tracked file (this first audit covers P0
+  to P5)
+  for what the public repository must not hold: photos, screenshots or
+  recordings of the phones; real coordinates; phone numbers, street
+  addresses, e-mail addresses other than the commit noreply; serial numbers
+  and LAN addresses; tokens and keys. Each finding names its file and line
+  and is fixed in its own commit. Content already in the history is listed
+  for the orchestrator, who settles it with the owner.
+  **Gate:** `pnpm verify --only content`
+  **Not here:** rewriting history.
+
 ---
 
 ## P6 — Walks
@@ -1297,6 +1310,19 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] A real 10-minute walk; the route shows on both phones; in
   airplane mode the metrics and the route line still show without tiles.
 
+- [ ] **P6-6 — Repository content audit**
+  **Depends:** P6-5 · **Read:** `07` §13 · `05` ADR-041
+  **Build:** `docs/audits/P6.md`, from reading every file this phase added or changed
+  (`git diff --name-only` from P5-10's audit commit)
+  for what the public repository must not hold: photos, screenshots or
+  recordings of the phones; real coordinates; phone numbers, street
+  addresses, e-mail addresses other than the commit noreply; serial numbers
+  and LAN addresses; tokens and keys. Each finding names its file and line
+  and is fixed in its own commit. Content already in the history is listed
+  for the orchestrator, who settles it with the owner.
+  **Gate:** `pnpm verify --only content`
+  **Not here:** rewriting history.
+
 ---
 
 ## P7 — Polish
@@ -1354,6 +1380,19 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Gate:** `pnpm verify --allow-pending`
   **Device:** [ ] All flows green on one phone; the two-device script green.
   Evidence: Maestro's output.
+
+- [ ] **P7-6 — Repository content audit**
+  **Depends:** P7-5 · **Read:** `07` §13 · `05` ADR-041
+  **Build:** `docs/audits/P7.md`, from reading every file this phase added or changed
+  (`git diff --name-only` from P6-6's audit commit)
+  for what the public repository must not hold: photos, screenshots or
+  recordings of the phones; real coordinates; phone numbers, street
+  addresses, e-mail addresses other than the commit noreply; serial numbers
+  and LAN addresses; tokens and keys. Each finding names its file and line
+  and is fixed in its own commit. Content already in the history is listed
+  for the orchestrator, who settles it with the owner.
+  **Gate:** `pnpm verify --only content`
+  **Not here:** rewriting history.
 
 ---
 
@@ -1460,8 +1499,21 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   on the reserve is on the primary. `reserve.ps1 stop`. The time of each
   move is recorded.
 
+- [ ] **P8-10 — Repository content audit**
+  **Depends:** P8-9 · **Read:** `07` §13 · `05` ADR-041
+  **Build:** `docs/audits/P8.md`, from reading every file this phase added or changed
+  (`git diff --name-only` from P7-6's audit commit)
+  for what the public repository must not hold: photos, screenshots or
+  recordings of the phones; real coordinates; phone numbers, street
+  addresses, e-mail addresses other than the commit noreply; serial numbers
+  and LAN addresses; tokens and keys. Each finding names its file and line
+  and is fixed in its own commit. Content already in the history is listed
+  for the orchestrator, who settles it with the owner.
+  **Gate:** `pnpm verify --only content`
+  **Not here:** rewriting history.
+
 - [ ] **P8-7 — Release checklist**
-  **Depends:** P8-9
+  **Depends:** P8-10
   **Gate:** `pnpm verify` (strict) exits 0
   **Device:** [ ] Every task above is `[x]`; every Device line is `[x]`; the
   P7-4 and P7-5 evidence is dated after the last code change; Autoteste is green

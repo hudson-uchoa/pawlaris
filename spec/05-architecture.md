@@ -909,3 +909,18 @@ smaller of the two. Sharing the box rules out an ingress that takes ports
 80 and 443 for Pawlaris alone: P8 picks the profile of §4.4 that lives
 beside the other apps. H8 is met by the VPS once it is reachable over SSH
 and that profile is chosen.
+
+### ADR-041 — Phone media stay off the public repository *(2026-10-19)*
+**Context:** the repository is public. Device evidence for P0-6, P0-9 and
+P0-10 committed nine screenshots of the family's phones, whose status
+bars and wallpapers show which apps they use, and nothing checked what
+entered the repository beyond secrets.
+**Decision (the owner):** screenshots and recordings of the phones stay on
+the dev machine, in the git-ignored `docs/evidence/media/`, and the nine
+are removed from the whole history. A commit guard and a `verify` gate
+refuse media outside the app's own art and the concept screens, files
+over 1 MB, and LAN addresses. Each phase ends with an audit of the
+content it added.
+**Consequence:** `07` §12 and §13; tasks P5-10, P6-6, P7-6 and P8-10, and
+P8-7 now depends on P8-10. The history rewrite changes every commit id
+from P0-6 on; the review files cite the new ids.

@@ -600,6 +600,10 @@ pre-commit stage (static only — no tests):
   - guard-todo:  a TODO or FIXME added by this commit without "(#<number>)"  — code files only, never spec/ or *.md
   - guard-spec:  changes under spec/ other than QUESTIONS.md, contracts/ and a task checkbox
                  going from [ ] to [~] in 08-tasks.md — skipped when PAWLARIS_ROLE=orchestrator
+  - guard-content: an added or changed file that is a screenshot or recording
+                 outside apps/mobile/assets/ and docs/screens/, is over 1 MB,
+                 or holds a LAN address (also the `content` gate of verify,
+                 over every tracked file)  (ADR-041)
 commit-msg stage:
   - guard-commit-msg: Conventional Commits per AGENTS.md §5, read as git stores the message
                       (comment lines and everything after the scissors line ignored)
@@ -621,6 +625,10 @@ Some checks need a phone in someone's hand, or the box. They cannot run in
 - The repository is public. Evidence and documentation name a phone by its
   model, never by its serial number: write `<serial>` where `adb` prints one,
   and `<PC-LAN-IP>` for the dev machine's address.
+- Screenshots and recordings of the phones are never committed *(ADR-041)*:
+  they show the family's notifications, apps and wallpapers. They stay on
+  the dev machine in `docs/evidence/media/`, which git ignores, and the
+  evidence file says in words what each one shows.
 - When every step has a result, the orchestrator flips the line to
   `**Device:** [x]`.
 - Tasks that depend on this one need only its code to be accepted. The release
