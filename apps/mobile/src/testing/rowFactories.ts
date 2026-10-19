@@ -26,7 +26,7 @@ export function rowFactories(clock: { now(): number }, ids: { uuid(): string }) 
     }),
     pets: (overrides: Partial<Pet> = {}): Pet => ({
       ...deleted(), name: 'Aurora', species: 'cat', sex: 'female', breed: null,
-      color: null, birthdate: null, microchip_id: null, avatar_asset_id: null,
+      color: null, identity_color: null, birthdate: null, microchip_id: null, avatar_asset_id: null,
       notes: null, sort_order: 0, archived_at: null, created_by: memberId, ...overrides,
     }),
     task_templates: (overrides: Partial<TaskTemplate> = {}): TaskTemplate => ({

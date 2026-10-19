@@ -159,7 +159,8 @@ function fakeServer(clock: { now(): number }) {
         const owner = [...rows.values()].find((change) => change.entity === 'members')?.row.id;
         if (owner === undefined) return response(404);
         const pet: Pet = {
-          sex: 'unknown', breed: null, color: null, birthdate: null, microchip_id: null,
+          sex: 'unknown', breed: null, color: null, identity_color: null,
+          birthdate: null, microchip_id: null,
           avatar_asset_id: null, notes: null, sort_order: 0, archived_at: null,
           created_by: owner, deleted_at: null, ...body, revision: 0, updated_at: now,
         };

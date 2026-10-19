@@ -884,6 +884,8 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** @enum {string} */
+        IdentityColor: "#5B7DB1" | "#B15B6B" | "#4F8A6B" | "#C88A2E" | "#7A65B0" | "#3F8F97" | "#B5654A" | "#B15B9E";
         Interval: number;
         /** Invite */
         Invite: {
@@ -1035,6 +1037,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            identity_color: components["schemas"]["IdentityColor"] | null;
             /** Microchip Id */
             microchip_id: string | null;
             /** Name */
@@ -1085,6 +1088,7 @@ export interface components {
              * Format: uuid4
              */
             id: string;
+            identity_color?: components["schemas"]["IdentityColor"] | null;
             /** Microchip Id */
             microchip_id?: string | null;
             /** Name */
@@ -1114,6 +1118,7 @@ export interface components {
             breed?: string | null;
             /** Color */
             color?: string | null;
+            identity_color?: components["schemas"]["IdentityColor"] | null;
             /** Microchip Id */
             microchip_id?: string | null;
             /** Name */
@@ -1292,11 +1297,7 @@ export interface components {
         };
         /** ReseedMember */
         ReseedMember: {
-            /**
-             * Color
-             * @enum {string}
-             */
-            color: "#5B7DB1" | "#B15B6B" | "#4F8A6B" | "#C88A2E" | "#7A65B0" | "#3F8F97" | "#B5654A" | "#B15B9E";
+            color: components["schemas"]["IdentityColor"];
             /** Deleted At */
             deleted_at: string | null;
             /** Disabled At */
@@ -1352,6 +1353,7 @@ export interface components {
              * Format: uuid4
              */
             id: string;
+            identity_color?: components["schemas"]["IdentityColor"] | null;
             /** Microchip Id */
             microchip_id: string | null;
             /** Name */

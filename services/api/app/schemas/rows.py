@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, JsonValue
 
+from app.schemas.identity import IdentityColor
+
 
 class Row(BaseModel):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
@@ -36,6 +38,7 @@ class Pet(Row):
     sex: Literal["female", "male", "unknown"]
     breed: str | None
     color: str | None
+    identity_color: IdentityColor | None
     birthdate: date | None
     microchip_id: str | None
     avatar_asset_id: UUID | None

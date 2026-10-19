@@ -1,3 +1,4 @@
+import type { components } from './api-types';
 import type { DateKey } from './dates';
 import type { Recurrence } from './recurrence';
 
@@ -58,6 +59,7 @@ export type Pet = DeletableRow & {
   sex: 'female' | 'male' | 'unknown';
   breed: string | null;
   color: string | null;
+  identity_color: components['schemas']['Pet']['identity_color'];
   birthdate: DateKey | null;
   microchip_id: string | null;
   avatar_asset_id: string | null;

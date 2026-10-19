@@ -8,15 +8,14 @@ from pydantic import (
     AwareDatetime,
     BaseModel,
     Field,
-    field_validator,
     model_validator,
 )
 
-from app.cli import IDENTITY_KEYS
 from app.schemas.auth import MePatch
 from app.schemas.body import RequestBody
 from app.schemas.completions import CompletionCreate
 from app.schemas.family import FamilyPatch, RoleChange
+from app.schemas.identity import IdentityColor
 from app.schemas.pets import HealthEventCreate, PetCreate, Sex, WeightCreate
 from app.schemas.tasks import CalendarDate, Category, TaskCreate, TimeOfDay
 from app.schemas.timers import TimerCreate
@@ -42,15 +41,8 @@ class ReseedDeletedRow(ReseedRow):
 
 class ReseedMember(MePatch, RoleChange, ReseedDeletedRow):
     id: UUID4
-    color: str = Field(json_schema_extra={"enum": list(IDENTITY_KEYS)})
+    color: IdentityColor
     disabled_at: AwareDatetime | None
-
-    @field_validator("color")
-    @classmethod
-    def validate_color(cls, value: str) -> str:
-        if value not in IDENTITY_KEYS:
-            raise ValueError("Color must be an identity key.")
-        return value
 
 
 class ReseedFamily(FamilyPatch, ReseedDeletedRow):

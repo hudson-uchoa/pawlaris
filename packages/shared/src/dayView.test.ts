@@ -11,7 +11,7 @@ const petIds = ['pet-a', 'pet-b', 'pet-c', 'pet-d'];
 
 function pet(id: string, patch: Partial<Pet> = {}): Pet {
   return {
-    id, name: id, species: 'cat', sex: 'unknown', breed: null, color: null,
+    id, name: id, species: 'cat', sex: 'unknown', breed: null, color: null, identity_color: null,
     birthdate: null, microchip_id: null, avatar_asset_id: null, notes: null,
     sort_order: 0, archived_at: null, created_by: 'me', revision: 1,
     updated_at: stamp, deleted_at: null, ...patch,

@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import UUID4, AwareDatetime, Field
 
 from app.schemas.body import RequestBody
+from app.schemas.identity import IdentityColor
 
 type Sex = Literal["female", "male", "unknown"]
 type EventType = Literal[
@@ -18,6 +19,7 @@ class PetPatch(RequestBody):
     sex: Sex = "unknown"
     breed: str | None = None
     color: str | None = None
+    identity_color: IdentityColor | None = None
     birthdate: date | None = None
     microchip_id: str | None = None
     avatar_asset_id: UUID | None = None

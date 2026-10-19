@@ -24,7 +24,7 @@ export type Mutation = {
 }[SyncEntity];
 
 type PetFields = Pick<Pet,
-  'name' | 'species' | 'sex' | 'breed' | 'color' | 'birthdate'
+  'name' | 'species' | 'sex' | 'breed' | 'color' | 'identity_color' | 'birthdate'
   | 'microchip_id' | 'avatar_asset_id' | 'notes' | 'sort_order'>;
 export type PetCreate = Pick<PetFields, 'name' | 'species'>
   & Partial<Omit<PetFields, 'name' | 'species'>>;
@@ -163,7 +163,8 @@ export function createMutations({ driver, apply, clock, ids, sessionUser, kick }
   return {
     enqueue,
     createPet: (body) => create('pets', '/pets', body, (id, updatedAt) => ({
-      sex: 'unknown', breed: null, color: null, birthdate: null, microchip_id: null,
+      sex: 'unknown', breed: null, color: null, identity_color: null,
+      birthdate: null, microchip_id: null,
       avatar_asset_id: null, notes: null, sort_order: 0, ...body, ...base(id, updatedAt),
       archived_at: null, created_by: sessionUser.id, deleted_at: null,
     })),

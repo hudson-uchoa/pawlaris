@@ -831,6 +831,19 @@
         "title": "HealthResponse",
         "type": "object"
       },
+      "IdentityColor": {
+        "enum": [
+          "#5B7DB1",
+          "#B15B6B",
+          "#4F8A6B",
+          "#C88A2E",
+          "#7A65B0",
+          "#3F8F97",
+          "#B5654A",
+          "#B15B9E"
+        ],
+        "type": "string"
+      },
       "Interval": {
         "ge": 1,
         "le": 365,
@@ -1198,6 +1211,16 @@
             "title": "Id",
             "type": "string"
           },
+          "identity_color": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityColor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "microchip_id": {
             "anyOf": [
               {
@@ -1262,6 +1285,7 @@
           "sex",
           "breed",
           "color",
+          "identity_color",
           "birthdate",
           "microchip_id",
           "avatar_asset_id",
@@ -1348,6 +1372,16 @@
             "format": "uuid4",
             "title": "Id",
             "type": "string"
+          },
+          "identity_color": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityColor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "microchip_id": {
             "anyOf": [
@@ -1453,6 +1487,16 @@
               }
             ],
             "title": "Color"
+          },
+          "identity_color": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityColor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "microchip_id": {
             "anyOf": [
@@ -1990,18 +2034,7 @@
         "additionalProperties": false,
         "properties": {
           "color": {
-            "enum": [
-              "#5B7DB1",
-              "#B15B6B",
-              "#4F8A6B",
-              "#C88A2E",
-              "#7A65B0",
-              "#3F8F97",
-              "#B5654A",
-              "#B15B9E"
-            ],
-            "title": "Color",
-            "type": "string"
+            "$ref": "#/components/schemas/IdentityColor"
           },
           "deleted_at": {
             "anyOf": [
@@ -2165,6 +2198,16 @@
             "format": "uuid4",
             "title": "Id",
             "type": "string"
+          },
+          "identity_color": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityColor"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "microchip_id": {
             "anyOf": [

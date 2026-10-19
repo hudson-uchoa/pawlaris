@@ -41,6 +41,7 @@ class Pet(Base):
     )
     breed: Mapped[str | None] = mapped_column(Text(), nullable=True)
     color: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    identity_color: Mapped[str | None] = mapped_column(Text(), nullable=True)
     birthdate: Mapped[date | None] = mapped_column(Date(), nullable=True)
     microchip_id: Mapped[str | None] = mapped_column(Text(), nullable=True)
     avatar_asset_id: Mapped[UUID | None] = mapped_column(nullable=True)

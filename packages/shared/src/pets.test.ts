@@ -8,7 +8,7 @@ const stamp = '2026-10-04T12:00:00Z';
 function pet(patch: Partial<Pet> = {}): Pet {
   return {
     id: 'pet', name: 'Star', species: 'cat', sex: 'unknown', breed: null,
-    color: null, birthdate: null, microchip_id: null, avatar_asset_id: null,
+    color: null, identity_color: null, birthdate: null, microchip_id: null, avatar_asset_id: null,
     notes: null, sort_order: 0, archived_at: null, created_by: 'me',
     revision: 1, updated_at: stamp, deleted_at: null, ...patch,
   };
