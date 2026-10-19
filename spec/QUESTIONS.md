@@ -1455,3 +1455,36 @@ animated canvas. The orchestrator can settle the scene's motion on review.
 twinkle: on a screen that already has an animated sky, the empty scene is
 drawn still. On the dashboard, the header twinkles and Céu limpo is
 still. Now in `06` §4.10.
+
+## Q-50 — P5-3 — May the undo red test use partial text matching?
+**Asked:** 2026-10-19
+**Where:** spec/09-screens.md §3.3; spec/02-spec.md R3.22;
+apps/mobile/src/features/dashboard/__tests__/TaskCard.test.tsx:293–294;
+apps/mobile/node_modules/@testing-library/react-native/dist/matches.js:8.
+**Problem:** The committed undo test calls
+`expect(screen.getByRole('dialog')).toHaveTextContent(c.other.display_name)`
+and then `expect(screen.getByRole('dialog')).toHaveTextContent('07:12')`.
+In installed React Native Testing Library 14.0.1, toHaveTextContent defaults
+to exact matching. These assertions require the same dialog's entire text
+to equal both the member name and the time, and neither permits the full
+confirmation copy and actions required by §3.3. The green run renders the
+specified confirmation, including Duda and 07:12, but fails the first
+assertion. The owner explicitly forbids changing any red assertion and
+requires stopping when a red case conflicts with the spec.
+
+The same run also exposes an independent fixture issue in the network
+failure case: dashboardContext calls taskContext, which calls syncContext
+without random values. The real outbox retry consumes one jitter value,
+so that case fails with `Fake random has no queued value` before it can
+check the star. The other eight TaskCard cases and all 32 existing
+dashboard tests pass (40 passed, 2 failed, 42 total).
+**I would assume:** With explicit authorization, add `{ exact: false }`
+to both undo text assertions, preserving their checks for who and when
+and the full specified copy. Supply deterministic retry randomness in
+the dashboard test context by forwarding a fixed value through the task
+context to syncContext; keep the production backoff and the fake random
+source's strict exhaustion behavior unchanged. No red assertion or
+random fixture has been changed in this green session.
+**Blocking:** yes. Stop here with the partial implementation uncommitted;
+the owner or orchestrator must authorize the red-test correction before
+the requested all-green checks can be completed.
