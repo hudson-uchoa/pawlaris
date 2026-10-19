@@ -54,6 +54,15 @@ export const strings = {
       dog: { female: 'Cadela', male: 'Cachorro', unknown: 'Cachorro' },
     },
   },
+  health: {
+    title: 'Título',
+    delete: 'Excluir',
+    deleteConfirmation: 'Excluir este registro de saúde?',
+    nextDue: (date: string): string => `próxima: ${date}`,
+    photoUploading: 'enviando…',
+    photoFailed: 'falhou — toque para tentar de novo',
+    photoPending: 'foto a caminho',
+  },
   weights: {
     empty: 'Registre pelo menos dois pesos para ver a evolução.',
     value: 'Peso',

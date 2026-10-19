@@ -3,7 +3,7 @@ import type { ApiResult } from '../api/client';
 import { classify } from '../api/errors';
 import type { Session } from '../auth/session';
 import type { Servers } from '../config/servers';
-import { AssetRepo } from '../db/assetRepo';
+import { AssetRepo, type AssetFile } from '../db/assetRepo';
 import type { SqlDriver } from '../db/driver';
 import type { Server } from '../db/kv';
 import type { Clock } from '../platform/clock';
@@ -32,6 +32,7 @@ export interface AssetFiles {
   registerCapture(capture: Capture): void;
   readonly uploads: Uploads;
   ensureFile(id: string): Promise<AssetFileResult>;
+  uploadState(id: string): AssetFile['state'] | null;
   retryUpload(id: string): void;
   prefetchAvatars(): Promise<void>;
 }
@@ -211,6 +212,9 @@ export function createAssetFiles(deps: AssetFilesDependencies): AssetFiles {
       dispose() { disposed = true; clearRetry(); },
     },
     ensureFile,
+    uploadState(_id) {
+      throw new Error('not implemented');
+    },
     retryUpload(id) {
       deps.driver.transaction(() => {
         const file = repo.get(id);
