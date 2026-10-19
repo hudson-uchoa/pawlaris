@@ -44,3 +44,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# device evidence media: screenshots and recordings stay local (ADR-041)
+docs/evidence/media/
