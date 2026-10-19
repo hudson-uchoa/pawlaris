@@ -175,7 +175,7 @@ def create_app(
     app.include_router(assets.router, prefix="/api/v1")
     app.include_router(sync.router, prefix="/api/v1")
     app.include_router(reseed.router, prefix="/api/v1")
-    app.add_api_websocket_route("/ws", ws.socket)
+    app.add_api_websocket_route("/api/v1/ws", ws.socket)
     register_handlers(app)
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(TimingMiddleware, clock=clock)
