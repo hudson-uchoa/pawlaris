@@ -1338,3 +1338,11 @@ profile scroll container in `HealthTimelineSection.tsx` for this stage.
 Do not add a nested scrolling list or install a dependency. The
 orchestrator can settle the final list arrangement before accepting P4-7.
 **Blocking:** no for stage 1; the grouping and timeline tests can proceed.
+**Answer (2026-10-19, the orchestrator):** as assumed, and for good, not
+only until P5-3. The profile is one scroll container, and a `FlashList`
+nested in a `ScrollView` loses its virtualization anyway. The health
+section renders its month groups inline, as memoized rows with stable
+keys, like the profile's other sections. One pet's health history stays
+in the tens of events. `FlashList` remains the rule for history screens
+that own their scroll: task history (P5-4) and the walks tab (P6). Now in
+`06` §1.3 rule 4.

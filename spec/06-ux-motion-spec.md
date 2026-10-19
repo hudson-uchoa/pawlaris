@@ -66,8 +66,10 @@ and emulators are not evidence. Method: `scripts/perf.mjs` (§1.2).
    closures in props. The **dashboard** uses Reanimated's `Animated.FlatList`
    with `itemLayoutAnimation={LinearTransition}` — a day has at most a few
    dozen cards and they must animate when one moves to Concluídas. **History
-   lists** (task history, walks, health timeline), which can grow long and do
-   not animate their layout, use `FlashList`.
+   lists** that own their screen's scroll (task history, the walks tab), which
+   can grow long and do not animate their layout, use `FlashList`. The health
+   timeline is a section of the pet's profile, inside its one scroll
+   container, so its rows render inline *(Q-44)*.
 5. **One animated canvas per screen, at most.** Ambient effects (§4) share a
    single Skia canvas, are driven by a handful of shared values, and stop when
    the screen loses focus, the app goes to the background, or Reduce Motion is on.
