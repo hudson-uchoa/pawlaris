@@ -1392,3 +1392,24 @@ role, **Remover**, **Convidar**, **Trocar senha** and **Editar nome**.
 `POST /auth/redeem`, the sixth route of `11` §5, has no control in
 Ajustes; the redeem screen meets the reserve's `409` like any other
 refusal. Now in `09` §7.
+
+## Q-47 — P4-9 — Can the family row assertion allow descendant text?
+**Asked:** 2026-10-19
+**Where:** apps/mobile/src/features/family/__tests__/family.test.tsx,
+first test; spec/09-screens.md §7; Q-46.
+**Problem:** the existing test calls
+`expect(memberRow).toHaveTextContent(member.display_name)`, and then
+requires an `Editar nome` button inside that same member row, with its
+own visible text. React Native Testing Library 14's `toHaveTextContent`
+defaults to exact equality and recursively concatenates all descendant
+text. A row containing its required name, role badge and button cannot
+also have text exactly equal to only the name. The observed failure is
+expected `Hudson`, received `HudsonMembroEditar nome`.
+**I would assume:** use `{ exact: false }` for the row-text assertion, or
+assert the name's Text node within the row. Keep the own-row button
+placement and all other assertions unchanged. No implementation-only
+layout change can satisfy both exact text assertions.
+**Blocking:** yes for the unchanged family test. The owner instructed
+that existing assertions must not be edited or weakened. Independent
+stage-3 implementation and checks can proceed; no commit is made in this
+session, as explicitly requested.
