@@ -1525,3 +1525,8 @@ unchanged completion data and the current mutation timestamp. May this
 additional red-test correction be included in the green change?
 **Blocking:** yes. Stop with the implementation and Q-50 test fixes
 uncommitted, pending authorization for this assertion correction.
+**Answer (2026-10-19, orchestrator):** as assumed. `10` §3 sets
+`updated_at` to now on every local mutation, so the expected tombstone
+overrides `updated_at` with the clock's time beside `undone_at` and
+`undone_by`. The spread and every other field stay. The spec is
+unchanged.
