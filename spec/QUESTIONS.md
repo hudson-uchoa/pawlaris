@@ -1280,3 +1280,17 @@ enviadas e serão perdidas." with the outbox count, and one action,
 confirmation of `09` §7. The refusal is the Sheet's own `Fechar` and every
 other way of dismissing it; there is no separate Cancelar. Only the action
 resolves `confirmDiscard` to true. Now in `09` §2.1.
+
+## Q-42 — P4-6 — What should the weight chart empty state say?
+**Asked:** 2026-10-19
+**Where:** spec/02-spec.md R2.6; spec/06-ux-motion-spec.md §6 and §4.10;
+spec/09-screens.md §4.3 and §10; spec/08-tasks.md P4-6 Tests.
+**Problem:** The chart must show an empty state with fewer than two
+entries, but the spec gives no weight empty-state copy. The four scenes
+in §4.10 cover other screens. The required empty-state test needs an
+expected message.
+**I would assume:** Show "Registre pelo menos dois pesos para ver a
+evolução." for zero or one entry, with no chart axes or measurement
+line. Keep this copy in `apps/mobile/src/i18n/strings.ts`, under
+`weights.empty`, so the answer can replace it in one place.
+**Blocking:** no. The Red tests use that isolated copy assumption.
