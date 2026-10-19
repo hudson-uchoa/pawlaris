@@ -1050,7 +1050,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   thumbnail states; edit and delete call the right mutations.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/health`
 
-- [ ] **P4-8 — Hero transition**
+- [~] **P4-8 — Hero transition**
   **Depends:** P4-6 · **Read:** `06` §4.6, §5 · ADR-011
   **Build:** `ui/motion/hero/` — `HeroProvider` (overlay host above the
   navigator), `useHeroSource(id)`, `useHeroTarget(id)`; integrated in `PetCard`
