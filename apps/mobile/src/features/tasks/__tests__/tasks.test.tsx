@@ -384,3 +384,44 @@ test('R3.4 R3.5 selecting one pet before medication saves together and critical'
     }) }),
   ]);
 });
+
+test('R5.2 a double save creates one task and queues one POST', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  await paint(c, form(c));
+  await fireEvent.changeText(screen.getByTestId('task-title'), 'Evening care');
+  await choosePet(pet.name);
+  const save = screen.getByTestId('task-save');
+  await fireEvent.press(save);
+  await fireEvent.press(save);
+  expect(c.createTask).toHaveBeenCalledTimes(1);
+  expect(c.createTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Evening care', pet_ids: [pet.id] }));
+  expect(c.patchTask).not.toHaveBeenCalled();
+  expect(c.forkTask).not.toHaveBeenCalled();
+  expect(queued(c)).toEqual([
+    expect.objectContaining({ method: 'POST', path: '/tasks', body: expect.objectContaining({ title: 'Evening care' }) }),
+  ]);
+  expect(Object.values(c.store.getState().taskTemplates)).toHaveLength(1);
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+});
+
+test('R3.7 R5.2 a double save patches a cosmetic edit and queues one PATCH', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  const task = c.seedTask({ pet_ids: [pet.id] });
+  await paint(c, form(c, task.id));
+  await fireEvent.changeText(screen.getByTestId('task-title'), 'Renamed care');
+  const save = screen.getByTestId('task-save');
+  await fireEvent.press(save);
+  await fireEvent.press(save);
+  expect(c.patchTask).toHaveBeenCalledTimes(1);
+  expect(c.patchTask).toHaveBeenCalledWith(task.id, expect.objectContaining({ title: 'Renamed care' }));
+  expect(c.createTask).not.toHaveBeenCalled();
+  expect(c.forkTask).not.toHaveBeenCalled();
+  expect(queued(c)).toEqual([
+    expect.objectContaining({ method: 'PATCH', path: `/tasks/${task.id}`,
+      body: expect.objectContaining({ title: 'Renamed care' }) }),
+  ]);
+  expect(c.store.getState().taskTemplates[task.id]?.title).toBe('Renamed care');
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+});
