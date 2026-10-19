@@ -1598,3 +1598,14 @@ included in the green step?
 uncommitted, and leave the task checkbox unchanged, pending this answer.
 The full mobile test gate has not run after the failing UI gate. No
 commit or push was made, as directed by the owner.
+**Answer (2026-10-19, orchestrator):** as assumed. The illustration
+lifecycle cases move to the one cancellable clock, the cancellation that
+keeps the drawing, and the one `Atlas`; the remaining three-`Points`
+expectation becomes one `Atlas`. A scene or celebration query is
+narrowed to its own shapes structurally, by its `testID` or its own
+`Group`, never by loosening a count or a bound: every expected count,
+geometry, palette, duration, accessibility, cancellation, replay and
+edge-fade assertion stays. Under Reduce Motion the celebration still
+draws none of its own circles; the sky's steady planet or morning star
+is not the celebration's. The P5-14 red assertions stay as they are.
+The commit lists each migrated assertion. The spec is unchanged.
