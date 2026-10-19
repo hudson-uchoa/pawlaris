@@ -1062,7 +1062,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] A screen recording of 5 round trips on each phone, in both
   themes. (The numeric frame budget is checked in P7-4.)
 
-- [ ] **P4-9 — Settings and diagnostics**
+- [~] **P4-9 — Settings and diagnostics**
   **Depends:** P4-4, P1-2 · **Read:** `09` §7 · `02` §7 · `04` §4 · `11` §5
   **Build:** install `expo-sharing`, `expo-clipboard`. `(tabs)/settings` (with
   the author line and the Insurge signature at its foot, `09` §7),
