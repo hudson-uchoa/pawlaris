@@ -1115,7 +1115,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   not clear the list.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/dashboard`
 
-- [~] **P5-3 — TaskCard completion**
+- [x] **P5-3 — TaskCard completion**
   **Depends:** P5-2, P2-10 · **Read:** `09` §3.3 · `06` §4.2, §4.3 · `02` §3.3, R6.15
   **Build:** `TaskCard`, `PetToggle` with the constellation line, the
   `StarCheck` wired to `createCompletion`, the undo sheet, the
