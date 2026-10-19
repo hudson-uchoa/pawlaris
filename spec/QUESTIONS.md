@@ -1381,3 +1381,14 @@ The colour write contract must be settled before implementing that write;
 this Red step only defines the typed screen boundary and disabled state.
 **Blocking:** no for Red. The placement assumption is confined to
 apps/mobile/src/features/family/FamilyScreen.tsx.
+**Answer (2026-10-19, the orchestrator):** the name goes on Família, and
+the colour is not editable. The person's own row in the members list
+carries **Editar nome** `member-name-edit`, which writes `PATCH /me
+{display_name}` (any member, online only, disabled on the reserve). A
+colour is assigned once by the server at creation (`03`), and `04` has
+no way to change it, so `09` §7's "name and colour" was wrong: it now
+says "one's own name". On the reserve the app disables five controls:
+role, **Remover**, **Convidar**, **Trocar senha** and **Editar nome**.
+`POST /auth/redeem`, the sixth route of `11` §5, has no control in
+Ajustes; the redeem screen meets the reserve's `409` like any other
+refusal. Now in `09` §7.

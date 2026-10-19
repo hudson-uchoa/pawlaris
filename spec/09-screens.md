@@ -402,14 +402,16 @@ it opens `https://insurge.pages.dev` in the browser.
 
 - **Família:** family name and timezone (both editable by leaders; the
   timezone from a short list headed by `America/Sao_Paulo`, with a search over
-  the IANA names), members list with role badge and color dot. For leaders: role toggle per member, **Remover**, and
+  the IANA names), members list with role badge and color dot. The person's
+  own row has **Editar nome** `member-name-edit` (`PATCH /me`), for anyone
+  *(Q-46)*. A member's colour is assigned at creation and is not editable.
+  For leaders: role toggle per member, **Remover**, and
   **Convidar** `invite-create` → role choice → shows the code large, with
   **Copiar** and "Vale por 24 horas, para uma pessoa.". All disabled offline with
   the note "Disponível quando houver conexão."
 - **Trocar senha:** senha atual, nova senha (min 8), **Salvar**. Online only.
 - **On the reserve server** *(R5.14)*: the role toggle, **Remover**,
-  **Convidar**, **Trocar senha** and the editing of one's own name and colour
-  are disabled, with the note "Disponível quando o servidor principal voltar."
+  **Convidar**, **Trocar senha** and **Editar nome** are disabled, with the note "Disponível quando o servidor principal voltar."
   `reserve-note`. The family's name and timezone stay editable.
 - **Permissões:** one row per permission with its live state and a button that
   either requests it or opens system Settings: Notificações, Localização,

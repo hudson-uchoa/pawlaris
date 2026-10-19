@@ -1074,8 +1074,9 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   (rows are filled in by P5-7 and P6-1).
   **Tests:** the author line shows; pressing the signature opens the Insurge
   address through a fake `Linking`; a member sees no invite/role/remove/timezone controls; controls
-  disabled offline with the note; on the reserve the six account actions of
-  `11` §5 are disabled with `reserve-note`, and the family's name and
+  disabled offline with the note; on the reserve the five account controls of
+  `09` §7 (the actions of `11` §5 that Ajustes offers) are disabled with
+  `reserve-note`, and the family's name and
   timezone stay editable; Autoteste reports `n/n ok` and names a failing
   vector when the engine is stubbed wrong; the export contains no `Bearer`, no
   refresh token, no password.
