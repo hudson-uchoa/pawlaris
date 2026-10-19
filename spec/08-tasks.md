@@ -1041,7 +1041,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   decimal accepted; three decimals refused locally; delete removes the entry.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/pets`
 
-- [ ] **P4-7 — Health timeline**
+- [~] **P4-7 — Health timeline**
   **Depends:** P4-6 · **Read:** `09` §4.3 (Saúde), §5.4 (camera modes) · `02` §2.3
   **Build:** section 4 of the profile, `pet/[id]/health/new`, `health/[id]`,
   `HealthTimelineItem`, month grouping in family time, the attachment photo
