@@ -3,7 +3,7 @@ import * as Sharing from 'expo-sharing';
 import { createExpoLogShare } from '../../../platform/logShare';
 import { exportLogs } from '../exportLogs';
 
-jest.mock('expo-sharing', () => ({ shareAsync: jest.fn() }));
+jest.mock('expo-sharing', () => ({ shareAsync: jest.fn(), isAvailableAsync: jest.fn(async () => true) }));
 jest.mock('expo-file-system/legacy', () => ({
   cacheDirectory: 'file:///fake/cache/',
   makeDirectoryAsync: jest.fn(), writeAsStringAsync: jest.fn(), deleteAsync: jest.fn(),
@@ -11,6 +11,15 @@ jest.mock('expo-file-system/legacy', () => ({
 
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(() => { jest.restoreAllMocks(); });
+
+test('R7.3 unavailable native sharing creates no export file', async () => {
+  jest.mocked(Sharing.isAvailableAsync).mockResolvedValueOnce(false);
+  await expect(exportLogs({ exportText: async () => '{"event":"sync_finished"}\n' }, createExpoLogShare()))
+    .rejects.toThrow('Sharing is unavailable');
+  expect(FileSystem.makeDirectoryAsync).not.toHaveBeenCalled();
+  expect(FileSystem.writeAsStringAsync).not.toHaveBeenCalled();
+  expect(Sharing.shareAsync).not.toHaveBeenCalled();
+});
 
 test('R7.3 credential redaction includes access tokens, camel case, nested fields and free text', async () => {
   const secret = 'test-only-credential-canary';

@@ -5,8 +5,10 @@ import { AssetRepo } from './db/assetRepo';
 import { DeadLetterRepo } from './db/deadLetterRepo';
 import type { SqlDriver } from './db/driver';
 import { Kv, serverKey } from './db/kv';
+import { ReplicaRepo } from './db/replicaRepo';
+import { hydrateReplica, type ReplicaDependencies } from './replica/apply';
 import type { Http } from './platform/http';
-import type { ConnectionObservable } from './sync/engine';
+import type { ConnectionObservable, Engine } from './sync/engine';
 
 export interface DiagnosticDeadLetter {
   clientMutationId: string;
@@ -54,4 +56,19 @@ export async function checkDiagnosticsHealth(
     && typeof result.body === 'object' && result.body !== null
     && 'status' in result.body && result.body.status === 'ok'
     && 'role' in result.body && result.body.role === server;
+}
+
+export async function rebuildLocalData(
+  deps: ReplicaDependencies & { engine: Pick<Engine, 'state' | 'kick'> },
+): Promise<void> {
+  // Let a pull already in flight finish before resetting its cursor.
+  await deps.engine.kick('refresh');
+  const { status, server } = deps.engine.state.getState();
+  if (status !== 'synced' && status !== 'syncing') throw new Error('Rebuilding requires a connection');
+  deps.driver.transaction(() => {
+    new ReplicaRepo(deps.driver).clearSynced();
+    new Kv(deps.driver).set(serverKey('last_revision', server), '0');
+    hydrateReplica(deps);
+  });
+  await deps.engine.kick('refresh');
 }

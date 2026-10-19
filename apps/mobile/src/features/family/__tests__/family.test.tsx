@@ -33,7 +33,7 @@ test('R7.1 R1.16 a member can edit their own name but sees no invite, role, remo
   expect(screen.getByText(c.family.name)).toBeOnTheScreen();
   expect(screen.getByText(c.family.timezone)).toBeOnTheScreen();
   for (const member of Object.values(c.store.getState().members)) {
-    expect(screen.getByTestId(`member-${member.id}`)).toHaveTextContent(member.display_name);
+    expect(within(screen.getByTestId(`member-${member.id}`)).getByText(member.display_name)).toBeOnTheScreen();
   }
   for (const id of ['invite-create', 'family-timezone', 'family-save']) {
     expect(screen.queryByTestId(id)).toBeNull();

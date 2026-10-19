@@ -1,15 +1,21 @@
 import type { AuthUser } from '@pawlaris/shared';
 import { AppState } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { createApi } from './api/client';
 import { createAssetFiles, type AssetFiles } from './assets/files';
 import { createLifecycle, type Lifecycle } from './auth/lifecycle';
 import { changePassword } from './auth/changePassword';
+import { createFamilyActions } from './auth/familyActions';
 import { expoSecretBox, type SecretBox } from './auth/secretBox';
 import { createSession, type Session } from './auth/session';
 import { readServers, type Servers } from './config/servers';
 import { expoSqliteDriver, type SqlDriver } from './db/driver';
 import { Kv, serverKey } from './db/kv';
 import { openDatabase } from './db/open';
+import { checkDiagnosticsHealth, createDiagnosticsReader, rebuildLocalData } from './diagnostics';
+import type { FamilyActions } from './features/family/types';
+import { runSelfTest } from './features/settings/selfTest';
+import type { DiagnosticsServices, LogShare } from './features/settings/types';
 import { createStartupMarker, type StartupMarker } from './perf/marker';
 import { systemClock, type Clock } from './platform/clock';
 import { createExpoCamera, type CameraDevice } from './platform/camera';
@@ -20,6 +26,7 @@ import { fetchHttp, type Http } from './platform/http';
 import { cryptoIds, type IdGen } from './platform/idGen';
 import { createExpoLogFiles, createLogger, type LogFiles, type Logger } from './platform/logger';
 import { systemRandom, type Random } from './platform/random';
+import { createExpoLogShare } from './platform/logShare';
 import { createReplicaApply } from './replica/apply';
 import { hydrate } from './replica/hydrate';
 import { createReplicaStore, type ReplicaStore } from './replica/store';
@@ -46,6 +53,7 @@ export interface AppDependencies {
   documentDirectory?: string;
   logFiles?: LogFiles;
   camera?: CameraDevice;
+  logShare?: LogShare;
 }
 
 export interface AppRuntime {
@@ -54,6 +62,9 @@ export interface AppRuntime {
   engine: Engine;
   session: Session;
   changePassword(currentPassword: string, newPassword: string): Promise<void>;
+  familyActions: FamilyActions;
+  copyText(text: string): Promise<void>;
+  diagnostics: DiagnosticsServices;
   lifecycle: Lifecycle;
   events: SyncEvents;
   clock: Clock;
@@ -139,17 +150,27 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     },
     kick: (reason) => { void engine.kick(reason); },
   });
+  const changeMyPassword: FamilyActions['changePassword'] = (currentPassword, newPassword) => changePassword({
+    api, session, connection: engine.state,
+    sessionUser: () => {
+      const user = sessionUser();
+      if (user === null) throw new Error('Password changes require a session');
+      return user;
+    },
+  }, currentPassword, newPassword);
+  const familyActions = createFamilyActions({ ...deps, api, apply, store, sessionUser,
+    connection: engine.state, kick: engine.kick, changePassword: changeMyPassword });
+  const diagnostics: DiagnosticsServices = {
+    engine, logger, camera, share: deps.logShare ?? createExpoLogShare(),
+    details: createDiagnosticsReader(driver, engine.state), selfTest: runSelfTest,
+    checkHealth: () => checkDiagnosticsHealth(deps.http, deps.servers, engine.state),
+    rebuild: () => rebuildLocalData({ driver, store, clock, engine }),
+  };
   return {
     db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
-    camera, photoCapture,
-    changePassword: (currentPassword, newPassword) => changePassword({
-      api, session, connection: engine.state,
-      sessionUser: () => {
-        const user = sessionUser();
-        if (user === null) throw new Error('Password changes require a session');
-        return user;
-      },
-    }, currentPassword, newPassword),
+    camera, photoCapture, familyActions, diagnostics,
+    copyText: async (text) => { await Clipboard.setStringAsync(text); },
+    changePassword: changeMyPassword,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;

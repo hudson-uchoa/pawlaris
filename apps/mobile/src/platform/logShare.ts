@@ -6,6 +6,7 @@ export function createExpoLogShare(): LogShare {
   return {
     async shareText(filename, text) {
       if (!FileSystem.cacheDirectory) throw new Error('The cache directory is unavailable');
+      if (!await Sharing.isAvailableAsync()) throw new Error('Sharing is unavailable');
       const directory = `${FileSystem.cacheDirectory}diagnostics/`;
       const uri = `${directory}${filename}`;
       await FileSystem.makeDirectoryAsync(directory, { intermediates: true });

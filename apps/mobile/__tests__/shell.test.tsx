@@ -21,6 +21,10 @@ import PetWeight from '../app/pet/[id]/weight';
 import NewHealthEvent from '../app/pet/[id]/health/new';
 import HealthDetail from '../app/health/[id]';
 import CameraRoute from '../app/camera';
+import FamilyRoute from '../app/settings/family';
+import DiagnosticsRoute from '../app/settings/diagnostics';
+import PermissionsRoute from '../app/settings/permissions';
+import PasswordRoute from '../app/settings/password';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -144,6 +148,10 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './pet/[id]/health/new.tsx': { default: NewHealthEvent },
     './health/[id].tsx': { default: HealthDetail },
     './camera.tsx': { default: CameraRoute },
+    './settings/family.tsx': { default: FamilyRoute },
+    './settings/diagnostics.tsx': { default: DiagnosticsRoute },
+    './settings/permissions.tsx': { default: PermissionsRoute },
+    './settings/password.tsx': { default: PasswordRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -155,6 +163,43 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
   });
   return render(<ExpoRoot context={context} location="/" />);
 }
+
+test('P4-9 Settings routes open family, password, permissions and the wired diagnostics', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const replica = new ReplicaRepo(driver);
+  const family = c.factory.family({ id: wire.user.family_id });
+  replica.upsert('family', family, { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('members', c.factory.members({ id: wire.user.id }), { pending: false, deleted: false, pullGen: 0 });
+  const observe = jest.fn((_app: AppContext) => {});
+  await renderShell(c.deps, observe);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.settings }));
+  await fireEvent.press(screen.getByTestId('settings-family'));
+  expect(screen.getByTestId('family-name')).toHaveDisplayValue(family.name);
+  expect(screen.getByTestId('member-name-edit')).toBeOnTheScreen();
+  await act(() => { router.back(); });
+  expect(c.http.requests).toEqual([]);
+  const app = observe.mock.calls[0]?.[0];
+  if (app === undefined) throw new Error('The shell runtime was not observed');
+  c.http.enqueue(() => new Promise(() => {}));
+  await act(() => { app.engine.setOnline(true); });
+  await fireEvent.press(screen.getByTestId('settings-password'));
+  expect(screen.getByTestId('password-current')).toBeOnTheScreen();
+  await act(() => { router.back(); });
+  await fireEvent.press(screen.getByTestId('settings-permissions'));
+  expect(screen.getByTestId('permissions-list')).toBeOnTheScreen();
+  await act(() => { router.back(); });
+  c.http.enqueue(response(200, { status: 'ok', role: 'primary' }));
+  await fireEvent.press(screen.getByTestId('settings-diagnostics'));
+  expect(screen.getByTestId('diag-revision')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('diag-selftest'));
+  expect(screen.getByTestId('diag-selftest-result')).toBeOnTheScreen();
+  expect(c.http.requests).toHaveLength(2);
+  expect(c.http.requests.at(-1)?.url).toBe(`${servers.primary}/health`);
+});
 
 test('R5.1 startup without session renders the login placeholder without HTTP', async () => {
   const c = dependencies();
