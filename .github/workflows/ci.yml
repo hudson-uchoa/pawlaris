@@ -106,7 +106,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Check mobile code and coverage
-        run: pnpm verify --only lint:mobile,typecheck:mobile,test:mobile
+        run: pnpm verify --only lint:mobile,typecheck:mobile,config:mobile,test:mobile
 
   image:
     if: >-
