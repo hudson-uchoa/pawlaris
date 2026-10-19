@@ -494,9 +494,12 @@ describe('StarCheck', () => {                                   // P4-2
   it('is a checkbox to assistive technology and announces its state', …)
 });
 
-describe('Starfield', () => {                                   // P4-2
-  it('generateStars is deterministic for a seed and stays inside the bounds', …)
-  it('stops its shared values when the screen loses focus', …)
+describe('Starfield', () => {                       // P4-2; the living sky, P5-14
+  it('generateSky is deterministic for a seed and stays inside the bounds', …)
+  it('matches the magnitude and tint weights over 2,000 stars', …)        // 06 §4.1
+  it('keeps planets steady while stars twinkle out of step', …)           // 06 §4.1
+  it('keeps only the brightest stars and the morning star at dawn', …)    // 06 §4.1
+  it('stops its clock when the screen loses focus', …)
   it('renders in both themes from tokens only', …)
 });
 

@@ -238,7 +238,9 @@ export const spring = {
 
 export const duration = { micro: 120, quick: 200, base: 280, hero: 320, sheet: 380, burst: 520 } as const;
 
-export const ambient = { twinkleA: 2800, twinkleB: 4100, twinkleC: 5300, orbit: 24000, syncOrbit: 1200, breath: 4000 } as const;
+export const ambient = { orbit: 24000, syncOrbit: 1200, breath: 4000, nebula: 20000 } as const;
+// The sky's own timings (twinkle periods, meteor and satellite schedules)
+// are the ranges of §4.1, drawn by the seeded generator.
 
 export const hold = { toast: 4000 } as const;                 // how long a toast stays
 ```
@@ -261,48 +263,91 @@ properties (`width`, `height`, `top`, `fontSize`) frame by frame.
 
 Reusable pieces in `ui/cosmos/`. They are what makes the app look like itself.
 
-### 4.1 `Starfield`
+### 4.1 `Starfield` — a living sky *(ADR-043)*
 
 The ambient background: behind the auth screens (full screen), the dashboard
-header, the pet profile header and every empty state.
+header, the pet profile header and every empty state. It is a real night
+sky, not a pattern of dots: stars of different brightness and colour, each
+twinkling on its own, planets that hold still and are hard to see, the
+Milky Way, slow nebulae, and now and then a meteor or a satellite.
 
-- Stars come from a **pure, seeded** generator —
-  `generateStars(seed, count, width, height)` → `{x, y, r, opacity, layer}[]`
-  (mulberry32) — so the sky is identical on every launch and testable.
-  Radius 0.6–1.8 dp. Three layers, split 50% / 30% / 20%; each layer is one
-  size and one brightness, because one points call has one paint *(Q-35)*:
+**The generator.** `generateSky(seed, { width, height, density })` in
+`ui/cosmos/sky.ts` is **pure and seeded** (mulberry32), so a sky is the
+same on every launch and testable. It returns:
 
-  | Layer | Share | Radius | Base opacity | Parallax |
-  |---|---|---|---|---|
-  | 0, far | `floor(count × 0.5)` | 0.6 dp | 0.35 | × 0.04 |
-  | 1 | `floor(count × 0.3)` | 1.2 dp | 0.55 | × 0.08 |
-  | 2, near | the rest | 1.8 dp | 0.8 | × 0.16 |
+```ts
+type Sky = {
+  stars:   { x; y; magnitude: 1|2|3|4|5|6; tint: StarTint; period; phase }[];
+  planets: { x; y; radius; tint: PlanetTint }[];
+  band:    { angle; offset; width };           // the Milky Way
+  dust:    { x; y; alpha }[];                  // faint points inside the band
+};
+```
 
-  The generator draws `x` then `y` for each star from mulberry32, layer 0
-  first; the layer values draw nothing. A layer is drawn as round points of
-  stroke width 2 × radius, at its base opacity times the twinkle and theme
-  factors. The table lives in `stars.ts` as `starLayers`.
-- Drawn in **one** Skia canvas: a vertical gradient (`skyTop` → `skyBottom`),
-  an optional nebula (two blurred radial gradients, `nebulaA` and `nebulaB`, at
-  18% opacity, static), then each layer as a single points draw call in
-  `starfield` color. Nebula geometry, with `w`, `h` the canvas and
-  `L = max(w, h)` *(Q-36)*: `nebulaA` centred at (0.25 w, 0.25 h), radius
-  0.6 L; `nebulaB` at (0.75 w, 0.65 h), radius 0.5 L; each fades from its
-  colour to the same colour at alpha 0 at its radius, under a normal blur of
-  sigma 0.08 × min(w, h). These numbers live in `ui/tokens/cosmos.ts`.
-- **Twinkle:** each layer's opacity oscillates between 55% and 100% of its base
-  with its own period (`ambient.twinkleA/B/C`), three shared values in total.
-- **Parallax:** on a scrolling screen, the layers translate by
-  `scrollY × 0.04 / 0.08 / 0.16`, clamped. The canvas stays put behind the
-  scrolling content, and each layer moves up by
-  `clamp(scrollY, 0, height) × factor`, so the near layer moves most
-  *(Q-36)*. With no `scrollY`, or under Reduce Motion, nothing moves.
-- Density: 60 stars for a header band (the default), 120 for a full screen;
-  the nebula is off unless asked for. In the light
-  theme the stars are drawn at 28% of their opacity — a dawn sky keeps only its
-  brightest stars.
-- Stops animating when the screen is not focused, the app is in the background,
-  or Reduce Motion is on (stars stay, still).
+- **Count:** `density` is `'band'` (a header, 70 stars, 1 planet) or
+  `'full'` (a full screen, 160 stars, 2 planets, the band and 300 dust
+  points). Empty-state scenes use `'band'` with no planet.
+- **Magnitude:** drawn with weights 1: 1%, 2: 3%, 3: 8%, 4: 18%, 5: 30%,
+  6: 40% — many faint stars, a few bright ones, as in the real sky. Radius
+  `0.5 + (6 − m) × 0.35` dp (0.5 to 2.25); base alpha `0.25 + (6 − m) × 0.14`
+  (0.25 to 0.95).
+- **Tint:** the star's colour temperature, weights blue-white 15%, white
+  45%, yellow-white 25%, orange 10%, red 5%. The five colours are
+  `starTints` in `ui/tokens/cosmos.ts`: `#CFE0FF`, `#FFFFFF`, `#FFF1D6`,
+  `#FFD0A0`, `#FFB4A0`. The tint is subtle on purpose; only the bright
+  stars show it clearly.
+- **Twinkle (scintillation):** every star has its own `period` (1.8 to
+  6 s) and `phase`. Its alpha is `base × (1 − a + a × w)`, with
+  `w = 0.5 + 0.5 sin(2π (t / period + phase))` and the amplitude `a` 0.15
+  for magnitudes 1–2, 0.35 for 3–4 and 0.5 for 5–6. No two stars pulse
+  together.
+- **Bright stars:** magnitudes 1–2 carry a soft halo, a radial gradient of
+  4 × their radius at 25% of their alpha. Magnitude 1 also carries four
+  diffraction spikes in the shape of the brand's sparkle, 6 × its radius
+  long, breathing with its twinkle.
+- **Planets** do not twinkle: a steady disc of radius 1.6 to 2.4 dp, in a
+  muted tint (`planetTints`: ochre `#C8A27A`, sage `#9DB8B2`, lilac
+  `#B9A5C9`) at alpha 0.45 to 0.6, so they are there for whoever looks and
+  easy to miss. They sit near the band, as planets keep to the ecliptic.
+- **The Milky Way** (`'full'` only): a diagonal band at 20° to 35°, a soft
+  gradient of `nebulaA` at 10% opacity under a blur, filled with the dust:
+  points of 0.4 dp at alpha 0.06 to 0.15.
+- **Nebulae:** the two blurred radial gradients of `nebulaA` and `nebulaB`
+  (geometry as in *Q-36*), on by default for `'full'` and `'band'`,
+  breathing between 14% and 22% opacity over `ambient.nebula`.
+
+**Events** (`'full'` skies and the dashboard header): a seeded schedule,
+fresh for each mount, so the sky is alive without being busy.
+
+- A **meteor** every 18 to 45 s: a streak 80 to 140 dp long, falling at
+  20° to 35°, crossing in 700 ms, its head in the star's `star` colour and
+  its tail fading to nothing.
+- A **satellite** every 60 to 120 s: a steady point of 1 dp at alpha 0.5,
+  crossing the canvas in a straight line over 25 to 40 s. It does not
+  twinkle.
+
+**Dawn (light theme).** A sky at sunrise keeps only what outshines it:
+magnitudes 1 and 2 at 40% of their alpha in `starfield`, no band, no dust,
+no satellite, no meteor, and the planets replaced by one — **the morning
+star**, a steady point of 2.4 dp in `#FFF6E0` at alpha 0.9, low in the
+sky at 0.8 of the height.
+
+**Drawing.** One Skia canvas. What does not move — the gradient, the band
+and its dust — is recorded once per size and theme as a picture. The stars
+are one `Atlas` draw of a pre-rendered glow sprite, with a transform and a
+colour per star; the colours are recomputed each frame on the UI thread
+from one clock shared value. Planets, halos, spikes, meteors and the
+satellite are drawn over it from the same clock. Nothing runs on the JS
+thread, and the sky's own work stays within **2 ms per frame** on the
+Motorola Edge 70 (measured by P7-4).
+
+**Parallax:** on a scrolling screen the sky moves by depth: magnitudes 5–6
+by `scrollY × 0.04`, 3–4 by `× 0.08`, 1–2 and the planets by `× 0.16`,
+each clamped as before *(Q-36)*. With no `scrollY`, nothing moves.
+
+**Stopping:** the clock stops when the screen is not focused, the app is
+in the background, or Reduce Motion is on; the sky then stays as drawn,
+every element in place, nothing twinkling.
 
 ### 4.2 `StarCheck` — the checkbox
 
@@ -314,14 +359,24 @@ press-in   scale 1 → 0.92 (spring.stiff)                         -- feedback o
 release    commit (R3.18), then, all at once:
              ring fills with accentSoft (duration.quick)
              a 5-point star scales 0 → 1.15 → 1 in `star` (spring.bouncy)
-             6 sparks leave the centre along evenly spaced angles, travel 16 dp,
-               shrink and fade (duration.burst)
+             a star burst (below)
              haptic: impactAsync(Light)
 +400 ms    the card moves to Concluídas with a layout transition (LinearTransition)
 cancel     the finger leaves the box, or a scroll starts, before release
              → scale back to 1, nothing committed
 undo       the star scales to 0 and the ring empties (duration.quick), no sparks
 ```
+
+**The star burst.** On release the lit star bursts: 14 particles — 8
+four-point sparkles and 6 round motes — leave the centre at seeded angles
+(evenly spaced, jittered ±12°), at 40 to 110 dp/s, 1.5 to 4 dp in size,
+tinted from `starTints` and `star`. Drag slows them and a light gravity of
+30 dp/s² bends them, and they fade over 700 ms. With them a shockwave ring
+(1.5 dp stroke in `star`, alpha 0.6 → 0) grows from 14 to 40 dp over
+420 ms, and the star's halo flares and settles at 0.4. The seed is the
+occurrence key, so no two bursts look alike. A burst draws in its own
+small Skia canvas that exists only while it plays (under 1 s): it is the
+one exception to *one animated canvas per screen* (§1.3 rule 5).
 
 In the light theme the lit star also takes a 1.75 dp outline in `starText`:
 `star` on `accentSoft` is 2.8:1, below the 3:1 a meaningful graphic needs, and
@@ -359,10 +414,13 @@ constellation; it stays for as long as the occurrence is complete.
 
 ### 4.5 `ShootingStars` — the day is complete
 
-When every occurrence in the viewer's scope for today is done *(R6.13)*: five
-meteors cross the header starfield on staggered diagonal paths (head in `star`,
-tail fading over 60 dp), over 1600 ms; the starfield brightens to full and
-settles; the header reads **Céu completo**. Once per device per day.
+When every occurrence in the viewer's scope for today is done *(R6.13)*: a
+**supernova** opens the celebration at the header's brightest star — 40
+burst particles (§4.2's, twice as far and fast) and two shockwave rings 120
+ms apart — then five meteors cross the header starfield on staggered
+diagonal paths (head in `star`, tail fading over 60 dp), over 1600 ms; the
+starfield brightens to full and settles; the header reads **Céu completo**.
+Once per device per day.
 
 The component plays; P5-9 decides when *(Q-38)*. `play` turning true (or true
 at mount) is one request; it waits while the screen is inactive and is used
@@ -615,8 +673,10 @@ else in the app draws the mark.
 
 | Normal | Reduced |
 |---|---|
-| Starfield twinkle and parallax | still stars |
-| Star ignition with sparks | the star appears with a 120 ms fade; no scale, no sparks |
+| Starfield twinkle, nebula breath, parallax | the same sky, still |
+| Meteors and satellites in the sky | none |
+| Star ignition with its burst | the star appears with a 120 ms fade; no scale, no burst |
+| The supernova of Céu completo | none; the sky is bright and still |
 | Constellation draw-on | the line appears |
 | Orbit satellite, sync orbit | static ring; sync shows a static dot |
 | Shooting stars | the header reads **Céu completo** with a still, bright sky |

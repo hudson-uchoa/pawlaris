@@ -1161,6 +1161,29 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and the Céu limpo and Pets scenes have no visible edge, in both themes.
   **Not here:** a keyboard library; restyling the forms.
 
+- [ ] **P5-14 — The living sky**
+  **Depends:** P5-11, P4-2, P5-3 · **Read:** `06` §1.3, §3, §4.1, §4.2, §5 ·
+  `05` ADR-043
+  **Build:** `generateSky` in `ui/cosmos/sky.ts`, replacing `generateStars`;
+  `Starfield` rewritten as the living sky of `06` §4.1 for both themes, with
+  its events and parallax by depth; the star burst of `StarCheck`; the new
+  tokens (`starTints`, `planetTints`, `ambient.nebula`).
+  **Tests:** `generateSky` is deterministic for a seed, keeps every element
+  inside the bounds, and over 2,000 stars matches the magnitude and tint
+  weights within 3 points; a planet's alpha does not change with the clock
+  while a star's does; two stars of the same magnitude have different
+  periods or phases; the dawn sky holds only magnitudes 1–2 and the morning
+  star; the event schedule is deterministic for a seed and within its
+  ranges; the clock stops when unfocused or in the background, and under
+  Reduce Motion no clock or `withRepeat` starts and no meteor is drawn; a
+  burst emits 14 particles and a ring and removes its canvas when done.
+  **Gate:** `pnpm -C apps/mobile exec jest src/ui`
+  **Device:** [ ] On the Motorola, the dashboard and login skies in both
+  themes: stars of visibly different brightness and colour, twinkling out of
+  step; a planet that does not twinkle; a meteor within a minute on login;
+  completing a task bursts. Described in words in the evidence file.
+  **Not here:** the supernova (P5-9); measuring the frame budget (P7-4).
+
 - [ ] **P5-12 — Pet lists and identity colour**
   **Depends:** P5-11, P4-6 · **Read:** `02` R2.1, R2.13 · `03` pet · `04` Pet,
   PetCreate · `06` §2 · `09` §4.2, §4.2.1 · `05` ADR-042
@@ -1274,9 +1297,10 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   observed — it is best effort *(ADR-027)*.
 
 - [ ] **P5-9 — Céu completo**
-  **Depends:** P5-3, P4-2 · **Read:** `06` §4.5, §5 · `02` R6.13
-  **Build:** `ShootingStars` and the "Céu completo" header wired to `allDone`,
-  gated by `kv.celebrated_on`; the still-sky fallback under Reduce Motion.
+  **Depends:** P5-3, P5-14 · **Read:** `06` §4.2, §4.5, §5 · `02` R6.13
+  **Build:** `ShootingStars` with the supernova of `06` §4.5, and the "Céu
+  completo" header wired to `allDone`, gated by `kv.celebrated_on`; the
+  still-sky fallback under Reduce Motion.
   **Tests:** plays when `allDone` turns true today; not twice in a day; not on
   another day's view; the still fallback under reduce motion.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/dashboard`

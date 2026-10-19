@@ -943,3 +943,24 @@ adds its lists and nothing else in the form.
 `06` §2 (pet identity); `09` §4.2, §4.2.1, §4.3; tasks P5-12 and P5-13.
 The timeline's care items are derived on the phone; the server gains one
 column and no logic.
+
+### ADR-043 — A living sky *(2026-10-19)*
+**Context:** on the phone, the owner found the motion timid: three layers
+of identical dots twinkling together, and six sparks on a completed task.
+He asked for a sky that behaves like the real one — stars of different
+brightness, planets that hold still in faint colours, more than stars —
+and for a burst of stars when a task is done, as beautiful as the sites
+built with modern web libraries.
+**Decision (the owner):** `06` §4.1 becomes a living sky: a magnitude
+distribution, colour temperatures and a twinkle per star, halos and
+diffraction spikes on the brightest, steady faint planets, the Milky Way,
+breathing nebulae, and seeded meteors and satellites; the dawn theme keeps
+only the brightest stars and the morning star. Completing a task bursts
+into 14 particles with a shockwave, and Céu completo opens with a
+supernova.
+**Consequence:** the pillars still bind it: one canvas, everything on the
+UI thread from one clock, picture-cached static layers, a 2 ms per-frame
+budget measured in P7-4, a still sky under Reduce Motion and nothing
+running off screen. A burst's short-lived canvas is the one exception to
+one animated canvas per screen. `06` §3, §4.1, §4.2, §4.5, §5; task P5-14
+and P5-9's Build.
