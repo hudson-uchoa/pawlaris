@@ -1016,7 +1016,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] Log in on a phone against the API running on the dev machine;
   the empty tabs appear. Evidence: a screenshot in each theme.
 
-- [ ] **P4-5 — Pets grid, pet form, camera**
+- [~] **P4-5 — Pets grid, pet form, camera**
   **Depends:** P4-4, P2-13 · **Read:** `09` §4.1, §4.2, §5.1 (validation), §5.4 · `02` §2.1 · `10` §7
   **Build:** install `expo-camera`, `expo-image-picker`,
   `expo-image-manipulator`, `expo-image`, `expo-crypto`. `(tabs)/pets`,
