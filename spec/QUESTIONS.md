@@ -1530,3 +1530,29 @@ uncommitted, pending authorization for this assertion correction.
 overrides `updated_at` with the clock's time beside `undone_at` and
 `undone_by`. The spread and every other field stay. The spec is
 unchanged.
+
+## Q-52 — P5-14 — What are the living sky's unspecified data conventions?
+**Asked:** 2026-10-19
+**Where:** spec/06-ux-motion-spec.md §4.1 and §4.2; spec/08-tasks.md P5-14.
+**Problem:** The sky shape is specified, but the seeded event schedule has
+no function signature, finite horizon or timestamp origin. The units of
+the generated period, phase and band angle are unstated. The burst needs
+an occurrence key, which StarCheck does not currently receive. Component
+tests also need a stable selector for its temporary canvas. Finally,
+the band has no specified width or offset range; it intentionally crosses
+the canvas rather than fitting inside it as a bounded point does.
+**I would assume:** Keep these conventions in the typed stubs in sky.ts
+and starBurst.ts: periods and schedule timestamps are milliseconds,
+phases are fractions of a cycle, band angles are degrees, and particle
+angles are radians. generateSkyEventSchedule(seed, count) returns count
+cumulative start times per event kind in { meteors, satellites }, relative
+to mount, with each first delay and subsequent start-to-start delay in
+the specified range. The caller can request another deterministic
+schedule as needed; no fixed runtime horizon is asserted by the tests.
+StarCheck accepts an optional occurrenceKey during migration; the burst
+generator requires that key. A testID of care produces care-burst on the
+temporary Skia canvas. Bounds tests cover point centres, positive band
+width and finite offset; they do not constrain the band's unspecified
+geometry or require a glow's edge to stay inside the canvas.
+**Blocking:** no. Continue with typed stubs and red tests only, leaving
+these assumptions reviewable and the implementation unimplemented.
