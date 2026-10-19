@@ -218,6 +218,19 @@ test('R2.1 edit preserves species, saves all fields and delegates the photo acti
   expect(c.http.requests).toEqual([]);
 });
 
+test('R2.1 clearing an optional breed saves null in the PATCH body and replica', async () => {
+  const c = await scene();
+  const pet = c.seedPet({ breed: 'Mixed' });
+  await paint(c, form(c, pet.id));
+  expect(screen.getByLabelText(strings.pets.breed)).toHaveDisplayValue('Mixed');
+  await fireEvent.changeText(screen.getByLabelText(strings.pets.breed), '');
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(c.outbox.head(c.sessionUser.id)).toMatchObject({
+    method: 'PATCH', path: `/pets/${pet.id}`, body: { breed: null },
+  });
+  expect(c.store.getState().pets[pet.id]?.breed).toBeNull();
+});
+
 test.each(['dismiss', 'confirm'] as const)('R2.2 archive waits for its confirmation Sheet: %s', async (decision) => {
   const c = await scene();
   const pet = c.seedPet();
