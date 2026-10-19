@@ -3,7 +3,7 @@ import {
   type FormValidationError, type TaskEdits, type TaskTemplate,
 } from '@pawlaris/shared';
 import { useContext, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { AssetImage } from '../../assets/AssetImage';
 import { formatTaskEffectiveDate, formatValidationError } from '../../i18n/format';
@@ -12,6 +12,7 @@ import { selectMembers, selectPets } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
 import { Avatar } from '../../ui/primitives/Avatar';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Chip } from '../../ui/primitives/Chip';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { SegmentedControl } from '../../ui/primitives/SegmentedControl';
@@ -76,6 +77,8 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
   const [pickingTime, setPickingTime] = useState(false);
   const [ending, setEnding] = useState(false);
   const finished = useRef(false);
+  const timerInput = useRef<TextInput>(null);
+  const descriptionInput = useRef<TextInput>(null);
   const fields: Draft = { ...draft, completion_mode: draft.pet_ids.length === 1 ? 'together' : draft.completion_mode };
   const scheduleEdit = task !== null && classifyTaskEdit(task, fields) === 'schedule';
 
@@ -121,11 +124,14 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
     if (nextErrors.length === 0) setDraft((current) => ({ ...current, times_of_day: times }));
   }
 
-  return <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
     {!canEdit && <Text>{strings.tasks.readOnly}</Text>}
     <TextField testID="task-title" label={strings.tasks.title} accessibilityLabel={strings.tasks.title}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => {
+        (draft.timer_seconds === null ? descriptionInput : timerInput).current?.focus();
+      }}
       value={draft.title} disabled={!canEdit} onChangeText={(value) => { update('title', value); }} {...fieldError('title')} />
     <View testID="task-category" style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.tasks.category}</Text>
@@ -222,6 +228,7 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
           update('timer_seconds', value ? Number(timerMinutes) * 60 : null);
         }} />
       {draft.timer_seconds !== null && <TextField label={strings.tasks.minutes} accessibilityLabel={strings.tasks.minutes}
+        ref={timerInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { descriptionInput.current?.focus(); }}
         value={timerMinutes} disabled={!canEdit} keyboardType="number-pad" onChangeText={(value) => {
           if (!canEdit || finished.current) return;
           setTimerMinutes(value);
@@ -235,6 +242,7 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
         onValueChange={(value) => { if (value === 'routine' || value === 'critical') update('reminder_class', value); }} />
     </View>
     <TextField label={strings.tasks.description} accessibilityLabel={strings.tasks.description} multiline
+      ref={descriptionInput} returnKeyType="done" submitBehavior="submit" onSubmitEditing={save}
       value={draft.description ?? ''} disabled={!canEdit} onChangeText={(value) => { update('description', value || null); }}
       {...fieldError('description')} />
     {canEdit && scheduleEdit && <Text>{formatTaskEffectiveDate(effective, today)}</Text>}
@@ -264,5 +272,5 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
     {pickingTime && canEdit && <TaskDateTimePicker mode="time" date={today}
       time={localTime(services.clock.now(), timezone)} timezone={timezone} active={active}
       onChoose={addTime} onDismiss={() => { setPickingTime(false); }} />}
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

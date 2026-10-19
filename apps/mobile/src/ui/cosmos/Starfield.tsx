@@ -16,6 +16,7 @@ export type StarfieldProps = {
   active: boolean;
   density?: 'header' | 'full';
   nebula?: boolean;
+  fadeEdges?: boolean;
   scrollY?: SharedValue<number>;
   children?: ReactNode;
   testID?: string;
@@ -86,7 +87,7 @@ function transparentColor(token: string): Float32Array {
 }
 
 export function Starfield({ seed, width, height, active, density = 'header', nebula = false,
-  scrollY, children, testID }: StarfieldProps): ReactElement {
+  fadeEdges = false, scrollY, children, testID }: StarfieldProps): ReactElement {
   const { color, scheme } = useTheme();
   const reduced = useReduceMotion();
   const animationActive = useAnimationActive(active);
@@ -106,6 +107,7 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
   return <Canvas testID={testID} style={{ width, height }} pointerEvents="none"
     accessible={false} importantForAccessibility="no-hide-descendants">
     <CelebrationContext.Provider value={celebration}>
+    <Group layer={fadeEdges}>
     <Fill><LinearGradient start={vec(0, 0)} end={vec(0, height)} colors={[color.skyTop, color.skyBottom]} /></Fill>
     {nebula && starfield.nebula.clouds.map((cloud) => {
       const center = vec(width * cloud.x, height * cloud.y);
@@ -119,6 +121,12 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
       color={color.starfield} themeOpacity={themeOpacity} enabled={enabled} height={height} scrollY={scrollY}
       celebration={children == null ? undefined : celebrationTime} />)}
     {children}
+    {fadeEdges && <Fill blendMode="dstIn">
+      <RadialGradient c={vec(width / 2, width / 2)} r={Math.max(1, width / 2)}
+        transform={[{ scaleY: height / Math.max(1, width) }]}
+        colors={[color.skyTop, color.skyTop, transparentColor(color.skyTop)]} positions={[0, 0.5, 1]} />
+    </Fill>}
+    </Group>
     </CelebrationContext.Provider>
   </Canvas>;
 }

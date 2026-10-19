@@ -14,7 +14,6 @@ export function PermissionsScreen(_props: PermissionsScreenProps): ReactElement 
   return <ScrollView testID="permissions-list" style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="title" accessibilityRole="header">{strings.settings.permissions}</Text>
     {permissions.map((permission) => <View key={permission} testID={`permission-${permission}`}>
       <Text>{strings.diagnostics[permission]}</Text>
     </View>)}

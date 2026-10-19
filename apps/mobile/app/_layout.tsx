@@ -12,6 +12,7 @@ import { duration } from '../src/ui/motion/tokens';
 import { HeroProvider } from '../src/ui/motion/hero';
 import { useReduceMotion } from '../src/ui/motion/useReduceMotion';
 import { ToastProvider } from '../src/ui/primitives/Toast';
+import { typography } from '../src/ui/tokens/type';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -47,25 +48,27 @@ function Navigation(): ReactElement {
   } }}>
     <StatusBar barStyle={app.theme.scheme === 'dark' ? 'light-content' : 'dark-content'} />
     <Stack screenOptions={{ headerShown: false, animation: reduced ? 'fade' : 'slide_from_right',
+      headerStyle: { backgroundColor: app.theme.color.bg }, headerTintColor: app.theme.color.text,
+      headerTitleStyle: typography.heading,
       ...(reduced ? { animationDuration: duration.reducedFade } : {}),
     }}>
       <Stack.Protected guard={!signedIn}><Stack.Screen name="(auth)" /></Stack.Protected>
       <Stack.Protected guard={signedIn}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="pet/new" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pet/[id]/edit" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="pet/new" options={{ presentation: 'modal', headerShown: true, title: strings.pets.addPet }} />
+        <Stack.Screen name="pet/[id]/edit" options={{ presentation: 'modal', headerShown: true, title: strings.pets.edit }} />
         <Stack.Screen name="pet/[id]/index" options={{ animation: 'none', gestureEnabled: false }} />
-        <Stack.Screen name="pet/[id]/weight" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pet/[id]/health/new" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="health/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="task/new" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="tasks/index" />
+        <Stack.Screen name="pet/[id]/weight" options={{ presentation: 'modal', headerShown: true, title: strings.weights.add }} />
+        <Stack.Screen name="pet/[id]/health/new" options={{ presentation: 'modal', headerShown: true, title: strings.health.heading }} />
+        <Stack.Screen name="health/[id]" options={{ presentation: 'modal', headerShown: true, title: strings.health.heading }} />
+        <Stack.Screen name="task/new" options={{ presentation: 'modal', headerShown: true, title: strings.dashboard.createTask }} />
+        <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal', headerShown: true, title: strings.tasks.heading }} />
+        <Stack.Screen name="tasks/index" options={{ headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="settings/password" />
-        <Stack.Screen name="settings/family" />
-        <Stack.Screen name="settings/diagnostics" />
-        <Stack.Screen name="settings/permissions" />
+        <Stack.Screen name="settings/password" options={{ headerShown: true, title: strings.settings.password }} />
+        <Stack.Screen name="settings/family" options={{ headerShown: true, title: strings.settings.family }} />
+        <Stack.Screen name="settings/diagnostics" options={{ headerShown: true, title: strings.settings.diagnostics }} />
+        <Stack.Screen name="settings/permissions" options={{ headerShown: true, title: strings.settings.permissions }} />
       </Stack.Protected>
     </Stack>
   </ThemeProvider>;

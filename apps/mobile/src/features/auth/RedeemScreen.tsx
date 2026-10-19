@@ -1,11 +1,12 @@
 import { validatePassword } from '@pawlaris/shared';
 import { useCallback, useContext, useEffect, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { formatValidationError } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { Starfield } from '../../ui/cosmos/Starfield';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Sheet } from '../../ui/primitives/Sheet';
 import { Text } from '../../ui/primitives/Text';
 import { TextField } from '../../ui/primitives/TextField';
@@ -24,6 +25,9 @@ export function RedeemScreen({ services, active, onLayout }: AuthScreenProps): R
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const nameInput = useRef<TextInput>(null);
+  const emailInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInput>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -98,23 +102,27 @@ export function RedeemScreen({ services, active, onLayout }: AuthScreenProps): R
     <View style={StyleSheet.absoluteFill}>
       <Starfield active={active} seed={authLayout.skySeed} width={width} height={height} density="full" />
     </View>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1,
+    <KeyboardAwareForm contentContainerStyle={{ flexGrow: 1,
       justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg + (insets?.top ?? 0), paddingBottom: spacing.lg + (insets?.bottom ?? 0) }}>
       <View style={{ width: '100%', maxWidth: authLayout.formMaxWidth, gap: spacing.md }}>
         <Text variant="title" accessibilityRole="header">{strings.auth.redeem}</Text>
         <TextField testID="redeem-code" label={strings.auth.redeemCode} accessibilityLabel={strings.auth.redeemCode}
+          returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { nameInput.current?.focus(); }}
           value={code} onChangeText={(value) => { setCode(value.toUpperCase().slice(0, 10)); }}
           maxLength={10} autoCapitalize="characters" autoCorrect={false}
           {...(fieldErrors.code === undefined ? {} : { error: fieldErrors.code })} />
         <TextField testID="redeem-name" label={strings.auth.redeemName} accessibilityLabel={strings.auth.redeemName}
+          ref={nameInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { emailInput.current?.focus(); }}
           value={name} onChangeText={setName} maxLength={40} autoCapitalize="words" autoComplete="name"
           {...(fieldErrors.name === undefined ? {} : { error: fieldErrors.name })} />
         <TextField testID="redeem-email" label={strings.auth.redeemEmail} accessibilityLabel={strings.auth.redeemEmail}
+          ref={emailInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { passwordInput.current?.focus(); }}
           value={email} onChangeText={setEmail} maxLength={254} keyboardType="email-address"
           autoCapitalize="none" autoCorrect={false} autoComplete="email"
           {...(fieldErrors.email === undefined ? {} : { error: fieldErrors.email })} />
         <TextField testID="redeem-password" label={strings.auth.password} accessibilityLabel={strings.auth.password}
+          ref={passwordInput} returnKeyType="done" onSubmitEditing={() => { void submit(); }}
           value={password} onChangeText={setPassword} maxLength={128} secureTextEntry
           autoCapitalize="none" autoCorrect={false} autoComplete="new-password"
           {...(fieldErrors.password === undefined ? {} : { error: fieldErrors.password })} />
@@ -122,7 +130,7 @@ export function RedeemScreen({ services, active, onLayout }: AuthScreenProps): R
           onPress={() => { void submit(); }} loading={pending} active={active} />
         {error !== null && <Text color="danger" accessibilityRole="alert">{error}</Text>}
       </View>
-    </ScrollView>
+    </KeyboardAwareForm>
     <Sheet visible={discardCount !== null} active={active} accessibilityLabel={strings.auth.discardTitle}
       dismissLabel={strings.dismiss} onDismiss={() => { decideDiscard(false); }}>
       <Text variant="heading">{strings.auth.discardTitle}</Text>

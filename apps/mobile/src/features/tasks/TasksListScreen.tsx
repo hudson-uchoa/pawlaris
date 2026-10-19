@@ -36,7 +36,6 @@ export function TasksListScreen({ services, active, onOpenTask }: TasksListScree
   return <ScrollView style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="heading" accessibilityRole="header">{strings.tasks.heading}</Text>
     <SegmentedControl accessibilityLabel={strings.tasks.heading} active={active} disabled={loading}
       value={segment} options={[{ value: 'active', label: strings.tasks.active }, { value: 'ended', label: strings.tasks.ended }]}
       onValueChange={(value) => { if (value === 'active' || value === 'ended') setSegment(value); }} />

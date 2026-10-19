@@ -104,7 +104,7 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
       transform: [{ scale: starCheck.badgeScale }] } : undefined}>
     <View accessible={false} importantForAccessibility="no-hide-descendants"
       style={{ width: starCheck.size, height: starCheck.size, borderRadius: radius.avatar,
-        borderWidth: starCheck.strokeWidth, borderColor: color.textMuted }}>
+        borderWidth: starCheck.strokeWidth, borderColor: color.textMuted, opacity: disabled ? 0.4 : 1 }}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.accentSoft, borderRadius: radius.avatar }, fillStyle]} />
       <Animated.View testID={testID === undefined || badge ? undefined : `${testID}-star`}
         style={[StyleSheet.absoluteFill, starStyle]}>

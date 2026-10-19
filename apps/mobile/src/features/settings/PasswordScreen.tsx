@@ -1,11 +1,12 @@
 import { validatePassword } from '@pawlaris/shared';
 import { useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
-import { ScrollView } from 'react-native';
+import type { TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { PasswordChangeError } from '../../auth/changePassword';
 import { formatValidationError } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Text } from '../../ui/primitives/Text';
 import { TextField } from '../../ui/primitives/TextField';
 import { useTheme } from '../../ui/theme';
@@ -32,6 +33,7 @@ export function PasswordScreen({ services, active, onClose }: PasswordScreenProp
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const running = useRef(false);
+  const newPasswordInput = useRef<TextInput>(null);
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
@@ -67,23 +69,24 @@ export function PasswordScreen({ services, active, onClose }: PasswordScreenProp
   }
 
   const disabled = availability !== 'available' || pending;
-  return <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="title" accessibilityRole="header">{strings.settings.password}</Text>
     {availability !== 'available' && <Text testID={`${availability}-note`} color="textMuted">
       {availability === 'offline' ? strings.settings.offlineNote : strings.settings.reserveNote}
     </Text>}
     <TextField testID="password-current" label={strings.settings.currentPassword}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { newPasswordInput.current?.focus(); }}
       accessibilityLabel={strings.settings.currentPassword} value={currentPassword} onChangeText={setCurrentPassword}
       secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="current-password" disabled={disabled}
       {...(currentError === undefined ? {} : { error: currentError })} />
     <TextField testID="password-new" label={strings.settings.newPassword}
+      ref={newPasswordInput} returnKeyType="done" onSubmitEditing={() => { void save(); }}
       accessibilityLabel={strings.settings.newPassword} value={newPassword} onChangeText={setNewPassword}
       secureTextEntry autoCapitalize="none" autoCorrect={false} autoComplete="new-password" disabled={disabled}
       {...(newError === undefined ? {} : { error: newError })} />
     <Button testID="password-save" label={strings.settings.save} accessibilityLabel={strings.settings.save}
       active={active} disabled={disabled} loading={pending} onPress={() => { void save(); }} />
     {error !== null && <Text color="danger" accessibilityRole="alert">{error}</Text>}
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

@@ -25,14 +25,14 @@ export function DayHeader({ date, today, active, onChange }: DayHeaderProps): Re
   const label = formatDashboardDay(date, today);
   return <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
     <PressableScale testID="day-prev" accessibilityLabel={strings.dashboard.previousDay}
-      disabled={atStart} active={active} onPress={previous}>
+      disabled={atStart} active={active} onPress={previous} style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Icon glyph={ChevronLeft} color={atStart ? 'textMuted' : 'text'} />
     </PressableScale>
     {date === today ? <Text variant="heading" accessibilityRole="header">{label}</Text>
       : <PressableScale testID="day-today" accessibilityLabel={strings.dashboard.returnToday}
-        active={active} onPress={reset}><Text variant="heading">{label}</Text></PressableScale>}
+        active={active} onPress={reset} style={{ alignItems: 'center', justifyContent: 'center' }}><Text variant="heading">{label}</Text></PressableScale>}
     <PressableScale testID="day-next" accessibilityLabel={strings.dashboard.nextDay}
-      disabled={atEnd} active={active} onPress={next}>
+      disabled={atEnd} active={active} onPress={next} style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Icon glyph={ChevronRight} color={atEnd ? 'textMuted' : 'text'} />
     </PressableScale>
   </View>;

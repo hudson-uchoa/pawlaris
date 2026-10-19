@@ -1,7 +1,7 @@
 import { localDate, validatePet, type FormValidationError, type Pet } from '@pawlaris/shared';
 import { Camera } from 'lucide-react-native';
 import { useContext, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { AssetImage } from '../../assets/AssetImage';
 import { formatFullDate, formatValidationError } from '../../i18n/format';
@@ -9,6 +9,7 @@ import { strings } from '../../i18n/strings';
 import { useReplica } from '../../replica/useReplica';
 import { Avatar } from '../../ui/primitives/Avatar';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Icon } from '../../ui/primitives/Icon';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { SegmentedControl } from '../../ui/primitives/SegmentedControl';
@@ -66,6 +67,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
   const [pickingDate, setPickingDate] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const finished = useRef(false);
+  const inputs = useRef<Partial<Record<keyof Draft, TextInput | null>>>({});
   const avatarId = avatarAssetId ?? draft.avatar_asset_id;
   function update<K extends keyof Draft>(field: K, value: Draft[K]): void {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -90,7 +92,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
   }
   const photoPlaceholder = pet === null ? <Icon glyph={Camera} />
     : <Avatar petId={pet.id} species={pet.species} accessibilityLabel={strings.pets.photo} />;
-  return <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
     <PressableScale testID="pet-avatar" accessibilityLabel={strings.pets.photo} onPress={onAvatar} active={active}
@@ -102,6 +104,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
       <Text variant="label">{strings.pets.photo}</Text>
     </PressableScale>
     <TextField testID="pet-name" label={strings.pets.name} accessibilityLabel={strings.pets.name}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { inputs.current.breed?.focus(); }}
       value={draft.name} onChangeText={(value) => { update('name', value); }} {...errorFor('name')} />
     <View testID="pet-species" style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.pets.species}</Text>
@@ -118,14 +121,19 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
       onValueChange={(value) => { if (value === 'female' || value === 'male' || value === 'unknown') update('sex', value); }} />
     </View>
     {(['breed', 'color'] as const).map((field) => <TextField key={field} label={strings.pets[field]} accessibilityLabel={strings.pets[field]}
+      ref={(input) => { inputs.current[field] = input; }} returnKeyType="next" submitBehavior="submit"
+      onSubmitEditing={() => { inputs.current[field === 'breed' ? 'color' : 'microchip_id']?.focus(); }}
       value={draft[field]} onChangeText={(value) => { update(field, value); }} {...errorFor(field)} />)}
     <PressableScale accessibilityLabel={strings.pets.birthdate} active={active} onPress={() => { setPickingDate(true); }}>
       <Text variant="label">{strings.pets.birthdate}</Text>
       {draft.birthdate !== null && <Text>{formatFullDate(draft.birthdate)}</Text>}
     </PressableScale>
     <TextField label={strings.pets.microchip} accessibilityLabel={strings.pets.microchip} value={draft.microchip_id}
+      ref={(input) => { inputs.current.microchip_id = input; }} returnKeyType="next" submitBehavior="submit"
+      onSubmitEditing={() => { inputs.current.notes?.focus(); }}
       onChangeText={(value) => { update('microchip_id', value); }} {...errorFor('microchip_id')} />
     <TextField label={strings.pets.notes} accessibilityLabel={strings.pets.notes} value={draft.notes} multiline
+      ref={(input) => { inputs.current.notes = input; }} returnKeyType="done" submitBehavior="submit" onSubmitEditing={save}
       onChangeText={(value) => { update('notes', value); }} {...errorFor('notes')} />
     <Button testID="pet-save" label={strings.pets.save} accessibilityLabel={strings.pets.save} onPress={save} active={active} />
     {pet !== null && leader && <Button testID="pet-archive" label={strings.pets.archive} accessibilityLabel={strings.pets.archive}
@@ -144,5 +152,5 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
         onClose();
       }} />
     </Sheet>
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

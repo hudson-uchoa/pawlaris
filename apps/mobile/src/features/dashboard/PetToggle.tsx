@@ -15,16 +15,17 @@ export interface PetToggleProps {
   active: boolean;
   disabled: boolean;
   testID: string;
+  width: number;
   onPress(): void;
   onAvatarLayout?: (petId: string, layout: LayoutRectangle) => void;
 }
 
 export const PetToggle = memo(function PetToggle({ pet, completion, members, timezone, active, disabled,
-  testID, onPress, onAvatarLayout }: PetToggleProps): ReactElement {
+  testID, width, onPress, onAvatarLayout }: PetToggleProps): ReactElement {
   const measured = useCallback((event: LayoutChangeEvent) => {
     onAvatarLayout?.(pet.id, event.nativeEvent.layout);
   }, [pet.id, onAvatarLayout]);
-  return <View onLayout={measured}>
+  return <View onLayout={measured} style={{ width }}>
     <StarCheck checked={completion !== null} accessibilityLabel={pet.name} badge active={active}
       disabled={disabled} testID={testID} onPress={onPress}>
       <View style={{ width: spacing.xxl * 2, alignItems: 'center', gap: spacing.xs }}>

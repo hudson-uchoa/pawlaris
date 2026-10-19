@@ -85,7 +85,7 @@ export const strings = {
   },
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
   settings: {
-    author: 'Pawlaris · criado por Hudson Uchoa',
+    author: 'Pawlaris · criado por Hudson Uchoa & Eduarda Miranda',
     offlineNote: 'Disponível quando houver conexão.',
     reserveNote: 'Disponível quando o servidor principal voltar.',
     family: 'Família',

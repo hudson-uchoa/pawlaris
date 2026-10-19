@@ -1,12 +1,13 @@
 import { validateHealthEvent, type FormValidationError, type HealthEvent } from '@pawlaris/shared';
 import { Camera } from 'lucide-react-native';
 import { useCallback, useContext, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { formatDateTime, formatFullDate, formatValidationError, parseDateTime, parseFullDate } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { useReplica } from '../../replica/useReplica';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Icon } from '../../ui/primitives/Icon';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { SegmentedControl } from '../../ui/primitives/SegmentedControl';
@@ -59,6 +60,9 @@ function HealthForm({ services, petId, active, onClose, onAttachment, attachment
   const [errors, setErrors] = useState<FormValidationError[]>([]);
   const [deleting, setDeleting] = useState(false);
   const finished = useRef(false);
+  const whenInput = useRef<TextInput>(null);
+  const nextDueInput = useRef<TextInput>(null);
+  const notesInput = useRef<TextInput>(null);
   const photoId = attachmentAssetId ?? event?.attachment_asset_id ?? null;
   const openCamera = useCallback(() => { onAttachment('attachment'); }, [onAttachment]);
   function update<K extends keyof Draft>(field: K, value: Draft[K]): void {
@@ -85,7 +89,7 @@ function HealthForm({ services, petId, active, onClose, onAttachment, attachment
     finished.current = true;
     onClose();
   }
-  return <ScrollView testID="health-form" style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm testID="health-form" style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
     <View style={{ gap: spacing.xs }}>
@@ -98,14 +102,18 @@ function HealthForm({ services, petId, active, onClose, onAttachment, attachment
       {errorFor('type').error !== undefined && <Text color="danger" accessibilityRole="alert">{errorFor('type').error}</Text>}
     </View>
     <TextField testID="health-title" label={strings.health.title} accessibilityLabel={strings.health.title}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { whenInput.current?.focus(); }}
       value={draft.title} onChangeText={(value) => { update('title', value); }} {...errorFor('title')} />
     <TextField testID="health-occurred-at" label={strings.health.occurredAt} accessibilityLabel={strings.health.occurredAt}
+      ref={whenInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { nextDueInput.current?.focus(); }}
       placeholder={strings.health.dateTimePlaceholder} value={draft.when}
       onChangeText={(value) => { update('when', value); }} {...errorFor('occurred_at')} />
     <TextField testID="health-next-due-on" label={strings.health.nextDueOn} accessibilityLabel={strings.health.nextDueOn}
+      ref={nextDueInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { notesInput.current?.focus(); }}
       placeholder={strings.health.datePlaceholder} value={draft.nextDue}
       onChangeText={(value) => { update('nextDue', value); }} {...errorFor('next_due_on')} />
     <TextField testID="health-notes" label={strings.health.notes} accessibilityLabel={strings.health.notes}
+      ref={notesInput} returnKeyType="done" submitBehavior="submit" onSubmitEditing={save}
       value={draft.notes} onChangeText={(value) => { update('notes', value); }} multiline {...errorFor('notes')} />
     <View style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.pets.photo}</Text>
@@ -131,5 +139,5 @@ function HealthForm({ services, petId, active, onClose, onAttachment, attachment
           onClose();
         }} />
     </Sheet>
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

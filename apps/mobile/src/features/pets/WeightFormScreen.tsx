@@ -1,12 +1,13 @@
 import { needsWeightConfirmation, validateWeight, type FormValidationError } from '@pawlaris/shared';
 import { useContext, useRef, useState, type ReactElement } from 'react';
-import { ScrollView } from 'react-native';
+import type { TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { formatDateTime, formatDecimal, formatValidationError, parseDateTime } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { useReplica } from '../../replica/useReplica';
 import type { WeightCreate } from '../../sync/mutations';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Sheet } from '../../ui/primitives/Sheet';
 import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
@@ -44,6 +45,8 @@ function WeightForm({ services, petId, active, onClose, onSaved, timezone }: Wei
   const [errors, setErrors] = useState<FormValidationError[]>([]);
   const [confirmation, setConfirmation] = useState<{ previous: number; body: WeightCreate } | null>(null);
   const finished = useRef(false);
+  const whenInput = useRef<TextInput>(null);
+  const noteInput = useRef<TextInput>(null);
   function errorFor(field: string): { error?: string } {
     const error = errors.find((entry) => entry.field === field);
     return error === undefined ? {} : { error: formatValidationError(error) };
@@ -77,15 +80,17 @@ function WeightForm({ services, petId, active, onClose, onSaved, timezone }: Wei
   }
   const message = confirmation === null ? strings.weights.value : strings.weights.confirmation(
     formatDecimal(confirmation.previous, 2), formatDecimal(confirmation.body.weight_kg, 2));
-  return <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="heading" accessibilityRole="header">{strings.weights.add}</Text>
     <TextField testID="weight-value" label={strings.weights.value} accessibilityLabel={strings.weights.value}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { whenInput.current?.focus(); }}
       value={value} onChangeText={setValue} keyboardType="decimal-pad" {...errorFor('weight_kg')} />
     <TextField testID="weight-measured-at" label={strings.weights.measuredAt} accessibilityLabel={strings.weights.measuredAt}
+      ref={whenInput} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { noteInput.current?.focus(); }}
       value={when} onChangeText={setWhen} placeholder={strings.weights.dateTimePlaceholder} {...errorFor('measured_at')} />
     <TextField testID="weight-note" label={strings.weights.note} accessibilityLabel={strings.weights.note}
+      ref={noteInput} returnKeyType="done" submitBehavior="submit" onSubmitEditing={save}
       value={note} onChangeText={setNote} multiline {...errorFor('note')} />
     <Button testID="weight-save" label={strings.pets.save} accessibilityLabel={strings.pets.save} onPress={save} active={active} />
     <Sheet visible={confirmation !== null} active={active} accessibilityLabel={message}
@@ -96,5 +101,5 @@ function WeightForm({ services, petId, active, onClose, onSaved, timezone }: Wei
       <Button label={strings.weights.correct} accessibilityLabel={strings.weights.correct} active={active}
         onPress={() => { setConfirmation(null); }} />
     </Sheet>
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

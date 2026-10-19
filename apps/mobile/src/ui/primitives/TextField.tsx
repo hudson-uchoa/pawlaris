@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import { forwardRef, type ReactElement } from 'react';
 import { TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '../theme';
 import { accessibility } from '../tokens/accessibility';
@@ -15,12 +15,12 @@ export type TextFieldProps = Omit<TextInputProps, 'accessibilityLabel'> & {
   disabled?: boolean;
 };
 
-export function TextField({ label, error, disabled = false, editable, style, accessibilityState,
-  onChangeText, ...props }: TextFieldProps): ReactElement {
+export const TextField = forwardRef<TextInput, TextFieldProps>(function TextField({ label, error, disabled = false, editable, style, accessibilityState,
+  onChangeText, ...props }, ref): ReactElement {
   const { color } = useTheme();
   return <View style={{ gap: spacing.xs }}>
     <Text variant="label">{label}</Text>
-    <TextInput {...props} editable={!disabled && editable !== false}
+    <TextInput {...props} ref={ref} editable={!disabled && editable !== false}
       accessibilityState={{ ...accessibilityState, disabled }}
       maxFontSizeMultiplier={accessibility.maxFontSizeMultiplier}
       onChangeText={disabled ? undefined : onChangeText} placeholderTextColor={color.textMuted}
@@ -30,4 +30,4 @@ export function TextField({ label, error, disabled = false, editable, style, acc
         paddingHorizontal: spacing.sm, paddingVertical: spacing.xs }, style]} />
     {error !== undefined && <Text variant="caption" color="danger" accessibilityRole="alert">{error}</Text>}
   </View>;
-}
+});

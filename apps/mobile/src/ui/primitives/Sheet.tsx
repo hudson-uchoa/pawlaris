@@ -176,7 +176,7 @@ export function Sheet({ visible, active: focused = true, accessibilityLabel, dis
           style={[{ backgroundColor: color.surface, borderColor: color.border, borderWidth,
             borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet,
             elevation: elevation.sheet, padding: spacing.lg, maxHeight: '100%' }, sheetStyle]}>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ gap: spacing.md }}>{children}</ScrollView>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }} contentContainerStyle={{ gap: spacing.md }}>{children}</ScrollView>
           <Button label={dismissLabel} accessibilityLabel={dismissLabel} onPress={requestDismiss} active={focused} />
         </Animated.View>
       </GestureDetector>

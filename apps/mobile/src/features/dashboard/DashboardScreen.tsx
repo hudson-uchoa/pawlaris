@@ -186,12 +186,14 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
         colors={[color.accent]} tintColor={color.accent} />}
       ListHeaderComponent={<View key={loading ? 'loading' : 'ready'} onLayout={painted} style={{ gap: spacing.md }}>
         <View onLayout={measureHeader} style={{ gap: spacing.md }}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm }}>
-            <DayHeader date={date} today={today} active={focused} onChange={changeDay} />
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: spacing.sm }}>
+            <PressableScale testID="tasks-manage" accessibilityLabel={strings.tasks.heading}
+              active={focused} onPress={onManage} style={{ alignItems: 'center', justifyContent: 'center' }}>
+              <Text variant="label" color="accent">{strings.tasks.heading}</Text>
+            </PressableScale>
             <SyncIndicator connection={services.engine.state} active={focused} />
           </View>
-          <Button testID="tasks-manage" label={strings.tasks.heading} accessibilityLabel={strings.tasks.heading}
-            active={focused} onPress={onManage} />
+          <DayHeader date={date} today={today} active={focused} onChange={changeDay} />
         </View>
         {!loading && viewer !== undefined && <ScopeFilter viewer={viewer} members={familyMembers} value={scope}
           active={focused} onChange={changeScope} />}

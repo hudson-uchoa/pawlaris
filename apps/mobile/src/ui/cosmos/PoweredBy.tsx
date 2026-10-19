@@ -14,7 +14,7 @@ export type PoweredByProps = {
 
 export function PoweredBy({ active, href, testID }: PoweredByProps): ReactElement {
   const accessibilityLabel = `${strings.brand.poweredBy} ${strings.brand.insurge}`;
-  const content = <View style={{ flexDirection: 'row', alignItems: 'baseline',
+  const content = <View style={{ flexDirection: 'row', alignItems: 'center',
     justifyContent: 'center', gap: signature.gap }}>
     <InsurgeMark active={active} {...(testID === undefined ? {} : { testID: `${testID}-mark` })} />
     <Text variant="caption" color="textMuted" accessible={false}>

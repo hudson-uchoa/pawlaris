@@ -10,6 +10,7 @@ export type EmptyStateProps = {
   illustration?: ReactNode;
   active?: boolean;
   action?: {
+    testID?: string;
     label: string;
     accessibilityLabel: string;
     onPress: () => void;

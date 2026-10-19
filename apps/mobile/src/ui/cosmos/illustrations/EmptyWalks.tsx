@@ -9,7 +9,7 @@ export function EmptyWalks({ width, height, active, testID }: IllustrationProps)
   const { color } = useTheme();
   const scene = illustrations.emptyWalks;
   const scale = Math.min(width / illustrations.width, height / illustrations.height);
-  return <Starfield width={width} height={height} active={active} seed={illustrations.seed}
+  return <Starfield width={width} height={height} active={active} seed={illustrations.seed} fadeEdges
     {...(testID === undefined ? {} : { testID })}>
     <Group transform={[{ translateX: (width - illustrations.width * scale) / 2 },
       { translateY: (height - illustrations.height * scale) / 2 }, { scale }]}>

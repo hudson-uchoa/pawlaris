@@ -40,23 +40,25 @@ export function PetsGridScreen({ services, active, onAdd, onOpenPet }: PetsGridS
 
   return <ScrollView style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}>
-    <Text variant="heading" accessibilityRole="header">{strings.tabs.pets}</Text>
     {loading ? <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
       {[0, 1, 2, 3].map((index) => <View key={index} style={{ width: '50%', padding: spacing.xxs }}>
         <Skeleton width={Math.max(0, (width - 2 * spacing.md) / 2 - 2 * spacing.xxs)}
           height={spacing.xxl * 3} active={false} />
       </View>)}
     </View> : <>
+      {live.length > 0 && <PressableScale testID="pet-add" accessibilityLabel={strings.pets.add}
+        onPress={onAdd} active={active} style={{ alignSelf: 'flex-end', justifyContent: 'center' }}>
+        <Text variant="label" color="accent">{strings.pets.add}</Text>
+      </PressableScale>}
       {live.length === 0 ? <EmptyState title={strings.pets.emptyTitle} active={active}
-        illustration={<EmptyPets width={illustrations.width} height={illustrations.height} active={active} />} />
+        illustration={<EmptyPets width={illustrations.width} height={illustrations.height} active={active} />}
+        action={{ testID: 'pet-add', label: strings.pets.addPet, accessibilityLabel: strings.pets.addPet, onPress: onAdd }} />
         : <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
           {live.map((pet) => <View key={pet.id} style={{ width: '50%', padding: spacing.xxs }}>
             <PetCard pet={pet} now={now} timezone={family.timezone} active={active} onPress={() => { onOpenPet(pet.id); }} />
           </View>)}
         </View>}
-      <Button testID="pet-add" label={live.length === 0 ? strings.pets.addPet : strings.pets.add}
-        accessibilityLabel={live.length === 0 ? strings.pets.addPet : strings.pets.add} onPress={onAdd} active={active} />
-      {leader && <View style={{ gap: spacing.sm }}>
+      {leader && archived.length > 0 && <View style={{ gap: spacing.sm }}>
         <PressableScale testID="pets-archived" accessibilityLabel={strings.pets.archived(archived.length)}
           accessibilityState={{ expanded }} onPress={() => { setExpanded(!expanded); }} active={active}>
           <Text variant="label">{strings.pets.archived(archived.length)}</Text>

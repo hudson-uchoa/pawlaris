@@ -1,6 +1,6 @@
 import type { Family, Member } from '@pawlaris/shared';
 import { useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { FamilyActionError } from '../../auth/familyActions';
 import { formatValidationError } from '../../i18n/format';
@@ -8,6 +8,7 @@ import { strings } from '../../i18n/strings';
 import { selectMembers } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { Chip } from '../../ui/primitives/Chip';
 import { SegmentedControl } from '../../ui/primitives/SegmentedControl';
 import { Sheet } from '../../ui/primitives/Sheet';
@@ -53,6 +54,7 @@ function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const running = useRef(false);
+  const timezoneInput = useRef<TextInput>(null);
   const alive = useRef(false);
   useEffect(() => {
     alive.current = true;
@@ -110,17 +112,18 @@ function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
   const timezoneOptions = query.trim() === ''
     ? [...new Set(['America/Sao_Paulo', family.timezone, 'America/Manaus', 'America/Recife', 'UTC'])]
     : timezones.filter((zone) => zone.toLowerCase().includes(query.trim().toLowerCase()));
-  return <ScrollView style={{ flex: 1, backgroundColor: color.bg }} keyboardShouldPersistTaps="handled"
+  return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="title" accessibilityRole="header">{strings.settings.family}</Text>
     {availability !== 'available' && <Text testID={`${availability}-note`} color="textMuted">
       {availability === 'offline' ? strings.settings.offlineNote : strings.settings.reserveNote}
     </Text>}
     {leader ? <>
       <TextField testID="family-name" label={strings.family.name} accessibilityLabel={strings.family.name}
+        returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { timezoneInput.current?.focus(); }}
         value={name ?? family.name} onChangeText={setName} disabled={familyDisabled} />
       <TextField testID="family-timezone" label={strings.family.timezone} accessibilityLabel={strings.family.timezone}
+        ref={timezoneInput} returnKeyType="done" onSubmitEditing={saveFamily}
         value={timezone ?? family.timezone} onChangeText={setTimezone} disabled={familyDisabled}
         autoCapitalize="none" autoCorrect={false} />
       <Button testID="family-timezone-choose" label={strings.family.chooseTimezone}
@@ -168,6 +171,7 @@ function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
     <Sheet visible={profileName !== null} active={active} accessibilityLabel={strings.settings.editName}
       dismissLabel={strings.dismiss} onDismiss={() => { if (busy === null) setProfileName(null); }}>
       <TextField testID="member-name" label={strings.family.displayName} accessibilityLabel={strings.family.displayName}
+        returnKeyType="done" onSubmitEditing={saveProfile}
         value={profileName ?? ''} onChangeText={setProfileName} disabled={accountDisabled} />
       <Button testID="member-name-save" label={strings.settings.save} accessibilityLabel={strings.settings.save}
         active={active} disabled={accountDisabled} loading={busy === 'member-name-save'} onPress={saveProfile} />
@@ -198,5 +202,5 @@ function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
       </>}
       {error !== null && <Text accessibilityRole="alert" color="danger">{error}</Text>}
     </Sheet>
-  </ScrollView>;
+  </KeyboardAwareForm>;
 }

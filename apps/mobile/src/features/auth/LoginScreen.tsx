@@ -1,10 +1,11 @@
 import { useCallback, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
-import { Dimensions, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Dimensions, StyleSheet, View, useWindowDimensions, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { strings } from '../../i18n/strings';
 import { PoweredBy } from '../../ui/cosmos/PoweredBy';
 import { Starfield } from '../../ui/cosmos/Starfield';
 import { Button } from '../../ui/primitives/Button';
+import { KeyboardAwareForm } from '../../ui/primitives/KeyboardAwareForm';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { Sheet } from '../../ui/primitives/Sheet';
 import { Text } from '../../ui/primitives/Text';
@@ -29,6 +30,7 @@ export function LoginScreen({ services, active, onLayout, onRedeem }: LoginScree
   const reserve = connection.server === 'reserve' && connection.status === 'signed_out' && previousUser !== null;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const passwordInput = useRef<TextInput>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [discardCount, setDiscardCount] = useState<number | null>(null);
@@ -89,7 +91,7 @@ export function LoginScreen({ services, active, onLayout, onRedeem }: LoginScree
     <View style={StyleSheet.absoluteFill}>
       <Starfield active={active} seed={authLayout.skySeed} width={width} height={screenHeight} density="full" />
     </View>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1,
+    <KeyboardAwareForm contentContainerStyle={{ flexGrow: 1,
       justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing.lg,
       paddingTop: spacing.lg + (insets?.top ?? 0),
       paddingBottom: authLayout.signatureHeight + 2 * authLayout.signatureBottomGap + (insets?.bottom ?? 0) }}>
@@ -104,8 +106,10 @@ export function LoginScreen({ services, active, onLayout, onRedeem }: LoginScree
         <View style={{ gap: spacing.md }}>
           <TextField testID="login-email" label={strings.auth.loginEmail} accessibilityLabel={strings.auth.loginEmail}
             value={reserve ? previousUser.email : email} onChangeText={setEmail} disabled={reserve}
+            returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { passwordInput.current?.focus(); }}
             keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" />
           <TextField testID="login-password" label={strings.auth.password} accessibilityLabel={strings.auth.password}
+            ref={passwordInput} returnKeyType="done" onSubmitEditing={() => { void submit(); }}
             value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none"
             autoCorrect={false} autoComplete="current-password" />
           <Button testID="login-submit" label={strings.auth.login} accessibilityLabel={strings.auth.login}
@@ -117,7 +121,7 @@ export function LoginScreen({ services, active, onLayout, onRedeem }: LoginScree
           </PressableScale>
         </View>
       </View>
-    </ScrollView>
+    </KeyboardAwareForm>
     <View style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, height: authLayout.signatureHeight,
       top: screenHeight - (insets?.bottom ?? 0) - authLayout.signatureBottomGap - authLayout.signatureHeight,
       justifyContent: 'center' }}>

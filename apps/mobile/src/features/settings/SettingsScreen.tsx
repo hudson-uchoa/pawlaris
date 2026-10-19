@@ -65,7 +65,6 @@ export function SettingsScreen({ services, active, onOpen }: SettingsScreenProps
   return <ScrollView style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
-    <Text variant="title" accessibilityRole="header">{strings.tabs.settings}</Text>
     {rows.map((destination) => <Button key={destination} testID={`settings-${destination}`}
       label={strings.settings[destination]} accessibilityLabel={strings.settings[destination]} active={active}
       disabled={pending || (destination === 'password' && availability !== 'available')}

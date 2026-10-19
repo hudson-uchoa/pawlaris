@@ -29,6 +29,7 @@ export default function TabsLayout(): ReactElement {
   }}>
     {(Object.keys(strings.tabs) as TabName[]).map((name) => <Tabs.Screen key={name} name={name} options={{
       title: strings.tabs[name], tabBarAccessibilityLabel: strings.tabs[name],
+      headerShown: name !== 'index',
       tabBarLabel: ({ focused: selected }) => <Text variant="caption" color={selected ? 'star' : 'textMuted'}>{strings.tabs[name]}</Text>,
       tabBarIcon: ({ focused: selected }) => <TabIcon name={name} focused={selected} active={active} />,
     }} />)}

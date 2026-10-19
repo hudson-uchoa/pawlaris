@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import { createElement, useImperativeHandle, type Ref } from 'react';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import type { TextInputProps } from 'react-native';
 import { response, servers } from '../../../auth/__tests__/support';
@@ -9,14 +9,10 @@ import { authContext, credentials, type AuthContext } from './support';
 const mockFocusPassword = jest.fn();
 const mockFocusEmail = jest.fn();
 
-jest.mock('react-native/Libraries/Components/TextInput/TextInput', () => {
-  const React = jest.requireActual<typeof import('react')>('react');
-  function TextInput({ ref, ...props }: TextInputProps & { ref?: Ref<{ focus(): void }> }) {
-    React.useImperativeHandle(ref, () => ({ focus: props.testID === 'login-password' ? mockFocusPassword : mockFocusEmail }));
-    return React.createElement('TextInput', props);
-  }
-  return { __esModule: true, default: TextInput };
-});
+function MockTextInput({ ref, ...props }: TextInputProps & { ref?: Ref<{ focus(): void }> }) {
+  useImperativeHandle(ref, () => ({ focus: props.testID === 'login-password' ? mockFocusPassword : mockFocusEmail }));
+  return createElement('TextInput', props);
+}
 
 let context: AuthContext | undefined;
 
@@ -24,6 +20,10 @@ beforeEach(() => {
   jest.useFakeTimers({ now: 0 });
   jest.clearAllMocks();
   jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
+  // The preset has already loaded the barrel's native input mock. Route its
+  // getter to this file's imperative handle so focus is observable here.
+  const native = jest.requireActual<typeof import('react-native')>('react-native');
+  jest.spyOn(native, 'TextInput', 'get').mockReturnValue(MockTextInput as unknown as typeof native.TextInput);
 });
 
 afterEach(async () => {
