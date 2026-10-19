@@ -34,13 +34,13 @@ adapter, never by rewriting a feature.
 | Blobs | local volume | — (S3 is out of scope for v1) |
 | Push | Expo Push over FCM (free; needs a Firebase project and an Expo account, no card) | local notifications only — degraded, still correct |
 | Maps | MapLibre + OSM raster tiles | any raster tile source, one constant |
-| CI / images | GitHub Actions + GHCR free tier (no payment method on file: at the quota it stops, it does not bill) | `pnpm verify` locally; build the image on the box |
+| CI / images | GitHub Actions + GHCR free tier (no payment method on file: at the quota it stops, it does not bill) | `pnpm verify` locally; build the image on the owner's computer, never on the box |
 
 **Rule:** the app must be fully functional with every fallback active.
 
 **The one paid line.** Compute is the single exception to this principle,
 by the owner's choice *(ADR-040)*: a VPS he pays for at a fixed price,
-which never bills by use. Everything else keeps the rule — no dependency,
+which never bills by use and which his other apps share. Everything else keeps the rule — no dependency,
 SDK or service that needs a card or bills after a threshold — and the stack
 still fits the free fallback in the table.
 

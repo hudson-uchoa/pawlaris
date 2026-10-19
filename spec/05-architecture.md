@@ -208,7 +208,7 @@ from `db/`, `api/` or `sync/outbox` directly *(10 §9)*. An ESLint
 ## 4. Infrastructure
 
 The box is the owner's VPS in Brazil, on Ubuntu, with 6 GB of RAM and
-100 GB of NVMe *(ADR-040)*.
+100 GB of NVMe, shared with his other apps *(ADR-040)*.
 The stack stays sized so it runs on the **smallest** candidate — 1 vCPU and
 **1 GB** of RAM — so any fallback box can take it, and simply has headroom
 on the VPS *(ADR-025)*.
@@ -290,8 +290,9 @@ GitHub Actions → build linux/amd64 + linux/arm64 → push ghcr.io/<owner>/pawl
 The image is pulled from GHCR. A public package needs no credentials; a private
 one needs a read-only token on the box (`docker login ghcr.io`) — an owner
 prerequisite. If CI is ever unavailable, the documented fallback is to build on
-the box (`docker compose build`, slow, with swap) — an exception, never the
-routine.
+the owner's computer and send the image over SSH (`docker save` piped to
+`docker load` on the box) — an exception, never the routine. Nothing is
+ever built on the box *(ADR-040)*.
 
 `deploy.sh <tag>`: record the running tag → `docker compose pull` → run
 `alembic upgrade head` in a one-off container (abort on failure, nothing
@@ -893,10 +894,18 @@ provider may reclaim (`01` A-01) and which ADR-038's reserve exists to
 cover. The owner has hired a VPS instead: in Brazil, on Ubuntu, with
 6 GB of RAM and 100 GB of NVMe storage, at a fixed monthly price.
 **Decision (the owner):** the VPS is the box of `05` §4 and the family's
-primary server. The reserve on the owner's computer stays as ADR-038 built
-it.
+primary server. It is not Pawlaris's alone: the owner's other apps run on
+it too, so Pawlaris takes as little of it as it can. Its containers stay
+under 1 GB together, capped by the limits of §4.1, and the box only runs
+them: images are built in CI, or on the owner's computer when CI is
+unavailable, never on the box. The reserve on the owner's computer stays
+as ADR-038 built it.
 **Consequence:** compute becomes the one paid line of `00` P1, which still
 binds every dependency, SDK and service: none may need a card or bill by
 use. The stack keeps its 1 GB sizing, so the free fallbacks of `00` P1
-still hold, and the VPS only adds headroom. H8 is met by the VPS once it is
-reachable over SSH and its ingress profile is chosen.
+still hold, and the VPS only adds headroom. The API runs there beside
+Postgres, because the phones reach the server through it; it is the
+smaller of the two. Sharing the box rules out an ingress that takes ports
+80 and 443 for Pawlaris alone: P8 picks the profile of §4.4 that lives
+beside the other apps. H8 is met by the VPS once it is reachable over SSH
+and that profile is chosen.
