@@ -4,6 +4,22 @@ import permissions from './permissions.json';
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
+  tasks: {
+    title: 'Título',
+    categories: { medication: 'Remédio' },
+    modes: { together: 'Uma vez para todos', per_pet: 'Uma vez por pet' },
+    reminders: { routine: 'Normal', critical: 'Crítico' },
+    anyone: 'Qualquer um',
+    save: 'Salvar',
+    end: 'Encerrar tarefa',
+    endBody: 'A tarefa para de aparecer. O histórico fica.',
+    delete: 'Excluir',
+    readOnly: 'Só quem criou ou um líder pode editar.',
+    effectiveToday: 'As mudanças de agenda valem a partir de hoje.',
+    effectiveTomorrow: 'As mudanças de agenda valem a partir de amanhã, porque a tarefa de hoje já foi marcada.',
+    active: 'Ativas',
+    ended: 'Encerradas',
+  },
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
   settings: {
     author: 'Pawlaris · criado por Hudson Uchoa',
