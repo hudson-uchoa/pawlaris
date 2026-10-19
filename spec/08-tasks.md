@@ -1177,7 +1177,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   the API log) and the indicator shows connected; covered again by P5-3's
   two-phone check.
 
-- [ ] **P5-14 — The living sky**
+- [~] **P5-14 — The living sky**
   **Depends:** P5-11, P4-2, P5-3 · **Read:** `06` §1.3, §3, §4.1, §4.2, §5 ·
   `05` ADR-043
   **Build:** `generateSky` in `ui/cosmos/sky.ts`, replacing `generateStars`;
