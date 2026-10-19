@@ -232,8 +232,11 @@ shows a sheet before saving: "2,00 kg → 12,00 kg — está certo?" **Sim, salv
 `weight-confirm` / **Corrigir**.
 
 Health form: tipo (chips), título*, quando (defaults to now), próxima data
-(optional), observações, foto (optional). **Salvar** `health-save`. Edit adds
-**Excluir**.
+(optional), observações, foto (optional). **Salvar** `health-save`. Tapping
+an item opens this form filled with the event *(Q-43)*, which adds
+**Excluir** `health-delete`: a sheet "Excluir este registro de saúde?" with
+one action, **Excluir** `health-delete-confirm`; dismissing it keeps the
+record.
 
 ---
 

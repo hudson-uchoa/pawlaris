@@ -1316,3 +1316,11 @@ There is no additional edit action. Confine this route choice to
 `apps/mobile/src/features/health/HealthDetailScreen.tsx`.
 **Blocking:** no. The Red tests follow this assumption; the detail screen
 is a typed throwing stub in this turn.
+**Answer (2026-10-19, the orchestrator):** yes. `health/[id]` is the health
+form filled with the event, with **Salvar** `health-save` and **Excluir**
+`health-delete`; there is no read-only detail. **Salvar** calls
+`patchHealthEvent` and closes. **Excluir** first opens a sheet, as the
+pet's archive does, because it takes a medical record out of the
+history: "Excluir este registro de saúde?" with one action, **Excluir**
+`health-delete-confirm`, which calls `deleteHealthEvent` and closes;
+dismissing the sheet keeps the record. Now in `09` §4.3.
