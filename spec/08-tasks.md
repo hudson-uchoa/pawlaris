@@ -1101,7 +1101,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   Excluir is offered only without completions.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/tasks`
 
-- [~] **P5-2 — Dashboard**
+- [x] **P5-2 — Dashboard**
   **Depends:** P5-1, P1-3, P1-7 · **Read:** `09` §3.1, §3.2 · `02` §6 · `06` §1.3, §4.1, §4.8
   **Build:** `(tabs)/index` — the header over a `Starfield` band with parallax,
   `DayHeader`, `ScopeFilter` (persisted in `kv.scope_filter`), sections in a
