@@ -7,6 +7,7 @@ import { strings } from '../../../i18n/strings';
 import { formatFullDate, formatMonth } from '../../../i18n/format';
 import type { HttpResponse } from '../../../platform/http';
 import { ReplicaProvider } from '../../../replica/useReplica';
+import { HeroProvider } from '../../../ui/motion/hero';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { petContext, type PetContext } from '../../pets/__tests__/support';
 import { PetProfileScreen } from '../../pets/PetProfileScreen';
@@ -44,7 +45,7 @@ function seedEvent(c: PetContext, overrides: Partial<HealthEvent> = {}): HealthE
 
 async function paint(c: PetContext, children: ReactNode) {
   return render(<ReplicaProvider store={c.store}>
-    <AssetFilesProvider files={c.files}>{children}</AssetFilesProvider>
+    <AssetFilesProvider files={c.files}><HeroProvider active={false}>{children}</HeroProvider></AssetFilesProvider>
   </ReplicaProvider>);
 }
 

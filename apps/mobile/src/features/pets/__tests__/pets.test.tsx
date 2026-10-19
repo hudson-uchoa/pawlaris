@@ -8,6 +8,7 @@ import { response } from '../../../auth/__tests__/support';
 import { formatFullDate, formatValidationError } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
+import { HeroProvider } from '../../../ui/motion/hero';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { PetFormScreen } from '../PetFormScreen';
 import { PetsGridScreen } from '../PetsGridScreen';
@@ -37,7 +38,7 @@ async function scene(role: Parameters<typeof petContext>[0] = 'leader') {
 
 async function paint(c: PetContext, children: ReactNode) {
   return render(<ReplicaProvider store={c.store}>
-    <AssetFilesProvider files={c.files}>{children}</AssetFilesProvider>
+    <AssetFilesProvider files={c.files}><HeroProvider active={false}>{children}</HeroProvider></AssetFilesProvider>
   </ReplicaProvider>);
 }
 

@@ -2,7 +2,8 @@ import { useRef, type ReactElement } from 'react';
 import { ExpoRoot, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
-import { AppState, Platform } from 'react-native';
+import { AppState, BackHandler, Platform } from 'react-native';
+import { measure } from 'react-native-reanimated';
 import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
 import RootLayout from '../app/_layout';
 import AuthLayout from '../app/(auth)/_layout';
@@ -41,6 +42,21 @@ import { memoryDriver, type MemoryDriver } from '../src/testing/memoryDriver';
 import { rowFactories } from '../src/testing/rowFactories';
 import { sequentialIds } from '../src/testing/sequentialIds';
 import * as ReduceMotion from '../src/ui/motion/useReduceMotion';
+import { duration } from '../src/ui/motion/tokens';
+
+jest.mock('react-native-reanimated', () => Object.defineProperties({}, {
+  ...Object.getOwnPropertyDescriptors(jest.requireActual('react-native-reanimated')),
+  measure: { value: jest.fn(), configurable: true, enumerable: true },
+}));
+
+type AnimationAPI = typeof import('react-native-reanimated');
+type ThreadsAPI = typeof import('react-native-worklets');
+const threadsEntry = jest.requireActual<{ main: string }>('react-native-worklets/package.json').main;
+const threadsRoot = `react-native-worklets/${threadsEntry.replace(/\/index(?:\.js)?$/, '')}`;
+const threads = jest.requireActual<Pick<ThreadsAPI, 'scheduleOnUI' | 'scheduleOnRN'>>(`${threadsRoot}/threads`);
+const animationEntry = jest.requireActual<{ main: string }>('react-native-reanimated/package.json').main;
+const animationRoot = `react-native-reanimated/${animationEntry.replace(/\/index(?:\.js)?$/, '')}`;
+const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>(`${animationRoot}/animation/timing`);
 
 jest.mock('expo-splash-screen', () => ({
   ...jest.requireActual<typeof import('expo-splash-screen')>('expo-splash-screen'),
@@ -62,6 +78,10 @@ beforeEach(async () => {
   jest.spyOn(Platform, 'select').mockImplementation((options) => options.android ?? options.native
     ?? ('default' in options ? options.default : undefined));
   jest.useFakeTimers({ now: epoch });
+  // Deliver native thread handoffs synchronously; retain the real animation driver.
+  jest.spyOn(threads, 'scheduleOnUI').mockImplementation((worklet, ...args) => { worklet(...args); });
+  jest.spyOn(threads, 'scheduleOnRN').mockImplementation((callback, ...args) => { callback(...args); });
+  jest.mocked(measure).mockReset().mockReturnValue(null);
   jest.mocked(NetInfo.addEventListener).mockImplementation((listener) => {
     listener({ type: NetInfoStateType.other, isConnected: true, isInternetReachable: true,
       details: { isConnectionExpensive: false } });
@@ -313,6 +333,73 @@ test('P4-6 pet routes save a weight with a toast, edit the pet and return to wal
   await act(() => { router.back(); });
   await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));
   expect(screen.getByTestId('walks-placeholder')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
+});
+
+test('P4-8 card release overlays the profile, settles its header, then system back restores the source', async () => {
+  jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(false);
+  const backHandlers = new Set<Parameters<typeof BackHandler.addEventListener>[1]>();
+  jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, handler) => {
+    backHandlers.add(handler);
+    return { remove: () => { backHandlers.delete(handler); } };
+  });
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  const pet = c.factory.pets();
+  const replica = new ReplicaRepo(driver);
+  replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+  replica.upsert('pets', pet, { pending: false, deleted: false, pullGen: 0 });
+  await renderShell(c.deps);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
+  const frame = (pageX: number, pageY: number, width: number, height: number) => ({ x: 0, y: 0, pageX, pageY, width, height });
+  const sourceAvatar = frame(20, 80, 48, 48);
+  const sourceName = frame(30, 150, 80, 24);
+  const targetAvatar = frame(100, 60, 96, 96);
+  const targetName = frame(110, 190, 120, 36);
+  jest.mocked(measure).mockReturnValueOnce(sourceAvatar).mockReturnValueOnce(sourceName)
+    .mockReturnValueOnce(targetAvatar).mockReturnValueOnce(targetName);
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const card = screen.getByTestId(`pet-card-${pet.id}`);
+  await fireEvent(card, 'pressIn');
+  expect(screen.queryByTestId('pet-profile')).toBeNull();
+  await fireEvent(card, 'pressOut');
+  await fireEvent.press(card);
+  expect(screen.getByTestId('hero-overlay', { includeHiddenElements: true })).toBeOnTheScreen();
+  expect(screen.getByTestId(`pet-source-avatar-${pet.id}`, { includeHiddenElements: true })).toHaveAnimatedStyle({ opacity: 0 });
+  const avatar = screen.getByTestId(`pet-target-avatar-${pet.id}`, { includeHiddenElements: true });
+  const name = screen.getByTestId(`pet-target-name-${pet.id}`, { includeHiddenElements: true });
+  expect(avatar).toHaveAnimatedStyle({ opacity: 0 });
+  expect(name).toHaveAnimatedStyle({ opacity: 0 });
+  expect(screen.queryByTestId(`pet-orbit-${pet.id}-satellite`, { includeHiddenElements: true })).toBeNull();
+  await fireEvent(avatar, 'layout');
+  await fireEvent(name, 'layout');
+  expect(timing.mock.calls.some(([value, config]) => value === 1 && config?.duration === duration.base)).toBe(true);
+  await act(async () => { await jest.advanceTimersByTimeAsync(duration.base + 32); });
+  expect(screen.getByTestId('pet-profile')).toHaveAnimatedStyle({ opacity: 1 });
+  // The body has appeared while the header copies still own the hero.
+  expect(screen.getByTestId('hero-overlay', { includeHiddenElements: true })).toBeOnTheScreen();
+  await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
+  expect(avatar).toHaveAnimatedStyle({ opacity: 1 });
+  expect(name).toHaveAnimatedStyle({ opacity: 1 });
+  expect(screen.queryByTestId('hero-overlay', { includeHiddenElements: true })).toBeNull();
+  expect(screen.getByTestId(`pet-orbit-${pet.id}-satellite`, { includeHiddenElements: true })).toBeOnTheScreen();
+
+  jest.mocked(measure).mockReturnValueOnce(targetAvatar).mockReturnValueOnce(targetName)
+    .mockReturnValueOnce(sourceAvatar).mockReturnValueOnce(sourceName);
+  await act(() => {
+    const handled = [...backHandlers].reverse().some((handler) => handler({ type: 'hardwareBackPress', timeStamp: epoch }));
+    expect(handled).toBe(true);
+  });
+  expect(screen.getByTestId('hero-overlay', { includeHiddenElements: true })).toBeOnTheScreen();
+  await act(async () => { await jest.advanceTimersByTimeAsync(2000); });
+  expect(screen.queryByTestId('pet-profile')).toBeNull();
+  expect(screen.queryByTestId('hero-overlay', { includeHiddenElements: true })).toBeNull();
+  expect(screen.getByTestId(`pet-source-avatar-${pet.id}`)).toHaveAnimatedStyle({ opacity: 1 });
+  expect(screen.getByTestId(`pet-source-name-${pet.id}`)).toHaveAnimatedStyle({ opacity: 1 });
+  expect(screen.getByTestId(`pet-card-${pet.id}`)).toBeOnTheScreen();
   expect(c.http.requests).toEqual([]);
 });
 

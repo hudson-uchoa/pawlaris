@@ -156,6 +156,8 @@ export function HeroProvider({ children, active: focused = true }: HeroProviderP
   }, []);
 
   const begin = useCallback((id: string, direction: Direction, content: HeroContent | null, navigate: () => void) => {
+    if (!active) { navigate(); return; }
+    if (direction === 'back' && current.current?.id === id && current.current.direction === 'forward') abort();
     if (preparing.current || current.current !== null) return;
     preparing.current = true;
     const run = ++sequence.current;
@@ -185,7 +187,7 @@ export function HeroProvider({ children, active: focused = true }: HeroProviderP
       const to = direction === 'back' ? measureFrames(incoming, width, height) : null;
       scheduleOnRN(measured, from, to);
     });
-  }, [show, generation, running, settled, progress, opacity, destination, width, height]);
+  }, [active, abort, show, generation, running, settled, progress, opacity, destination, width, height]);
 
   const start = useCallback((id: string, content: HeroContent, navigate: () => void) => {
     begin(id, 'forward', content, navigate);
@@ -317,7 +319,8 @@ export function useHeroSource(id: string): HeroSource {
 
 export function useHeroTarget(id: string, active = true): HeroTarget {
   const { context, ...binding } = useBinding(id, 'target');
-  const { blur } = context;
+  const { blur, back } = context;
+  const returnToSource = useCallback((navigate: () => void) => { back(id, navigate); }, [back, id]);
   useLayoutEffect(() => { if (!active) blur(id); }, [active, id, blur]);
-  return { ...binding, settled: context.id !== id, back: (navigate) => { context.back(id, navigate); } };
+  return { ...binding, settled: context.id !== id, back: returnToSource };
 }

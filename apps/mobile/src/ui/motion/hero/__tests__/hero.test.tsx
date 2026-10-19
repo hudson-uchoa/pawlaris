@@ -196,6 +196,17 @@ test('P4-8: Back with an unmounted source uses the Q-45 crossfade and cleans up'
   expect(screen.queryByTestId('avatar-copy', { includeHiddenElements: true })).toBeNull();
 });
 
+test('P4-8: Back during entry cancels the forward run and returns without losing the request', async () => {
+  await navigate();
+  await advance(80);
+  await fireEvent.press(screen.getByTestId('back'));
+  expect(screen.queryByTestId('target-avatar', { includeHiddenElements: true })).toBeNull();
+  await advance(2000);
+  expect(screen.queryByTestId('hero-overlay', { includeHiddenElements: true })).toBeNull();
+  expect(screen.getByTestId('source-avatar')).toHaveAnimatedStyle({ opacity: 1 });
+  expect(screen.getByTestId('source-name')).toHaveAnimatedStyle({ opacity: 1 });
+});
+
 test.each(['before layout', 'during spring'] as const)('P4-8: becoming inactive %s cancels and restores both endpoints', async (phase) => {
   const onNavigate = jest.fn();
   const view = await render(<HeroProvider active><Navigator nullMeasure={null} onNavigate={onNavigate} /></HeroProvider>);

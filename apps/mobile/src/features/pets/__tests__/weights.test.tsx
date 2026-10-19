@@ -5,6 +5,7 @@ import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { formatDateTime, formatDecimal, formatValidationError } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
+import { HeroProvider } from '../../../ui/motion/hero';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { PetProfileScreen } from '../PetProfileScreen';
 import { WeightChart } from '../WeightChart';
@@ -40,7 +41,7 @@ function seedWeight(c: PetContext, overrides: Partial<WeightEntry>): WeightEntry
 
 async function paint(c: PetContext, children: ReactNode) {
   return render(<ReplicaProvider store={c.store}>
-    <AssetFilesProvider files={c.files}>{children}</AssetFilesProvider>
+    <AssetFilesProvider files={c.files}><HeroProvider active={false}>{children}</HeroProvider></AssetFilesProvider>
   </ReplicaProvider>);
 }
 

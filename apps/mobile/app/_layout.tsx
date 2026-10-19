@@ -9,6 +9,7 @@ import { AppProvider, useApp } from '../src/appContext';
 import { createAppRuntime, productionDependencies, type AppDependencies } from '../src/bootstrap';
 import { strings } from '../src/i18n/strings';
 import { duration } from '../src/ui/motion/tokens';
+import { HeroProvider } from '../src/ui/motion/hero';
 import { useReduceMotion } from '../src/ui/motion/useReduceMotion';
 import { ToastProvider } from '../src/ui/primitives/Toast';
 
@@ -29,7 +30,7 @@ export default function RootLayout({ dependencies }: RootLayoutProps = {}): Reac
   useEffect(() => () => runtime.dispose(), [runtime]);
   return <GestureHandlerRootView style={{ flex: 1 }}><SafeAreaProvider>
     <AppProvider runtime={provided}><ToastProvider dismissLabel={strings.dismiss}>
-      <Navigation />
+      <HeroProvider><Navigation /></HeroProvider>
     </ToastProvider></AppProvider>
   </SafeAreaProvider></GestureHandlerRootView>;
 }
@@ -53,7 +54,7 @@ function Navigation(): ReactElement {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="pet/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="pet/[id]/edit" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="pet/[id]/index" />
+        <Stack.Screen name="pet/[id]/index" options={{ animation: 'none', gestureEnabled: false }} />
         <Stack.Screen name="pet/[id]/weight" options={{ presentation: 'modal' }} />
         <Stack.Screen name="pet/[id]/health/new" options={{ presentation: 'modal' }} />
         <Stack.Screen name="health/[id]" options={{ presentation: 'modal' }} />

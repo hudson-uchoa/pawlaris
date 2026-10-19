@@ -1,6 +1,7 @@
 import { identityIndexForId, localDate, type DayViewItem, type WeightEntry } from '@pawlaris/shared';
-import { useContext, useMemo, useRef, useState, type ReactElement } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useContext, useEffect, useMemo, useRef, useState, type ReactElement } from 'react';
+import { BackHandler, StyleSheet, View, useWindowDimensions } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
@@ -11,6 +12,7 @@ import { selectDayView } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
 import { Orbit } from '../../ui/cosmos/Orbit';
 import { Starfield } from '../../ui/cosmos/Starfield';
+import { useHeroTarget } from '../../ui/motion/hero';
 import { useAnimationActive } from '../../ui/motion/useAnimationActive';
 import { Avatar } from '../../ui/primitives/Avatar';
 import { Button } from '../../ui/primitives/Button';
@@ -34,14 +36,25 @@ export type PetProfileScreenProps = PetScreenProps & {
   onAddHealth(): void;
   onOpenHealth(id: string): void;
   onWalks(): void;
+  onBack?(): void;
 };
 
-export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onAddHealth, onOpenHealth, onWalks }: PetProfileScreenProps): ReactElement {
+export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onAddHealth, onOpenHealth, onWalks, onBack }: PetProfileScreenProps): ReactElement {
   const state = useReplica((snapshot) => snapshot);
   const { color } = useTheme();
   const { width } = useWindowDimensions();
   const insets = useContext(SafeAreaInsetsContext);
   const focused = useAnimationActive(active);
+  const hero = useHeroTarget(petId, focused);
+  const returnToSource = hero.back;
+  useEffect(() => {
+    if (!focused || onBack === undefined) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      returnToSource(onBack);
+      return true;
+    });
+    return () => { subscription.remove(); };
+  }, [focused, onBack, returnToSource]);
   const now = services.clock.now();
   const me = services.sessionUser().id;
   const pet = state.pets[petId];
@@ -71,7 +84,7 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
     return [state.members[completion.completed_by]?.display_name,
       formatTime(Date.parse(completion.completed_at), family?.timezone ?? 'UTC')].filter(Boolean).join(' · ');
   }
-  return <ScrollView testID="pet-profile" style={{ flex: 1, backgroundColor: color.bg }}
+  return <Animated.ScrollView testID="pet-profile" style={[{ flex: 1, backgroundColor: color.bg }, hero.contentStyle]}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.lg }}>
     <View testID="pet-header" onLayout={(event) => { setHeaderHeight(event.nativeEvent.layout.height); }}
@@ -79,13 +92,17 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Starfield seed={identityIndexForId(pet.id)} width={contentWidth} height={headerHeight} active={focused} />
       </View>
-      <Orbit petId={pet.id} size={spacing.xxl * 2 + spacing.lg} active={focused} satellite testID={`pet-orbit-${pet.id}`}>
-        <View style={{ width: spacing.xxl * 2, height: spacing.xxl * 2, borderRadius: radius.avatar, overflow: 'hidden' }}>
+      <Orbit petId={pet.id} size={spacing.xxl * 2 + spacing.lg} active={focused} satellite={hero.settled} testID={`pet-orbit-${pet.id}`}>
+        <Animated.View {...hero.avatar} testID={`pet-target-avatar-${pet.id}`}>
+          <View style={{ width: spacing.xxl * 2, height: spacing.xxl * 2, borderRadius: radius.avatar, overflow: 'hidden' }}>
           {pet.avatar_asset_id === null ? placeholder
             : <AssetImage assetId={pet.avatar_asset_id} placeholder={placeholder} accessibilityLabel={pet.name} />}
-        </View>
+          </View>
+        </Animated.View>
       </Orbit>
-      <Text variant="title" accessibilityRole="header">{pet.name}</Text>
+      <Animated.View {...hero.name} testID={`pet-target-name-${pet.id}`}>
+        <Text variant="title" accessibilityRole="header">{pet.name}</Text>
+      </Animated.View>
       <Text variant="caption" color="textMuted">{formatPetSummary(pet, now, family.timezone)}</Text>
       <Button testID="pet-edit" label={strings.pets.edit} accessibilityLabel={strings.pets.edit} onPress={onEdit} active={focused} />
     </View>
@@ -129,7 +146,7 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
         setDeleteId(null);
       }} />
     </Sheet>
-  </ScrollView>;
+  </Animated.ScrollView>;
 }
 
 function WeightEntryRow({ entry, timezone, active, onDelete }: {
