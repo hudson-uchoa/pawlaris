@@ -1,3 +1,5 @@
+import type { Pet } from '@pawlaris/shared';
+
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
@@ -36,7 +38,10 @@ export const strings = {
     notes: 'Observações',
     save: 'Salvar',
     archive: 'Arquivar pet',
-    archiveBody: (name: string): string => `A ${name} sai das tarefas e da lista. O histórico continua guardado.`,
+    archiveBody: (name: string, sex: Pet['sex']): string => {
+      const article = { female: 'A ', male: 'O ', unknown: '' }[sex];
+      return `${article}${name} sai das tarefas e da lista. O histórico continua guardado.`;
+    },
     month: 'Mês',
     year: 'Ano',
     clearBirthdate: 'Limpar nascimento',

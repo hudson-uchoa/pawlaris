@@ -243,13 +243,19 @@ test('R2.1 clearing an optional breed saves null in the PATCH body and replica',
   expect(c.store.getState().pets[pet.id]?.breed).toBeNull();
 });
 
-test.each(['dismiss', 'confirm'] as const)('R2.2 archive waits for its confirmation Sheet: %s', async (decision) => {
+test.each([
+  ['female', 'A ', 'dismiss'], ['female', 'A ', 'confirm'],
+  ['male', 'O ', 'dismiss'], ['male', 'O ', 'confirm'],
+  ['unknown', '', 'dismiss'], ['unknown', '', 'confirm'],
+] as const)('R2.2 archive uses %s article "%s" and waits for confirmation: %s', async (sex, article, decision) => {
   const c = await scene();
-  const pet = c.seedPet();
+  const pet = c.seedPet({ name: 'Aurora', sex });
   await paint(c, form(c, pet.id));
   await fireEvent.press(screen.getByTestId('pet-archive'));
   const sheet = screen.getByRole('dialog', { name: strings.pets.archive });
-  expect(within(sheet).getByText(strings.pets.archiveBody(pet.name))).toBeOnTheScreen();
+  const body = within(sheet).getByText(strings.pets.archiveBody(pet.name, pet.sex));
+  expect(body).toBeOnTheScreen();
+  expect(body).toHaveTextContent(new RegExp(`^${article}${pet.name} `));
   expect(c.outbox.count()).toBe(0);
   expect(c.store.getState().pets[pet.id]?.archived_at).toBeNull();
   await fireEvent.press(within(sheet).getByRole('button', { name: decision === 'confirm' ? strings.pets.archive : strings.dismiss }));

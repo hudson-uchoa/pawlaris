@@ -135,7 +135,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
     <Sheet visible={archiving && leader} active={active} accessibilityLabel={strings.pets.archive}
       dismissLabel={strings.dismiss} onDismiss={() => { setArchiving(false); }}>
       <Text variant="heading">{strings.pets.archive}</Text>
-      <Text>{strings.pets.archiveBody(pet?.name ?? '')}</Text>
+      <Text>{strings.pets.archiveBody(pet?.name ?? '', pet?.sex ?? 'unknown')}</Text>
       <Button label={strings.pets.archive} accessibilityLabel={strings.pets.archive} active={active} onPress={() => {
         if (pet === null || !leader || finished.current) return;
         services.mutations.archivePet(pet.id);
