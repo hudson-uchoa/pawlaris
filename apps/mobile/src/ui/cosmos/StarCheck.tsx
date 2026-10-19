@@ -20,6 +20,7 @@ export type StarCheckProps = {
   accessibilityLabel: string;
   onPress: () => void;
   active: boolean;
+  occurrenceKey?: string;
   disabled?: boolean;
   testID?: string;
   children?: ReactNode;

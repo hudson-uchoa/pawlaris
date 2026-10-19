@@ -1,6 +1,11 @@
 import { icon } from './icon';
 import { spacing } from './spacing';
 
+// Spec 06 section 4.1: colour temperatures and muted planet colours.
+export const starTints = ['#CFE0FF', '#FFFFFF', '#FFF1D6', '#FFD0A0', '#FFB4A0'] as const;
+export const planetTints = ['#C8A27A', '#9DB8B2', '#B9A5C9'] as const;
+export const morningStarTint = '#FFF6E0';
+
 // Spec 06 section 4.1, Q-36. Layer paints and parallax factors are in stars.ts.
 export const starfield = {
   count: { header: 60, full: 120 },

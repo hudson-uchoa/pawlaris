@@ -31,6 +31,7 @@ export const ambient = {
   orbit: 24000,
   syncOrbit: 1200,
   breath: 4000,
+  nebula: 20000,
 } as const;
 
 export const hold = { toast: 4000, completion: 400 } as const;
