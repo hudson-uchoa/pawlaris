@@ -1126,7 +1126,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   within 3 seconds. Evidence: a recording showing both screens, or the output of
   a stopwatch script reading both via `adb`.
 
-- [ ] **P5-11 — Fixes from the first phone test**
+- [~] **P5-11 — Fixes from the first phone test**
   **Depends:** P4-4, P4-9, P5-1, P5-2, P5-3 · **Read:** `09` §1 (the
   keyboard rule, the visual reference), §2.1, §3.1, §3.3, §7 · `06` §4.10,
   §4.12 · `docs/screens/screens-night.png`
