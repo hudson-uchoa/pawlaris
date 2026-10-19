@@ -206,6 +206,8 @@ and inline: "Informe o nome."
 
 Edit adds, for leaders, **Arquivar pet** `pet-archive` with a confirmation
 sheet: "A Aurora sai das tarefas e da lista. O histórico continua guardado."
+The article follows the pet's `sex`: "A" for `female`, "O" for `male`, and
+none for `unknown` ("Aurora sai das tarefas…").
 
 ### 4.3 Profile — `pet/[id]`
 
