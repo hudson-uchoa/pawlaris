@@ -207,7 +207,8 @@ from `db/`, `api/` or `sync/outbox` directly *(10 §9)*. An ESLint
 
 ## 4. Infrastructure
 
-The box is the owner's VPS: 6 GB of RAM and 100 GB of NVMe *(ADR-040)*.
+The box is the owner's VPS in Brazil, on Ubuntu, with 6 GB of RAM and
+100 GB of NVMe *(ADR-040)*.
 The stack stays sized so it runs on the **smallest** candidate — 1 vCPU and
 **1 GB** of RAM — so any fallback box can take it, and simply has headroom
 on the VPS *(ADR-025)*.
@@ -889,8 +890,8 @@ P3-10.
 ### ADR-040 — The primary runs on a paid VPS *(2026-10-18)*
 **Context:** the primary was to be a free virtual machine, which its
 provider may reclaim (`01` A-01) and which ADR-038's reserve exists to
-cover. The owner has hired a VPS instead: 6 GB of RAM and 100 GB of NVMe
-storage, at a fixed monthly price.
+cover. The owner has hired a VPS instead: in Brazil, on Ubuntu, with
+6 GB of RAM and 100 GB of NVMe storage, at a fixed monthly price.
 **Decision (the owner):** the VPS is the box of `05` §4 and the family's
 primary server. The reserve on the owner's computer stays as ADR-038 built
 it.
