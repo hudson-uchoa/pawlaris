@@ -1346,3 +1346,14 @@ keys, like the profile's other sections. One pet's health history stays
 in the tens of events. `FlashList` remains the rule for history screens
 that own their scroll: task history (P5-4) and the walks tab (P6). Now in
 `06` §1.3 rule 4.
+
+## Q-45 — P4-8 — How long should a failed-measure crossfade last?
+**Asked:** 2026-10-19
+**Where:** spec/06-ux-motion-spec.md §4.6 and §5; spec/08-tasks.md P4-8.
+**Problem:** Reduce Motion specifies a 150 ms hero crossfade. Failed
+measurement and an off-screen source also require a crossfade, but its
+duration is not stated. The null-measure test needs an expected duration.
+**I would assume:** All hero fallback crossfades use `duration.reducedFade`
+(150 ms), with no spring. Confine this duration choice to the fallback
+branch in `apps/mobile/src/ui/motion/hero/` when it is implemented.
+**Blocking:** no. The Red tests use this duration assumption.
