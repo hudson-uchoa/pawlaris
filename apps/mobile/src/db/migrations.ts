@@ -79,4 +79,9 @@ CREATE TABLE walk_route_cache (
 
 CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `,
+  `
+UPDATE replica
+SET json = json_set(json, '$.identity_color', json('null'))
+WHERE entity = 'pets' AND json_type(json, '$.identity_color') IS NULL;
+`,
 ];
