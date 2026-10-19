@@ -8,6 +8,12 @@ What the finished app looks like and does, screen by screen. Requirements are in
 Every interactive element named here carries the `testID` shown in `code`.
 Maestro flows and component tests select by those ids, never by text.
 
+**The visual reference** is the concept screens in `docs/screens/`
+(`screens-night.png`, `screens-dawn.png`), drawn from this spec and `06`'s
+tokens. Where this text says nothing about layout, hierarchy or spacing,
+match them; where they differ from this text, the text wins *(the owner,
+2026-10-19)*.
+
 ---
 
 ## 1. Route map
@@ -173,6 +179,10 @@ Bottom-right FAB **+** `task-add` → `task/new`. The header action **Tarefas**
 └──────────────────────────────────────────────────────────┘
 ```
 
+- **Layout** (as in the concept screens): one row — the avatars on the left;
+  the title over the meta or done line in the middle; the time, then the
+  checkbox, on the right. `per_pet` toggles sit below that row, two per
+  line. The card never stacks avatars, title and time in a column.
 - **Avatars:** up to 3 overlapping pet avatars, then `+n`.
 - **Title**, one line, ellipsized.
 - **Time:** `HH:mm`; all-day occurrences show `hoje`. A carry-over *(R6.5)*
@@ -186,6 +196,8 @@ Bottom-right FAB **+** `task-add` → `task/new`. The header action **Tarefas**
 - **Done line:** `Duda · 08:02` in the member's color. With a photo, a
   thumbnail on the right that opens it full-screen.
 - Tap on the card body → `task/[id]`.
+- On a future day the checkbox is shown disabled — its ring at 40% opacity —
+  never hidden *(R3.26)*.
 
 **Interaction** *(R3.18–R3.23)*:
 

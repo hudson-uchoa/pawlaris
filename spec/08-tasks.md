@@ -1127,8 +1127,9 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   a stopwatch script reading both via `adb`.
 
 - [ ] **P5-11 — Fixes from the first phone test**
-  **Depends:** P4-4, P4-9, P5-1, P5-2 · **Read:** `09` §1 (the keyboard
-  rule), §2.1, §3.1, §7 · `06` §4.10, §4.12
+  **Depends:** P4-4, P4-9, P5-1, P5-2, P5-3 · **Read:** `09` §1 (the
+  keyboard rule, the visual reference), §2.1, §3.1, §3.3, §7 · `06` §4.10,
+  §4.12 · `docs/screens/screens-night.png`
   **Build:** `PoweredBy` with its items centred on the row's middle. The
   dashboard's header as `09` §3.1 now says it: the Hoje tab without the
   navigation header, so one title and one `SyncIndicator`; the chevrons and
@@ -1136,14 +1137,18 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   scenes of `06` §4.10 with no visible box, and every empty state's button
   as compact as Hoje's. One title per screen (`09` §1): the Pets tab loses
   its second "Pets"; Arquivados shows only when a pet is archived. The
-  author line in Ajustes names both authors (`09` §7). Every screen with a
+  author line in Ajustes names both authors (`09` §7). The task card's row
+  layout of `09` §3.3, and its disabled checkbox visible on a future day.
+  Every screen with a
   text field — login, redeem, the pet, weight and health forms, the task
   form, password, family — follows the keyboard rule of `09` §1, through one
   shared form container in `ui/primitives`.
   **Tests:** the Hoje tab renders one `sync-indicator` and no navigation
   header; `tasks-manage` is a text action, not a full-width button; each
   empty scene's sky fades at its edges; the Pets tab shows its title once
-  and no Arquivados row with no archived pet; the signature row centres its
+  and no Arquivados row with no archived pet; the card lays out avatars,
+  title, time and checkbox in one row and shows a disabled checkbox on a
+  future day; the signature row centres its
   items, not on the baseline; each form screen renders inside the shared
   container, which avoids the keyboard and keeps taps while it is open; on
   login, the return key on `login-email` focuses `login-password`, and on
