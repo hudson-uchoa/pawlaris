@@ -151,15 +151,12 @@ describe('09 §3.3 TaskCard visual reference', () => {
     if (avatar === undefined) throw new Error('The seeded pet avatar is missing');
     const row = commonContainer(card, [avatar, title, time, check]);
     expect(row).toHaveStyle({ flexDirection: 'row', alignItems: 'center' });
-    // A row ancestor alone is insufficient: the old card puts avatars, title
-    // and time in the same column branch beside the checkbox.
-    expect(branchIndex(row, avatar)).toBeLessThan(branchIndex(row, title));
-    expect(branchIndex(row, title)).toBeLessThan(branchIndex(row, time));
-    expect(branchIndex(row, time)).toBeLessThanOrEqual(branchIndex(row, check));
-    if (branchIndex(row, time) === branchIndex(row, check)) {
-      const trailing = commonContainer(row, [time, check]);
-      expect(trailing).toHaveStyle({ flexDirection: 'row' });
-      expect(branchIndex(trailing, time)).toBeLessThan(branchIndex(trailing, check));
+    // Check each left-to-right relationship, allowing nested horizontal
+    // pressable or trailing groups without accepting the old stacked column.
+    for (const [left, right] of [[avatar, title], [title, time], [time, check]] as const) {
+      const horizontal = commonContainer(row, [left, right]);
+      expect(horizontal).toHaveStyle({ flexDirection: 'row' });
+      expect(branchIndex(horizontal, left)).toBeLessThan(branchIndex(horizontal, right));
     }
     const middle = commonContainer(card, [title, line]);
     expect(contains(row, middle)).toBe(true);
