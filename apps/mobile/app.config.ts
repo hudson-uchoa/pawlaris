@@ -1,5 +1,6 @@
 import type { ExpoConfig } from 'expo/config';
-import { strings } from './src/i18n/strings';
+
+const permissions: { camera: string; photos: string } = require('./src/i18n/permissions.json');
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -21,10 +22,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
-    ['expo-camera', { cameraPermission: strings.camera.permission, microphonePermission: false,
+    ['expo-camera', { cameraPermission: permissions.camera, microphonePermission: false,
       recordAudioAndroid: false, barcodeScannerEnabled: false }],
-    ['expo-image-picker', { photosPermission: strings.camera.galleryPermission,
-      cameraPermission: strings.camera.permission, microphonePermission: false }],
+    ['expo-image-picker', { photosPermission: permissions.photos,
+      cameraPermission: permissions.camera, microphonePermission: false }],
     './plugins/withShortNativePaths.cjs',
     [
       'expo-font',

@@ -1,4 +1,5 @@
 import type { Pet } from '@pawlaris/shared';
+import permissions from './permissions.json';
 
 export const strings = {
   appName: 'Pawlaris',
@@ -11,8 +12,8 @@ export const strings = {
     retake: 'Tirar outra',
     gallery: 'Escolher da galeria',
     settings: 'Abrir ajustes',
-    permission: 'Permita que o Pawlaris use a câmera para tirar fotos dos pets e dos cuidados.',
-    galleryPermission: 'Permita que o Pawlaris use suas fotos para escolher a foto do pet.',
+    permission: permissions.camera,
+    galleryPermission: permissions.photos,
     permissionDenied: 'A câmera precisa de permissão para tirar fotos. Você pode permitir nos ajustes.',
     error: 'Não foi possível preparar a foto. Tente de novo.',
   },
