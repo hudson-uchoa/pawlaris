@@ -1654,3 +1654,21 @@ animation. Any other test that asserts the removed three-layer renderer
 migrates the same way without a new question, listed in the commit.
 A test that fails for any other reason is a question. The spec is
 unchanged.
+
+## Q-55 — P5-12 — How does the replica gain the pet identity field?
+**Asked:** 2026-10-19
+**Where:** spec/08-tasks.md P5-12; spec/03-data-model.md section 10;
+apps/mobile/src/db/migrations.ts; the owner's contract-step instructions.
+**Problem:** The task asks for a replica column, but the specified and
+implemented replica stores every entity in one JSON column. There is no
+pet table or member-colour column, and no existing per-pet-field migration.
+Existing persisted pet JSON lacks the new required response field.
+**I would assume:** Keep the generic replica schema. Add identity_color
+to the shared Pet type and local pet defaults. Append one SQL migration
+that sets a missing identity_color to JSON null on pet rows, preserving
+chosen values, replica metadata and queued requests. New server rows and
+local writes already persist the field through the generic JSON path.
+The migration in apps/mobile/src/db/migrations.ts confines the legacy
+backfill policy to one place; no separate SQLite column is needed.
+**Blocking:** no. Proceed with this interpretation for the contract step
+only, leaving the task checkbox unchanged and all changes uncommitted.
