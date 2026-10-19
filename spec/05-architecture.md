@@ -207,11 +207,12 @@ from `db/`, `api/` or `sync/outbox` directly *(10 §9)*. An ESLint
 
 ## 4. Infrastructure
 
-The box is the owner's VPS in Brazil, on Ubuntu, with 6 GB of RAM and
-100 GB of NVMe, shared with his other apps *(ADR-040)*.
+The box is an **Oracle Cloud Always Free** VM in the São Paulo region
+(`sa-saopaulo-1`), on Ubuntu *(ADR-044)*: an Ampere A1 shape when the region
+has capacity for it, otherwise the `VM.Standard.E2.1.Micro` with 1 GB.
 The stack stays sized so it runs on the **smallest** candidate — 1 vCPU and
-**1 GB** of RAM — so any fallback box can take it, and simply has headroom
-on the VPS *(ADR-025)*.
+**1 GB** of RAM — so the Micro shape and any fallback box can take it, and
+it simply has headroom on an A1 shape *(ADR-025)*.
 
 **Where the box lives matters for latency *(pillar 2)*.** Network round-trip is
 most of what a phone waits for, so the box goes as close to the family as
@@ -292,7 +293,7 @@ one needs a read-only token on the box (`docker login ghcr.io`) — an owner
 prerequisite. If CI is ever unavailable, the documented fallback is to build on
 the owner's computer and send the image over SSH (`docker save` piped to
 `docker load` on the box) — an exception, never the routine. Nothing is
-ever built on the box *(ADR-040)*.
+ever built on the box *(ADR-044)*.
 
 `deploy.sh <tag>`: record the running tag → `docker compose pull` → run
 `alembic upgrade head` in a one-off container (abort on failure, nothing
@@ -889,6 +890,9 @@ and §3, `03` §10, the `arrive` row of `07` §6, and tasks P3-1, P3-4 and
 P3-10.
 
 ### ADR-040 — The primary runs on a paid VPS *(2026-10-18)*
+**Superseded by ADR-044.** The plan the owner had hired turned out to be
+DirectAdmin shared hosting, not a VPS: no root, no Docker, no PostgreSQL.
+The text below is kept as it was decided.
 **Context:** the primary was to be a free virtual machine, which its
 provider may reclaim (`01` A-01) and which ADR-038's reserve exists to
 cover. The owner has hired a VPS instead: in Brazil, on Ubuntu, with
@@ -964,3 +968,25 @@ budget measured in P7-4, a still sky under Reduce Motion and nothing
 running off screen. A burst's short-lived canvas is the one exception to
 one animated canvas per screen. `06` §3, §4.1, §4.2, §4.5, §5; task P5-14
 and P5-9's Build.
+
+### ADR-044 — The primary runs on an Oracle Cloud Always Free VM *(2026-10-19)*
+**Context:** ADR-040 put the primary on a paid VPS. Inspected over SSH,
+the plan was DirectAdmin shared hosting on CloudLinux: an account caged
+on a host shared with many customers, with no root, no Docker and no
+PostgreSQL, and Python only per request behind LiteSpeed. It cannot run
+the API's long-lived process, its socket or its database. That hosting
+stays for the owner's websites.
+**Decision (the owner):** the primary is an Oracle Cloud **Always Free** VM
+in São Paulo, on Ubuntu: an Ampere A1 shape when the region has capacity,
+otherwise `VM.Standard.E2.1.Micro`. The owner verifies the account with a
+card, which the Always Free tier does not charge; the account is never
+upgraded to pay-as-you-go. Compute is free again, so `00` P1 has no paid
+line. What ADR-040 settled about using the box stands: the stack stays
+under 1 GB with the limits of §4.1, and nothing is built on the box.
+**Consequence:** `01` A-01's risks return — capacity may be short and Oracle
+may reclaim an idle Always Free VM — and ADR-038's reserve on the owner's
+computer, with the pulled backups, is the answer to both. The box is
+Pawlaris's alone, so any ingress profile of §4.4 fits. H8 is met by this
+VM once it is reachable over SSH and its profile is chosen. `00` P1,
+`05` §4 and the H8 row of `08`.
+

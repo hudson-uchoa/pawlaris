@@ -29,7 +29,7 @@ adapter, never by rewriting a feature.
 
 | Concern | Primary | Fallback |
 |---|---|---|
-| Compute | the owner's VPS, at a fixed monthly price *(ADR-040)* | another Linux box with ≥ 1 GB RAM — a free-tier VM or a spare machine at home; the stack is plain Docker Compose |
+| Compute | an Oracle Cloud Always Free VM in São Paulo *(ADR-044)* | another Linux box with ≥ 1 GB RAM — a free-tier VM or a spare machine at home; the stack is plain Docker Compose |
 | Ingress | whichever of the three profiles of `05` §4.4 fits the box | another of the three — a Tailscale tailnet needs neither a domain nor a public address |
 | Blobs | local volume | — (S3 is out of scope for v1) |
 | Push | Expo Push over FCM (free; needs a Firebase project and an Expo account, no card) | local notifications only — degraded, still correct |
@@ -38,14 +38,9 @@ adapter, never by rewriting a feature.
 
 **Rule:** the app must be fully functional with every fallback active.
 
-**The one paid line.** Compute is the single exception to this principle,
-by the owner's choice *(ADR-040)*: a VPS he pays for at a fixed price,
-which never bills by use and which his other apps share. Everything else keeps the rule — no dependency,
-SDK or service that needs a card or bills after a threshold — and the stack
-still fits the free fallback in the table.
-
 **Card-gated sign-ups.** Some free tiers (OCI among them) ask for a card to
-verify identity. Using one is the owner's decision, never the implementer's, and
+verify identity. Using one is the owner's decision, never the implementer's
+(the owner chose OCI's on 2026-10-19, *ADR-044*), and
 is never required: the spare-machine path has no card anywhere.
 
 ## P2 — The spec is the source of truth
