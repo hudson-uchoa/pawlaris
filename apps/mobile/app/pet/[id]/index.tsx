@@ -17,6 +17,8 @@ export default function PetProfile(): ReactElement {
       services={{ clock: app.clock, sessionUser: () => user, mutations: app.mutations }}
       onEdit={() => { router.push({ pathname: '../../pet/[id]/edit', params: { id } }); }}
       onAddWeight={() => { router.push({ pathname: '../../pet/[id]/weight', params: { id } }); }}
+      onAddHealth={() => { router.push({ pathname: '../../pet/[id]/health/new', params: { id } }); }}
+      onOpenHealth={(eventId) => { router.push({ pathname: '../../health/[id]', params: { id: eventId } }); }}
       onWalks={() => { router.navigate('../../(tabs)/walks'); }} />
     <ToastHost active={active} />
   </View>;

@@ -157,7 +157,8 @@ test('R2.8 deleting a profile weight removes only that entry and enqueues its DE
     measured_at: new Date(c.clock.now() - 86_400_000).toISOString() });
   const deleteWeight = jest.spyOn(c.mutations, 'deleteWeight');
   await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
-    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={jest.fn()} />);
+    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={jest.fn()}
+    onAddHealth={jest.fn()} onOpenHealth={jest.fn()} />);
   expect(screen.getByTestId(`weight-entry-${removed.id}`)).toBeOnTheScreen();
   expect(screen.getByTestId(`weight-entry-${kept.id}`)).toBeOnTheScreen();
   await fireEvent(screen.getByTestId(`weight-entry-${removed.id}`), 'longPress');
@@ -248,7 +249,8 @@ test('R2.4 R2.6 R1.19 profile shows five recent weights and care from every assi
   });
   const onEdit = jest.fn();
   await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
-    onEdit={onEdit} onAddWeight={c.onAdd} onWalks={jest.fn()} />);
+    onEdit={onEdit} onAddWeight={c.onAdd} onWalks={jest.fn()}
+    onAddHealth={jest.fn()} onOpenHealth={jest.fn()} />);
   expect(screen.getByText([strings.pets.profileSpecies.cat.female, `3 ${strings.format.year[1]}`, strings.pets.mixedBreed].join(' · ')))
     .toBeOnTheScreen();
   expect(screen.getByTestId('weight-latest')).toHaveTextContent(strings.weights.kilograms(formatDecimal(4, 2)));
@@ -263,7 +265,7 @@ test('R2.4 R2.6 R1.19 profile shows five recent weights and care from every assi
   expect(dueRow.getAllByText(/.+/)).toHaveLength(2);
   expect(care.getByText(/^Duda ·/)).toBeOnTheScreen();
   expect(screen.queryByTestId('pet-walks')).toBeNull();
-  expect(screen.queryByTestId('health-add')).toBeNull();
+  expect(within(screen.getByTestId('pet-health')).getByTestId('health-add')).toBeOnTheScreen();
   await fireEvent.press(screen.getByTestId('pet-edit'));
   await fireEvent.press(screen.getByTestId('weight-add'));
   expect(onEdit).toHaveBeenCalledTimes(1);
@@ -286,7 +288,8 @@ test('R1.19 profile labels completed care with who and when and leaves later car
     }));
   });
   await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
-    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={jest.fn()} />);
+    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={jest.fn()}
+    onAddHealth={jest.fn()} onOpenHealth={jest.fn()} />);
   const done = within(screen.getByTestId(`pet-care-${task.id}-2026-10-13T08:00`));
   expect(done.getByText('08:00')).toBeOnTheScreen();
   expect(done.getByText('Duda · 08:05')).toBeOnTheScreen();
@@ -309,7 +312,8 @@ test('R1.19 dog profile shows its three newest finished walks and opens the walk
   });
   const onWalks = jest.fn();
   await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
-    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={onWalks} />);
+    onEdit={jest.fn()} onAddWeight={c.onAdd} onWalks={onWalks}
+    onAddHealth={jest.fn()} onOpenHealth={jest.fn()} />);
   expect(screen.getAllByTestId(/^pet-walk-/).map((row) => row.props.testID))
     .toEqual(walks.slice(0, 3).map((walk) => `pet-walk-${walk.id}`));
   await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));

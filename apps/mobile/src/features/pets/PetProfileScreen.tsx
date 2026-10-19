@@ -22,6 +22,7 @@ import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
+import { HealthTimelineSection } from '../health/HealthTimelineSection';
 import { petWeights } from './petWeights';
 import type { PetScreenProps } from './types';
 import { WeightChart } from './WeightChart';
@@ -30,10 +31,12 @@ export type PetProfileScreenProps = PetScreenProps & {
   petId: string;
   onEdit(): void;
   onAddWeight(): void;
+  onAddHealth(): void;
+  onOpenHealth(id: string): void;
   onWalks(): void;
 };
 
-export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onWalks }: PetProfileScreenProps): ReactElement {
+export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onAddHealth, onOpenHealth, onWalks }: PetProfileScreenProps): ReactElement {
   const state = useReplica((snapshot) => snapshot);
   const { color } = useTheme();
   const { width } = useWindowDimensions();
@@ -108,6 +111,7 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
         </Card>;
       })}
     </View>
+    <HealthTimelineSection petId={petId} active={focused} onAdd={onAddHealth} onOpen={onOpenHealth} />
     {pet.species === 'dog' && <View testID="pet-walks" style={{ gap: spacing.sm }}>
       <Text variant="heading" accessibilityRole="header">{strings.tabs.walks}</Text>
       {walks.map((walk) => <View key={walk.id} testID={`pet-walk-${walk.id}`}>

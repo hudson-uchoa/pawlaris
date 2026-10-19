@@ -4,10 +4,12 @@ import type { ReactNode } from 'react';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { deferred, response } from '../../../auth/__tests__/support';
 import { strings } from '../../../i18n/strings';
+import { formatFullDate, formatMonth } from '../../../i18n/format';
 import type { HttpResponse } from '../../../platform/http';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { petContext, type PetContext } from '../../pets/__tests__/support';
+import { PetProfileScreen } from '../../pets/PetProfileScreen';
 import { HealthDetailScreen } from '../HealthDetailScreen';
 import { HealthFormScreen } from '../HealthFormScreen';
 import { HealthTimelineItem } from '../HealthTimelineItem';
@@ -78,6 +80,27 @@ test('R2.12 the timeline reads live replica rows for its pet, grouped newest fir
   expect(c.http.requests).toEqual([]);
 });
 
+test('R2.12 the profile includes its health month, event glyph and local date with navigation actions', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  const event = seedEvent(c, { pet_id: pet.id, occurred_at: '2026-11-01T02:59:00.000Z' });
+  const onOpenHealth = jest.fn();
+  await paint(c, <PetProfileScreen services={c.services} petId={pet.id} active
+    onEdit={jest.fn()} onAddWeight={jest.fn()} onWalks={jest.fn()}
+    onAddHealth={c.onAdd} onOpenHealth={onOpenHealth} />);
+  const health = within(screen.getByTestId('pet-health'));
+  expect(health.getByRole('header', { name: strings.health.heading })).toBeOnTheScreen();
+  expect(health.getByRole('header', { name: formatMonth('2026-10') })).toBeOnTheScreen();
+  expect(health.getByRole('image', { name: strings.health.types.vaccine })).toBeOnTheScreen();
+  expect(health.getByText(formatFullDate('2026-10-31'))).toBeOnTheScreen();
+  await fireEvent.press(health.getByTestId(`health-event-${event.id}`));
+  expect(onOpenHealth).toHaveBeenCalledTimes(1);
+  expect(onOpenHealth).toHaveBeenCalledWith(event.id);
+  await fireEvent.press(health.getByTestId('health-add'));
+  expect(c.onAdd).toHaveBeenCalledTimes(1);
+  expect(c.http.requests).toEqual([]);
+});
+
 test.each<{ due: DateKey | null; short: string | null }>([
   { due: '2026-11-12', short: '12/11' },
   { due: '2026-01-01', short: '01/01' },
@@ -104,7 +127,8 @@ test.each(['queued', 'sent', 'refused'] as const)(
     if (state !== 'queued') await c.files.uploads.kick();
     const event = seedEvent(c, { attachment_asset_id: id });
     await paint(c, item(event));
-    expect(screen.getByRole('image', { name: strings.pets.photo })).toHaveProp('source', { uri });
+    // Expo Image normalizes a single source to a native source array.
+    expect(screen.getByRole('image', { name: strings.pets.photo })).toHaveProp('source', [{ uri }]);
     const expected = state === 'queued' ? strings.health.photoUploading : state === 'refused' ? strings.health.photoFailed : null;
     for (const label of [strings.health.photoUploading, strings.health.photoFailed, strings.health.photoPending]) {
       if (label === expected) expect(screen.getByText(label)).toBeOnTheScreen();
@@ -117,6 +141,13 @@ test.each(['queued', 'sent', 'refused'] as const)(
       expect(retry).toHaveBeenCalledTimes(1);
       expect(retry).toHaveBeenCalledWith(id);
     }
+    await act(async () => {
+      pending.resolve(response(201));
+      await c.files.uploads.kick();
+    });
+    expect(screen.queryByText(strings.health.photoUploading)).toBeNull();
+    expect(screen.queryByText(strings.health.photoFailed)).toBeNull();
+    expect(screen.queryByTestId('photo-retry')).toBeNull();
     expect(c.http.requests).toEqual([]);
   },
 );

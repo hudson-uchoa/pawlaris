@@ -55,7 +55,17 @@ export const strings = {
     },
   },
   health: {
+    heading: 'Saúde',
+    add: 'Adicionar',
     title: 'Título',
+    types: {
+      vaccine: 'Vacina',
+      medication: 'Medicamento',
+      vet_visit: 'Consulta veterinária',
+      symptom: 'Sintoma',
+      procedure: 'Procedimento',
+      other: 'Outro',
+    },
     delete: 'Excluir',
     deleteConfirmation: 'Excluir este registro de saúde?',
     nextDue: (date: string): string => `próxima: ${date}`,

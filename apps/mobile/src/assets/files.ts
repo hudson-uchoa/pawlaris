@@ -33,6 +33,7 @@ export interface AssetFiles {
   readonly uploads: Uploads;
   ensureFile(id: string): Promise<AssetFileResult>;
   uploadState(id: string): AssetFile['state'] | null;
+  subscribeUploadState(listener: () => void): () => void;
   retryUpload(id: string): void;
   prefetchAvatars(): Promise<void>;
 }
@@ -56,6 +57,7 @@ const extensions: Readonly<Record<string, string>> = {
 export function createAssetFiles(deps: AssetFilesDependencies): AssetFiles {
   const repo = new AssetRepo(deps.driver);
   const downloads = new Map<string, Promise<AssetFileResult>>();
+  const uploadListeners = new Set<() => void>();
   let disposed = false;
   let needsKick = false;
   let rerun = false;
@@ -164,7 +166,10 @@ export function createAssetFiles(deps: AssetFilesDependencies): AssetFiles {
   deps.driver.onTransactionEnd((committed) => {
     const pending = needsKick;
     needsKick = false;
-    if (committed && pending) void kick();
+    if (committed && !disposed) {
+      for (const listener of uploadListeners) listener();
+      if (pending) void kick();
+    }
   });
 
   const loadFile = async (id: string): Promise<AssetFileResult> => {
@@ -209,11 +214,15 @@ export function createAssetFiles(deps: AssetFilesDependencies): AssetFiles {
     },
     uploads: {
       kick,
-      dispose() { disposed = true; clearRetry(); },
+      dispose() { disposed = true; clearRetry(); uploadListeners.clear(); },
     },
     ensureFile,
-    uploadState(_id) {
-      throw new Error('not implemented');
+    uploadState(id) {
+      return repo.get(id)?.state ?? null;
+    },
+    subscribeUploadState(listener) {
+      uploadListeners.add(listener);
+      return () => { uploadListeners.delete(listener); };
     },
     retryUpload(id) {
       deps.driver.transaction(() => {

@@ -12,6 +12,9 @@ export type ScheduleSummaryInput = {
 const dayLabel = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short',
 });
+const monthLabel = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'UTC', month: 'long', year: 'numeric',
+});
 const weekdays = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
 
 function twoDigits(value: number): string {
@@ -30,6 +33,10 @@ export function formatShortDate(date: DateKey): string {
 export function formatFullDate(date: DateKey): string {
   const { y, m, d } = parseDateKey(date);
   return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
+}
+
+export function formatMonth(month: string): string {
+  return monthLabel.format(utcDate(parseDateKey(`${month}-01`)));
 }
 
 export function formatDateTime(instantMs: number, timezone: string): string {

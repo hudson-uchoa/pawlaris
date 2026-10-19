@@ -29,3 +29,26 @@ test('R3.46 uploadState returns null for an unknown attachment without starting 
   expect(c.http.requests).toEqual([]);
   expect(c.outbox.count()).toBe(0);
 });
+
+test('R3.46 upload observers see committed states, ignore rollbacks and unsubscribe', async () => {
+  const c = await petContext();
+  context = c;
+  const repo = new AssetRepo(c.driver);
+  const row = c.factory.assetFile({ kind: 'health_attachment' });
+  c.driver.transaction(() => { repo.upsert(row); });
+  const changed = jest.fn(() => c.files.uploadState(row.id));
+  const unsubscribe = c.files.subscribeUploadState(changed);
+  c.driver.transaction(() => { repo.upsert({ ...row, state: 'uploaded' }); });
+  expect(changed).toHaveBeenCalledTimes(1);
+  expect(changed).toHaveReturnedWith('uploaded');
+  expect(() => c.driver.transaction(() => {
+    repo.upsert({ ...row, state: 'failed' });
+    throw new Error('Injected rollback');
+  })).toThrow('Injected rollback');
+  expect(changed).toHaveBeenCalledTimes(1);
+  expect(c.files.uploadState(row.id)).toBe('uploaded');
+  unsubscribe();
+  c.driver.transaction(() => { repo.upsert({ ...row, state: 'failed' }); });
+  expect(changed).toHaveBeenCalledTimes(1);
+  expect(c.fileSystem.requests).toEqual([]);
+});
