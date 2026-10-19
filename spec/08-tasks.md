@@ -1161,6 +1161,22 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and the Céu limpo and Pets scenes have no visible edge, in both themes.
   **Not here:** a keyboard library; restyling the forms.
 
+- [ ] **P5-15 — The socket at its specified path**
+  **Depends:** P2-14 · **Read:** `04` (its opening lines: the base and the socket URL), §7,
+  the census note of §5
+  **Build:** the WebSocket route mounted under `/api/v1`, as the contract's
+  `wss://<host>/api/v1/ws` says; the route census and the socket tests
+  addressing it there. On the phone the app opens `…/api/v1/ws` and the
+  server answered 403, because the route sat at `/ws`; every poke was lost
+  and the other phone waited for its next pull.
+  **Tests:** `tests/sync/test_socket.py` connects to `/api/v1/ws` and
+  receives `ready`; a connection to `/ws` at the root is refused; the census
+  finds exactly one socket, at `/api/v1/ws`.
+  **Gate:** `uv run --directory services/api pytest tests/sync/test_socket.py tests/security -q`
+  **Device:** [ ] With the dev API, the phone's socket connects (no 403 in
+  the API log) and the indicator shows connected; covered again by P5-3's
+  two-phone check.
+
 - [ ] **P5-14 — The living sky**
   **Depends:** P5-11, P4-2, P5-3 · **Read:** `06` §1.3, §3, §4.1, §4.2, §5 ·
   `05` ADR-043

@@ -328,7 +328,8 @@ person — would end the old template and fail to create its successor.
 > authentication **and** be named in a row of this table. A new route with no
 > row fails the census. The app serves no documentation routes
 > (`docs_url`, `redoc_url` and `openapi_url` are all off; the contract is
-> exported by a script). Exactly one WebSocket route exists, `/ws`; it
+> exported by a script). Exactly one WebSocket route exists, `/ws` under the
+> base like every other route — `/api/v1/ws` on the server; it
 > authenticates in-band and is covered by WS-2.
 
 ---
