@@ -1205,7 +1205,8 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   PetCreate · `06` §2 · `09` §4.2, §4.2.1 · `05` ADR-042
   **Build:** contract first: `identity_color` on Pet, PetCreate and PetPatch,
   checked against the identity keys like a member's color, with the Alembic
-  migration and the replica column. `packages/shared/src/petLists.ts` with
+  migration and the replica's pet rows backfilled *(Q-55)*.
+  `packages/shared/src/petLists.ts` with
   the keys of `09` §4.2.1, and their names in `strings.ts`. The pet form's
   Raça and Pelagem pickers with search and **Outra…**, and the Cor no app
   swatches; the pet's identity from `identity_color` wherever it is drawn;

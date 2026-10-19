@@ -1672,3 +1672,9 @@ The migration in apps/mobile/src/db/migrations.ts confines the legacy
 backfill policy to one place; no separate SQLite column is needed.
 **Blocking:** no. Proceed with this interpretation for the contract step
 only, leaving the task checkbox unchanged and all changes uncommitted.
+
+**Answer (2026-10-19, orchestrator):** as assumed. The replica keeps one
+JSON column per entity (`03` §10), so a new pet field needs no SQLite
+column: the shared `Pet` type carries `identity_color`, local writes
+default it to null, and one replica migration backfills null into pet
+rows written before it. `08` P5-12 now says so.
