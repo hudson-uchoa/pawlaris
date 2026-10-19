@@ -102,7 +102,7 @@ test('06 §4.1 dawn keeps only magnitudes 1–2 and one steady morning star', as
   expect(view.container.queryAll((node) => node.type === 'skLine')).toHaveLength(0);
 });
 
-test.each(['focus', 'background'] as const)('06 §1.3/§4.1 %s stops the running sky clock and preserves its drawing', async (reason) => {
+test.each(['focus', 'background'] as const)('P5-14 R3/06 §5 %s freezes the sky and resumes without counting time away', async (reason) => {
   const listeners = new Set<(state: AppStateStatus) => void>();
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
     const notify = (state: AppStateStatus) => { (listener as (value: AppStateStatus) => void)(state); };
@@ -126,6 +126,28 @@ test.each(['focus', 'background'] as const)('06 §1.3/§4.1 %s stops the running
   await advance(10000);
   expect(starAlphas(view)).toEqual(running);
   expect(planetAlphas(view)).toEqual(planets);
+
+  if (reason === 'background') {
+    await act(() => { AppState.currentState = 'active'; listeners.forEach((notify) => notify('active')); });
+  } else {
+    await view.rerender(<Starfield active seed={42} width={360} height={800} density="full" />);
+  }
+  const sky = generateSky(42, { width: 360, height: 800, density: 'full' });
+  // The sine's maximum slope bounds each alpha's change over one 16 ms frame.
+  // Check the first two frames so a delayed first callback cannot hide a jump.
+  let previous = running;
+  for (let frame = 0; frame < 2; frame += 1) {
+    await advance(16);
+    const resumed = starAlphas(view);
+    for (const [index, star] of sky.stars.entries()) {
+      const base = starfield.alpha.minimum + (6 - star.magnitude) * starfield.alpha.step;
+      const amplitude = starfield.amplitude[star.magnitude <= 2 ? 0 : star.magnitude <= 4 ? 1 : 2];
+      const maximumChange = base * amplitude * Math.PI * 16 / star.period;
+      expect(Math.abs((resumed[index] ?? 0) - (previous[index] ?? 0))).toBeLessThanOrEqual(maximumChange + 1e-7);
+    }
+    previous = resumed;
+  }
+  expect(previous).not.toEqual(running);
 });
 
 test.each(['meteor', 'satellite'] as const)('P5-14 R2 the %s is visible only within its scheduled window', async (kind) => {
