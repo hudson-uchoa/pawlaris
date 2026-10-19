@@ -362,3 +362,25 @@ test('R5.1 task list rows show replica pets, schedule and assignee and open the 
   expect(within(screen.getByRole('button', { name: 'For anyone' })).getByText(strings.tasks.anyone)).toBeOnTheScreen();
   expectNoWrites(c);
 });
+
+test('R3.4 R3.5 selecting one pet before medication saves together and critical', async () => {
+  const c = await scene();
+  const pet = c.seedPet();
+  await paint(c, form(c));
+  await fireEvent.changeText(screen.getByTestId('task-title'), 'Evening dose');
+  await choosePet(pet.name);
+  await fireEvent.press(within(screen.getByTestId('task-category')).getByRole('button', {
+    name: strings.tasks.categories.medication,
+  }));
+  expect(screen.queryByTestId('task-mode')).toBeNull();
+  await fireEvent.press(screen.getByTestId('task-save'));
+  expect(Object.values(c.store.getState().taskTemplates)).toEqual([
+    expect.objectContaining({ pet_ids: [pet.id], category: 'medication',
+      completion_mode: 'together', reminder_class: 'critical' }),
+  ]);
+  expect(queued(c)).toEqual([
+    expect.objectContaining({ method: 'POST', path: '/tasks', body: expect.objectContaining({
+      pet_ids: [pet.id], category: 'medication', completion_mode: 'together', reminder_class: 'critical',
+    }) }),
+  ]);
+});
