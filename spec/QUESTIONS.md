@@ -1294,3 +1294,9 @@ evolução." for zero or one entry, with no chart axes or measurement
 line. Keep this copy in `apps/mobile/src/i18n/strings.ts`, under
 `weights.empty`, so the answer can replace it in one place.
 **Blocking:** no. The Red tests use that isolated copy assumption.
+**Answer (2026-10-19, the orchestrator):** as assumed. With zero or one
+entry, the Peso section shows "Registre pelo menos dois pesos para ver a
+evolução." in place of the chart: no axes, no line, no stars. The latest
+value and the list of entries above and below it stay. The copy is
+plain, because the chart is not one of the four sky scenes of `06`
+§4.10. Now in `09` §4.3.

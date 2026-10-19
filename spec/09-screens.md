@@ -216,7 +216,8 @@ none for `unknown` ("Aurora sai das tarefas…").
 2. **Peso** — latest value (`4,25 kg`), the trend chart `weight-chart`
    *(06 §6)*, **Registrar peso** `weight-add` → `pet/[id]/weight`. Under the
    chart, the 5 most recent entries; swipe-left or long-press an entry →
-   **Excluir**.
+   **Excluir**. With fewer than 2 entries the chart's place says "Registre
+   pelo menos dois pesos para ver a evolução." *(R2.6, Q-42)*.
 3. **Cuidados de hoje** — that pet's occurrences for today, as compact rows
    (any assignee): the cross-check that lets one person confirm the other gave
    the dose *(R1.19)*.
