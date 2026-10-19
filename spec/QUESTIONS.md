@@ -1556,3 +1556,13 @@ width and finite offset; they do not constrain the band's unspecified
 geometry or require a glow's edge to stay inside the canvas.
 **Blocking:** no. Continue with typed stubs and red tests only, leaving
 these assumptions reviewable and the implementation unimplemented.
+**Answer (2026-10-19, orchestrator):** as assumed, with one addition.
+Periods and schedule times are milliseconds, phases fractions of a cycle,
+band angles degrees and particle angles radians.
+`generateSkyEventSchedule(seed, count)` returns `count` cumulative start
+times per kind, from mount. `StarCheck` takes an optional
+`occurrenceKey`, and a `testID` of `care` gives its burst canvas
+`care-burst`. A per-pet toggle seeds its burst with the occurrence key
+followed by the pet's id, so two pets of one card never burst alike. The
+bounds tests stay as described. `06` §4.1 now states the units and the
+schedule's signature, and §4.2 the per-pet seed.

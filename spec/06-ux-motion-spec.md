@@ -284,6 +284,13 @@ type Sky = {
 };
 ```
 
+Units *(Q-52)*: positions and sizes in dp, `period` in milliseconds,
+`phase` a fraction of a cycle in [0, 1), the band's `angle` in degrees.
+The events come from `generateSkyEventSchedule(seed, count)`, which
+returns `count` start times in milliseconds from mount for each of
+`meteors` and `satellites`; the first delay and every gap between starts
+fall in the event's range below.
+
 - **Count:** `density` is `'band'` (a header, 70 stars, 1 planet) or
   `'full'` (a full screen, 160 stars, 2 planets, the band and 300 dust
   points). Empty-state scenes use `'band'` with no planet.
@@ -374,7 +381,8 @@ tinted from `starTints` and `star`. Drag slows them and a light gravity of
 30 dp/s² bends them, and they fade over 700 ms. With them a shockwave ring
 (1.5 dp stroke in `star`, alpha 0.6 → 0) grows from 14 to 40 dp over
 420 ms, and the star's halo flares and settles at 0.4. The seed is the
-occurrence key, so no two bursts look alike. A burst draws in its own
+occurrence key — with the pet's id appended for a per-pet toggle — so
+no two bursts look alike *(Q-52)*. A burst draws in its own
 small Skia canvas that exists only while it plays (under 1 s): it is the
 one exception to *one animated canvas per screen* (§1.3 rule 5).
 
