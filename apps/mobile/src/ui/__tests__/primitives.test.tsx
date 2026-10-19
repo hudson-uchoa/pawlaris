@@ -141,6 +141,15 @@ describe.each(['light', 'dark'] as const)('P4-1 primitives in %s', (scheme) => {
     expect(screen.getByTestId('loading-shape', { includeHiddenElements: true })).toHaveStyle({ width: 240, height: 48 });
   });
 
+  test('R2 / 09 §1 Sheet scroll view preserves handled keyboard taps', async () => {
+    jest.useFakeTimers({ now: 0 });
+    const view = await render(<Sheet visible active={false} accessibilityLabel="Confirm care"
+      dismissLabel="Close sheet" onDismiss={jest.fn()}><Text>Details</Text></Sheet>);
+    const scrolls = view.container.queryAll((node) => node.type === 'RCTScrollView');
+    expect(scrolls).toHaveLength(1);
+    expect(scrolls[0]?.props.keyboardShouldPersistTaps).toBe('handled');
+  });
+
   test('Sheet exposes a labelled dialog, dismisses by action and hides when closed', async () => {
     jest.useFakeTimers({ now: 0 });
     const onDismiss = jest.fn();
