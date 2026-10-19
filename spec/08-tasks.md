@@ -1161,7 +1161,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and the Céu limpo and Pets scenes have no visible edge, in both themes.
   **Not here:** a keyboard library; restyling the forms.
 
-- [~] **P5-15 — The socket at its specified path**
+- [x] **P5-15 — The socket at its specified path**
   **Depends:** P2-14 · **Read:** `04` (its opening lines: the base and the socket URL), §7,
   the census note of §5
   **Build:** the WebSocket route mounted under `/api/v1`, as the contract's
