@@ -13,6 +13,8 @@ import Dashboard from '../app/(tabs)/index';
 import Pets from '../app/(tabs)/pets';
 import Walks from '../app/(tabs)/walks';
 import Settings from '../app/(tabs)/settings';
+import NewPet from '../app/pet/new';
+import EditPet from '../app/pet/[id]/edit';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -107,6 +109,8 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './(tabs)/pets.tsx': { default: Pets },
     './(tabs)/walks.tsx': { default: Walks },
     './(tabs)/settings.tsx': { default: Settings },
+    './pet/new.tsx': { default: NewPet },
+    './pet/[id]/edit.tsx': { default: EditPet },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -240,6 +244,18 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
   expect(screen.getByTestId(`pet-card-${pet.id}`)).toHaveTextContent(pet.name);
   expect(screen.getByTestId('pet-add')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('pet-add'));
+  await fireEvent.changeText(screen.getByTestId('pet-name'), 'Vega');
+  await fireEvent.press(screen.getByRole('radio', { name: strings.pets.dog }));
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(screen.getByTestId('pet-add')).toBeOnTheScreen();
+  const created = new OutboxRepo(driver).head(wire.user.id);
+  expect(replica.get('pets', created?.entityId ?? '')?.row.name).toBe('Vega');
+  await act(() => { router.push({ pathname: '../pet/[id]/edit', params: { id: pet.id } }); });
+  expect(screen.getByTestId('pet-name')).toHaveDisplayValue(pet.name);
+  await fireEvent.changeText(screen.getByTestId('pet-name'), 'Atlas');
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(screen.getByTestId(`pet-card-${pet.id}`)).toHaveTextContent('Atlas');
 });
 
 test('P4-3 dashboard marker ignores skeleton layouts and emits once after family hydration', async () => {

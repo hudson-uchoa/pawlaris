@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { AssetImage } from '../../../assets/AssetImage';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
 import { response } from '../../../auth/__tests__/support';
-import { formatValidationError } from '../../../i18n/format';
+import { formatFullDate, formatValidationError } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
@@ -173,6 +173,73 @@ test('R2.2 a leader editing a pet sees the archive button', async () => {
   const pet = c.seedPet();
   await paint(c, form(c, pet.id));
   expect(screen.getByTestId('pet-archive')).toBeOnTheScreen();
+});
+
+test('R2.1 missing name and species show required messages without a write', async () => {
+  const c = await scene();
+  await paint(c, form(c));
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(screen.getAllByRole('alert').map((alert) => alert.props.children)).toEqual([
+    formatValidationError({ field: 'name', code: 'required' }),
+    formatValidationError({ field: 'species', code: 'required' }),
+  ]);
+  expect(c.outbox.count()).toBe(0);
+  expect(c.onClose).not.toHaveBeenCalled();
+});
+
+test('R2.1 edit preserves species, saves all fields and delegates the photo action', async () => {
+  const c = await scene();
+  const pet = c.seedPet({ breed: 'Mixed', color: 'Black', birthdate: '2020-01-02', microchip_id: '123', notes: 'Quiet' });
+  await paint(c, form(c, pet.id));
+  await fireEvent.press(screen.getByTestId('pet-avatar'));
+  expect(c.onAvatar).toHaveBeenCalledTimes(1);
+  expect(c.outbox.count()).toBe(0);
+  const dog = within(screen.getByTestId('pet-species')).getByRole('radio', { name: strings.pets.dog });
+  expect(dog).toBeDisabled();
+  await fireEvent.press(dog);
+  expect(within(screen.getByTestId('pet-species')).getByRole('radio', { name: strings.pets.cat })).toBeChecked();
+  for (const [label, value] of [[strings.pets.breed, pet.breed], [strings.pets.color, pet.color],
+    [strings.pets.microchip, pet.microchip_id], [strings.pets.notes, pet.notes]] as const) {
+    expect(screen.getByLabelText(label)).toHaveDisplayValue(value ?? '');
+  }
+  await fireEvent.changeText(screen.getByLabelText(strings.pets.notes), 'Updated locally');
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.birthdate }));
+  const picker = screen.getByRole('dialog', { name: strings.pets.birthdate });
+  await fireEvent.press(within(picker).getByRole('button', { name: formatFullDate('2020-01-03') }));
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(c.createPet).not.toHaveBeenCalled();
+  expect(c.outbox.head(c.sessionUser.id)).toMatchObject({ method: 'PATCH', path: `/pets/${pet.id}`, body: {
+    name: pet.name, sex: pet.sex, breed: pet.breed, color: pet.color, birthdate: '2020-01-03',
+    microchip_id: pet.microchip_id, notes: 'Updated locally', avatar_asset_id: null,
+  } });
+  expect(c.store.getState().pets[pet.id]).toMatchObject({ species: 'cat', notes: 'Updated locally', birthdate: '2020-01-03' });
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+  expect(c.http.requests).toEqual([]);
+});
+
+test.each(['dismiss', 'confirm'] as const)('R2.2 archive waits for its confirmation Sheet: %s', async (decision) => {
+  const c = await scene();
+  const pet = c.seedPet();
+  await paint(c, form(c, pet.id));
+  await fireEvent.press(screen.getByTestId('pet-archive'));
+  const sheet = screen.getByRole('dialog', { name: strings.pets.archive });
+  expect(within(sheet).getByText(strings.pets.archiveBody(pet.name))).toBeOnTheScreen();
+  expect(c.outbox.count()).toBe(0);
+  expect(c.store.getState().pets[pet.id]?.archived_at).toBeNull();
+  await fireEvent.press(within(sheet).getByRole('button', { name: decision === 'confirm' ? strings.pets.archive : strings.dismiss }));
+  await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+  if (decision === 'confirm') {
+    expect(c.outbox.head(c.sessionUser.id)).toMatchObject({ method: 'POST', path: `/pets/${pet.id}/archive` });
+    expect(c.store.getState().pets[pet.id]?.archived_at).toBe(new Date(c.clock.now()).toISOString());
+    expect(c.onClose).toHaveBeenCalledTimes(1);
+  } else {
+    expect(c.outbox.count()).toBe(0);
+    expect(c.store.getState().pets[pet.id]?.archived_at).toBeNull();
+    expect(c.onClose).not.toHaveBeenCalled();
+  }
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(c.http.requests).toEqual([]);
 });
 
 test('R2.3 R3.46 AssetImage shows its placeholder while the local asset is pending', async () => {

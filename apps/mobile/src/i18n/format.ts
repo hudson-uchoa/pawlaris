@@ -27,6 +27,11 @@ export function formatShortDate(date: DateKey): string {
   return `${twoDigits(d)}/${twoDigits(m)}`;
 }
 
+export function formatFullDate(date: DateKey): string {
+  const { y, m, d } = parseDateKey(date);
+  return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
+}
+
 export function formatDayLabel(date: DateKey): string {
   return dayLabel.format(utcDate(parseDateKey(date)));
 }

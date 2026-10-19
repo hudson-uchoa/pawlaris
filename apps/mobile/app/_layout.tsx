@@ -49,7 +49,11 @@ function Navigation(): ReactElement {
       ...(reduced ? { animationDuration: duration.reducedFade } : {}),
     }}>
       <Stack.Protected guard={!signedIn}><Stack.Screen name="(auth)" /></Stack.Protected>
-      <Stack.Protected guard={signedIn}><Stack.Screen name="(tabs)" /></Stack.Protected>
+      <Stack.Protected guard={signedIn}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="pet/new" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="pet/[id]/edit" options={{ presentation: 'modal' }} />
+      </Stack.Protected>
     </Stack>
   </ThemeProvider>;
 }
