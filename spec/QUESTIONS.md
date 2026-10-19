@@ -1413,3 +1413,9 @@ layout change can satisfy both exact text assertions.
 that existing assertions must not be edited or weakened. Independent
 stage-3 implementation and checks can proceed; no commit is made in this
 session, as explicitly requested.
+**Answer (2026-10-19, orchestrator):** the assertion is a defect of the
+red commit `d1426d7`, not of the spec. Replace it with
+`expect(within(memberRow).getByText(member.display_name)).toBeOnTheScreen()`:
+the name must be its own text node inside the row, which is as strict as
+the spec asks and lets the role badge and **Editar nome** share the row.
+No other assertion changes. Nothing in the spec changes.
