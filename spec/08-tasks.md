@@ -1030,7 +1030,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   `AssetImage` shows the placeholder while `pending`.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/pets`
 
-- [ ] **P4-6 — Pet profile, weights, chart**
+- [~] **P4-6 — Pet profile, weights, chart**
   **Depends:** P4-5 · **Read:** `09` §4.3 · `02` §2.2 · `06` §4.4 (orbit), §6
   **Build:** `pet/[id]/index` (sections 1–3 and 5 of `09` §4.3; section 3 uses
   `selectDayView` filtered to the pet with scope `all`), `pet/[id]/weight`,
