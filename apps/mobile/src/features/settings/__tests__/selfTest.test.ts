@@ -26,3 +26,10 @@ test.each([
   expect(result.failures).toHaveLength(failures.length);
   expect(result.failures).toEqual(expect.arrayContaining(failures));
 });
+
+test('RC-3 an engine exception names each affected vector and still runs the time vectors', () => {
+  const result = runSelfTest({ ...engine, occurrences: () => { throw new Error('Test engine failure'); } });
+  expect(result).toEqual({
+    total, passed: total - recurrence.vectors.length, failures: recurrence.vectors.map((vector) => vector.name),
+  });
+});

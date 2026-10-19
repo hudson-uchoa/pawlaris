@@ -1,5 +1,7 @@
 import type { AuthUser } from '@pawlaris/shared';
 import type { Lifecycle } from '../../auth/lifecycle';
+import type { DiagnosticsDetails } from '../../diagnostics';
+import type { CameraDevice } from '../../platform/camera';
 import type { Logger } from '../../platform/logger';
 import type { ConnectionObservable, Engine } from '../../sync/engine';
 import type { SelfTestResult } from './selfTest';
@@ -26,6 +28,9 @@ export interface DiagnosticsServices {
   engine: Pick<Engine, 'state' | 'kick'>;
   logger: Pick<Logger, 'exportText'>;
   share: LogShare;
+  details(): DiagnosticsDetails;
+  camera: Pick<CameraDevice, 'getPermission'>;
+  checkHealth(): Promise<boolean>;
   selfTest(): SelfTestResult;
   rebuild(): Promise<void>;
 }

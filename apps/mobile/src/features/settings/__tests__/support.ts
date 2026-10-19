@@ -1,5 +1,6 @@
 import type { AuthUser } from '@pawlaris/shared';
 import { createLifecycle } from '../../../auth/lifecycle';
+import { createDiagnosticsReader } from '../../../diagnostics';
 import { createLogger, type LogFiles } from '../../../platform/logger';
 import type { ConnectionObservable, ConnectionState } from '../../../sync/engine';
 import { syncContext } from '../../../sync/__tests__/support';
@@ -52,6 +53,8 @@ export async function settingsContext(options: {
   const diagnosticServices: DiagnosticsServices = {
     engine: { state: connection, kick: jest.fn(async () => {}) },
     logger, share: { shareText }, selfTest: runSelfTest, rebuild: jest.fn(async () => {}),
+    details: createDiagnosticsReader(c.driver, connection), camera: { getPermission: jest.fn(async () => true) },
+    checkHealth: jest.fn(async () => true),
   };
   return { ...c, user, family, member, services, actions, logger, shareText, diagnosticServices,
     onOpen: jest.fn(), onClose: jest.fn(),
