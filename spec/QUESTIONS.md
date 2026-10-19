@@ -1300,3 +1300,19 @@ evolução." in place of the chart: no axes, no line, no stars. The latest
 value and the list of entries above and below it stay. The copy is
 plain, because the chart is not one of the four sky scenes of `06`
 §4.10. Now in `09` §4.3.
+
+## Q-43 — P4-7 — Does the health detail route open the editable form?
+**Asked:** 2026-10-19
+**Where:** spec/08-tasks.md P4-7 Tests; spec/09-screens.md §4.3.
+**Problem:** Tapping a timeline item opens `health/[id]`, and the health
+form says that editing adds Excluir. The spec does not explicitly say
+whether this route opens that form directly or first shows a read-only
+detail with an extra Editar action. The edit and delete tests need a
+concrete interaction path.
+**I would assume:** `health/[id]` opens the existing event in the editable
+health form, with Salvar and Excluir. Saving calls `patchHealthEvent`;
+Excluir calls `deleteHealthEvent`; both close after the local mutation.
+There is no additional edit action. Confine this route choice to
+`apps/mobile/src/features/health/HealthDetailScreen.tsx`.
+**Blocking:** no. The Red tests follow this assumption; the detail screen
+is a typed throwing stub in this turn.
