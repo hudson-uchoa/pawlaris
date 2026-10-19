@@ -7,6 +7,7 @@ export * from './taskEdit';
 export * from './reminders';
 export * from './walk';
 export * from './pets';
+export * from './petLists';
 export * from './identity';
 export * from './validators';
 
