@@ -58,6 +58,7 @@ A **release** (P8-7) needs the strict `pnpm verify` to exit 0, every task
 | `contract-check` | `node scripts/contract-check.mjs` | P0-4 |
 | `lint:mobile` | `pnpm -C apps/mobile run lint` | P0-5 |
 | `typecheck:mobile` | `pnpm -C apps/mobile exec tsc --noEmit` | P0-5 |
+| `config:mobile` | `pnpm -C apps/mobile exec expo config --type public --json` — the Expo config and its plugins load, as every `expo` command and the build need | orchestrator (P4-5 R4) |
 | `test:mobile` | `pnpm -C apps/mobile run test` (= `jest --coverage`) | P0-5 |
 | `security` | `uv run --directory services/api pytest tests/security -q` | P2-5 |
 
