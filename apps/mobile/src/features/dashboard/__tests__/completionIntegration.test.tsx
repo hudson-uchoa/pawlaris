@@ -120,3 +120,31 @@ test('P6 leaving the dashboard during the hold settles its section without leavi
   expect(screen.queryByTestId('section-now')).toBeNull();
   expect(c.outbox.count()).toBe(1);
 });
+
+test('09 §3.3 changing scope during the 400 ms hold releases the old section and returns to done', async () => {
+  const c = await scene();
+  await render(tree(c));
+  expect(screen.getByTestId('scope-mine')).toBeSelected();
+  await fireEvent.press(screen.getByTestId(c.checkId));
+  expect(screen.getByTestId(c.checkId)).toBeChecked();
+  expect(screen.getByTestId('section-now')).toBeOnTheScreen();
+  await advance(c, 100);
+  expect(screen.queryByTestId('section-done')).toBeNull();
+
+  await fireEvent.press(screen.getByTestId('scope-all'));
+  expect(screen.getByTestId('scope-all')).toBeSelected();
+  // The completed task remains in this scope, but its old scope's pin does not.
+  expect(screen.queryByTestId('section-now')).toBeNull();
+  expect(screen.getByTestId('section-done')).toBeCollapsed();
+  expect(screen.queryByTestId(c.checkId)).toBeNull();
+  await advance(c, 400);
+  await fireEvent.press(screen.getByTestId('scope-mine'));
+  expect(screen.getByTestId('scope-mine')).toBeSelected();
+  expect(screen.queryByTestId('section-now')).toBeNull();
+  expect(screen.getByTestId('section-done')).toHaveTextContent(strings.dashboard.done(1));
+  expect(screen.getByTestId('section-done')).toBeCollapsed();
+  expect(screen.queryByTestId(c.checkId)).toBeNull();
+  await fireEvent.press(screen.getByTestId('section-done'));
+  expect(screen.getByTestId(c.checkId)).toBeChecked();
+  expect(c.outbox.count()).toBe(1);
+});
