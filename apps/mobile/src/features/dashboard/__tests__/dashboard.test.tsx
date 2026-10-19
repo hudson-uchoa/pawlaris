@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import type { ReactNode } from 'react';
 import { AppState, type RefreshControlProps } from 'react-native';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
-import { formatCareDue } from '../../../i18n/format';
+import { formatCareDue, formatDashboardDay } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { selectDayView } from '../../../replica/selectors';
 import { createReplicaStore, type ReplicaStore } from '../../../replica/store';
@@ -344,3 +344,25 @@ test.each(['all', 'user'] as const)(
     expect(screen.getByTestId(cardId(shared, today(c)))).toBeOnTheScreen();
   },
 );
+
+test('R6.2 clamps the selected day to the new minus-90 limit after family midnight', async () => {
+  const c = await scene();
+  const initialToday = today(c);
+  await paint(c);
+  for (let daysBack = 0; daysBack < 90; daysBack += 1) {
+    expect(screen.getByTestId('day-prev')).toBeEnabled();
+    await fireEvent.press(screen.getByTestId('day-prev'));
+  }
+  const initialLimit = formatDashboardDay(addDays(initialToday, -90), initialToday);
+  expect(within(screen.getByTestId('day-today')).getByText(initialLimit)).toBeOnTheScreen();
+  expect(screen.getByTestId('day-prev')).toBeDisabled();
+
+  c.clock.advance(Date.parse('2026-10-14T03:00:01Z') - c.clock.now());
+  await act(async () => { await jest.advanceTimersByTimeAsync(60_000); });
+
+  expect(today(c)).toBe(addDays(initialToday, 1));
+  const newLimit = formatDashboardDay(addDays(today(c), -90), today(c));
+  expect(within(screen.getByTestId('day-today')).getByText(newLimit)).toBeOnTheScreen();
+  expect(screen.queryByText(initialLimit)).toBeNull();
+  expect(screen.getByTestId('day-prev')).toBeDisabled();
+});
