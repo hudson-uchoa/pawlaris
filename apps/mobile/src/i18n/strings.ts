@@ -5,6 +5,10 @@ export const strings = {
   pets: {
     archived: (count: number): string => `Arquivados (${count})`,
     cat: 'Gato',
+    add: '+ Adicionar',
+    addPet: 'Adicionar pet',
+    unarchive: 'Desarquivar',
+    emptyTitle: 'Nenhuma estrela por aqui ainda.',
   },
   auth: {
     loginEmail: 'E-mail',

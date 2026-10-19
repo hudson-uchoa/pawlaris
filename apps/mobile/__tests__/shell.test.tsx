@@ -237,6 +237,9 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   expect(hide).toHaveBeenCalledTimes(1);
   expect(c.http.requests.length).toBeGreaterThan(0);
   expect(replica.get('pets', pet.id)?.row).toEqual(pet);
+  await fireEvent.press(screen.getByRole('tab', { name: strings.tabs.pets }));
+  expect(screen.getByTestId(`pet-card-${pet.id}`)).toHaveTextContent(pet.name);
+  expect(screen.getByTestId('pet-add')).toBeOnTheScreen();
 });
 
 test('P4-3 dashboard marker ignores skeleton layouts and emits once after family hydration', async () => {

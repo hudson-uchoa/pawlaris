@@ -22,6 +22,7 @@ import { hydrate } from './replica/hydrate';
 import { createReplicaStore, type ReplicaStore } from './replica/store';
 import type { Engine } from './sync/engine';
 import { createSyncEvents, type SyncEvents } from './sync/events';
+import { createMutations, type Mutations } from './sync/mutations';
 import { createOutbox, type Outbox } from './sync/outbox';
 import { createServerSelect } from './sync/serverSelect';
 import { createSocket, type SocketConnection } from './sync/socket';
@@ -53,6 +54,7 @@ export interface AppRuntime {
   clock: Clock;
   marker: StartupMarker;
   assetFiles: AssetFiles;
+  readonly mutations: Mutations;
   logger: Logger;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
@@ -118,8 +120,18 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   });
   let painted = false;
   let disposed = false;
+  const mutations = createMutations({ ...deps, apply,
+    sessionUser: {
+      get id() {
+        const user = sessionUser();
+        if (user === null) throw new Error('Mutations require a session');
+        return user.id;
+      },
+    },
+    kick: (reason) => { void engine.kick(reason); },
+  });
   return {
-    db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser,
+    db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;

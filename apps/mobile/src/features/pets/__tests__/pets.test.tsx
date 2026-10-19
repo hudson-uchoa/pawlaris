@@ -4,12 +4,14 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { AssetImage } from '../../../assets/AssetImage';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
+import { response } from '../../../auth/__tests__/support';
 import { formatValidationError } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { PetFormScreen } from '../PetFormScreen';
 import { PetsGridScreen } from '../PetsGridScreen';
+import { PetCard } from '../PetCard';
 import { petContext, type PetContext } from './support';
 
 let context: PetContext | undefined;
@@ -87,6 +89,38 @@ test('R2.2 leaders reveal archived pets under the counted archived section', asy
   expect(screen.getByTestId('pets-archived')).toHaveTextContent(strings.pets.archived(1));
   await fireEvent.press(screen.getByTestId('pets-archived'));
   expect(screen.getByTestId(`pet-card-${archived.id}`)).toHaveTextContent(archived.name);
+  await fireEvent.press(screen.getByRole('button', { name: strings.pets.unarchive }));
+  expect(c.store.getState().pets[archived.id]?.archived_at).toBeNull();
+  expect(screen.getByTestId('pets-archived')).toHaveTextContent(strings.pets.archived(0));
+  expect(c.outbox.head(c.sessionUser.id)).toMatchObject({
+    method: 'POST', path: `/pets/${archived.id}/unarchive`, entityId: archived.id,
+  });
+  expect(c.http.requests).toEqual([]);
+});
+
+test('R2.1 the empty grid offers pet-add and a card opens its pet', async () => {
+  const c = await scene();
+  await paint(c, grid(c));
+  expect(screen.getByRole('header', { name: strings.pets.emptyTitle })).toBeOnTheScreen();
+  expect(screen.getByTestId('pet-add')).toHaveTextContent(strings.pets.addPet);
+  await fireEvent.press(screen.getByTestId('pet-add'));
+  expect(c.onAdd).toHaveBeenCalledTimes(1);
+  let petId = '';
+  await act(() => { petId = c.seedPet().id; });
+  expect(screen.queryByText(strings.pets.emptyTitle)).toBeNull();
+  await fireEvent.press(screen.getByTestId(`pet-card-${petId}`));
+  expect(c.onOpenPet).toHaveBeenCalledWith(petId);
+});
+
+test('R2.4 PetCard derives age and keeps its orbit static', async () => {
+  const c = await scene();
+  const pet = c.seedPet({ birthdate: '2025-06-13' });
+  await paint(c, <PetCard pet={pet} now={c.clock.now()} timezone="America/Sao_Paulo"
+    active onPress={c.onAdd} />);
+  const age = `1 ${strings.format.year[0]}${strings.format.conjunction}4 ${strings.format.month[1]}`;
+  expect(within(screen.getByTestId(`pet-card-${pet.id}`)).getByText(age)).toBeOnTheScreen();
+  expect(screen.getByTestId(`pet-orbit-${pet.id}`)).toBeOnTheScreen();
+  expect(screen.queryByTestId(`pet-orbit-${pet.id}-satellite`)).toBeNull();
 });
 
 test('R2.1 local validatePet limits refuse a 41-character name without enqueueing', async () => {
@@ -151,4 +185,22 @@ test('R2.3 R3.46 AssetImage shows its placeholder while the local asset is pendi
   expect(screen.queryByRole('image')).toBeNull();
   expect(c.fileSystem.requests).toEqual([]);
   expect(c.http.requests).toEqual([]);
+});
+
+test('R2.3 AssetImage renders the cached file through expo-image', async () => {
+  const c = await scene();
+  const asset = c.factory.assets({ kind: 'pet_avatar' });
+  c.driver.transaction(() => { c.apply.applyLocalRow('assets', asset); });
+  c.fileSystem.enqueue(response(200, new Uint8Array([1, 2, 3])));
+  const file = await c.files.ensureFile(asset.id);
+  expect(file.status).toBe('ready');
+  await paint(c, <AssetImage assetId={asset.id} accessibilityLabel="Avatar"
+    placeholder={<View testID="pending-avatar" />} />);
+  expect(screen.queryByTestId('pending-avatar')).toBeNull();
+  expect(screen.getByRole('image', { name: 'Avatar' })).toBeOnTheScreen();
+  expect(screen.getByRole('image', { name: 'Avatar' }).props.source).toEqual([
+    expect.objectContaining({ uri: file.uri }),
+  ]);
+  expect(c.fileSystem.requests).toHaveLength(1);
+  expect(c.fileSystem.requests[0]).toMatchObject({ method: 'GET', uri: file.uri });
 });
