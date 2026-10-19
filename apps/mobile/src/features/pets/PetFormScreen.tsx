@@ -23,6 +23,7 @@ import type { PetScreenProps } from './types';
 
 export type PetFormScreenProps = PetScreenProps & {
   petId?: string;
+  avatarAssetId?: string;
   onClose(): void;
   onAvatar(): void;
 };
@@ -51,7 +52,7 @@ type Draft = {
   avatar_asset_id: string | null;
 };
 
-function PetForm({ services, active, onClose, onAvatar, pet, leader, today }: PetFormScreenProps & {
+function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, leader, today }: PetFormScreenProps & {
   pet: Pet | null; leader: boolean; today: string;
 }): ReactElement {
   const { color } = useTheme();
@@ -65,6 +66,7 @@ function PetForm({ services, active, onClose, onAvatar, pet, leader, today }: Pe
   const [pickingDate, setPickingDate] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const finished = useRef(false);
+  const avatarId = avatarAssetId ?? draft.avatar_asset_id;
   function update<K extends keyof Draft>(field: K, value: Draft[K]): void {
     setDraft((current) => ({ ...current, [field]: value }));
     setErrors((current) => current.filter((error) => error.field !== field));
@@ -77,7 +79,7 @@ function PetForm({ services, active, onClose, onAvatar, pet, leader, today }: Pe
     if (finished.current) return;
     const fields = { name: draft.name, sex: draft.sex, breed: draft.breed || null, color: draft.color || null,
       birthdate: draft.birthdate, microchip_id: draft.microchip_id || null, notes: draft.notes || null,
-      avatar_asset_id: draft.avatar_asset_id };
+      avatar_asset_id: avatarId };
     const nextErrors = validatePet({ ...fields, name: draft.name || undefined, species: draft.species || undefined });
     setErrors(nextErrors);
     if (nextErrors.length > 0 || (draft.species !== 'cat' && draft.species !== 'dog')) return;
@@ -94,8 +96,8 @@ function PetForm({ services, active, onClose, onAvatar, pet, leader, today }: Pe
     <PressableScale testID="pet-avatar" accessibilityLabel={strings.pets.photo} onPress={onAvatar} active={active}
       style={{ alignItems: 'center', gap: spacing.xs }}>
       <View style={{ width: spacing.xxl, height: spacing.xxl }}>
-        {draft.avatar_asset_id === null ? photoPlaceholder
-          : <AssetImage assetId={draft.avatar_asset_id} accessibilityLabel={strings.pets.photo} placeholder={photoPlaceholder} />}
+        {avatarId === null ? photoPlaceholder
+          : <AssetImage assetId={avatarId} accessibilityLabel={strings.pets.photo} placeholder={photoPlaceholder} />}
       </View>
       <Text variant="label">{strings.pets.photo}</Text>
     </PressableScale>

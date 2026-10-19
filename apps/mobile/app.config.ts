@@ -1,4 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
+import { strings } from './src/i18n/strings';
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 
@@ -20,6 +21,10 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    ['expo-camera', { cameraPermission: strings.camera.permission, microphonePermission: false,
+      recordAudioAndroid: false, barcodeScannerEnabled: false }],
+    ['expo-image-picker', { photosPermission: strings.camera.galleryPermission,
+      cameraPermission: strings.camera.permission, microphonePermission: false }],
     './plugins/withShortNativePaths.cjs',
     [
       'expo-font',

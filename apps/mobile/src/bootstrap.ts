@@ -11,6 +11,8 @@ import { Kv, serverKey } from './db/kv';
 import { openDatabase } from './db/open';
 import { createStartupMarker, type StartupMarker } from './perf/marker';
 import { systemClock, type Clock } from './platform/clock';
+import { createExpoCamera, type CameraDevice } from './platform/camera';
+import { createPhotoCapture, type PhotoCapture } from './features/pets/capture';
 import { expoFileSystem, getDocumentDirectory } from './platform/expoFileSystem';
 import type { FileSystem } from './platform/fileSystem';
 import { fetchHttp, type Http } from './platform/http';
@@ -42,6 +44,7 @@ export interface AppDependencies {
   perfOutput?: (message: string) => void;
   documentDirectory?: string;
   logFiles?: LogFiles;
+  camera?: CameraDevice;
 }
 
 export interface AppRuntime {
@@ -55,6 +58,8 @@ export interface AppRuntime {
   marker: StartupMarker;
   assetFiles: AssetFiles;
   readonly mutations: Mutations;
+  camera: CameraDevice;
+  photoCapture: PhotoCapture;
   logger: Logger;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
@@ -84,6 +89,8 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const assetFiles = createAssetFiles({ ...deps, store, session,
     documentDirectory, activeServer: serverSelect.current,
   });
+  const camera = deps.camera ?? createExpoCamera(documentDirectory);
+  const photoCapture = createPhotoCapture(camera, assetFiles, deps.ids);
   let outbox: Outbox | null = null;
   let outboxUser: string | null = null;
   const wiring = createSyncEngine({ ...deps, store, apply, api, session, serverSelect,
@@ -132,6 +139,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   });
   return {
     db: driver, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
+    camera, photoCapture,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;

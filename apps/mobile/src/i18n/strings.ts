@@ -2,6 +2,18 @@ export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
+  camera: {
+    shutter: 'Tirar foto',
+    cancel: 'Cancelar',
+    use: 'Usar foto',
+    retake: 'Tirar outra',
+    gallery: 'Escolher da galeria',
+    settings: 'Abrir ajustes',
+    permission: 'Permita que o Pawlaris use a câmera para tirar fotos dos pets e dos cuidados.',
+    galleryPermission: 'Permita que o Pawlaris use suas fotos para escolher a foto do pet.',
+    permissionDenied: 'A câmera precisa de permissão para tirar fotos. Você pode permitir nos ajustes.',
+    error: 'Não foi possível preparar a foto. Tente de novo.',
+  },
   pets: {
     archived: (count: number): string => `Arquivados (${count})`,
     cat: 'Gato',

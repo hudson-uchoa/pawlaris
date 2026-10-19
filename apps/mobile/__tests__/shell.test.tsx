@@ -15,6 +15,7 @@ import Walks from '../app/(tabs)/walks';
 import Settings from '../app/(tabs)/settings';
 import NewPet from '../app/pet/new';
 import EditPet from '../app/pet/[id]/edit';
+import CameraRoute from '../app/camera';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -25,6 +26,7 @@ import { ReplicaRepo } from '../src/db/replicaRepo';
 import { strings } from '../src/i18n/strings';
 import { hydrate } from '../src/replica/hydrate';
 import { fakeClock } from '../src/testing/fakeClock';
+import { fakeCamera } from '../src/testing/fakeCamera';
 import { fakeFileSystem } from '../src/testing/fakeFileSystem';
 import { fakeHttp } from '../src/testing/fakeHttp';
 import { fakeLogFiles } from '../src/testing/fakeLogFiles';
@@ -80,10 +82,12 @@ function dependencies() {
   const http = fakeHttp();
   const secretBox = fakeSecretBox();
   const socket = fakeWebSocket();
+  const fileSystem = fakeFileSystem();
+  const camera = fakeCamera(fileSystem);
   const deps = {
     driver, clock, ids, http, secretBox, servers,
     random: fakeRandom(...Array.from({ length: 20 }, () => 0.5)),
-    fileSystem: fakeFileSystem(), logFiles: fakeLogFiles(), documentDirectory: 'file:///fake/documents/',
+    fileSystem, camera: camera.device, logFiles: fakeLogFiles(), documentDirectory: 'file:///fake/documents/',
     perfOutput: jest.fn(), WebSocketImpl: socket.WebSocketImpl, online: true,
   } satisfies AppDependencies;
   return { deps, http, secretBox, socket, kv: new Kv(driver), factory: rowFactories(clock, ids) };
@@ -111,6 +115,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './(tabs)/settings.tsx': { default: Settings },
     './pet/new.tsx': { default: NewPet },
     './pet/[id]/edit.tsx': { default: EditPet },
+    './camera.tsx': { default: CameraRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -247,15 +252,28 @@ test('R5.1 startup with a session paints the replica and four tabs before any HT
   await fireEvent.press(screen.getByTestId('pet-add'));
   await fireEvent.changeText(screen.getByTestId('pet-name'), 'Vega');
   await fireEvent.press(screen.getByRole('radio', { name: strings.pets.dog }));
+  c.deps.fileSystem.enqueue(() => new Promise(() => {}));
+  await fireEvent.press(screen.getByTestId('pet-avatar'));
+  expect(screen.getByTestId('camera-shutter')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: strings.camera.gallery }));
+  await fireEvent.press(screen.getByTestId('camera-use'));
+  expect(screen.getByTestId('pet-name')).toHaveDisplayValue('Vega');
   await fireEvent.press(screen.getByTestId('pet-save'));
   expect(screen.getByTestId('pet-add')).toBeOnTheScreen();
   const created = new OutboxRepo(driver).head(wire.user.id);
   expect(replica.get('pets', created?.entityId ?? '')?.row.name).toBe('Vega');
+  expect(replica.get('pets', created?.entityId ?? '')?.row.avatar_asset_id).toBeTruthy();
   await act(() => { router.push({ pathname: '../pet/[id]/edit', params: { id: pet.id } }); });
   expect(screen.getByTestId('pet-name')).toHaveDisplayValue(pet.name);
   await fireEvent.changeText(screen.getByTestId('pet-name'), 'Atlas');
+  c.deps.fileSystem.enqueue(() => new Promise(() => {}));
+  await fireEvent.press(screen.getByTestId('pet-avatar'));
+  await fireEvent.press(screen.getByTestId('camera-shutter'));
+  await fireEvent.press(screen.getByTestId('camera-use'));
+  expect(screen.getByTestId('pet-name')).toHaveDisplayValue('Atlas');
   await fireEvent.press(screen.getByTestId('pet-save'));
   expect(screen.getByTestId(`pet-card-${pet.id}`)).toHaveTextContent('Atlas');
+  expect(replica.get('pets', pet.id)?.row.avatar_asset_id).toBeTruthy();
 });
 
 test('P4-3 dashboard marker ignores skeleton layouts and emits once after family hydration', async () => {
