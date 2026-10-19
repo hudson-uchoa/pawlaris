@@ -1,5 +1,5 @@
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
-import { useEffect, useRef, type ReactElement } from 'react';
+import { useEffect, useRef, type ReactElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { scheduleOnUI } from 'react-native-worklets';
@@ -11,6 +11,7 @@ import { useTheme } from '../theme';
 import { accessibility } from '../tokens/accessibility';
 import { starCheck } from '../tokens/cosmos';
 import { radius } from '../tokens/radius';
+import { spacing } from '../tokens/spacing';
 import { starPath } from './glyphs';
 import { Sparks } from './Sparks';
 
@@ -21,13 +22,15 @@ export type StarCheckProps = {
   active: boolean;
   disabled?: boolean;
   testID?: string;
+  children?: ReactNode;
+  badge?: boolean;
 };
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const glyph = starPath(starCheck.size / 2, starCheck.size / 2, starCheck.starRadius);
 
 export function StarCheck({ checked, accessibilityLabel, onPress, active, disabled = false,
-  testID }: StarCheckProps): ReactElement {
+  testID, children, badge = false }: StarCheckProps): ReactElement {
   const { color, scheme } = useTheme();
   const reduced = useReduceMotion();
   const animationActive = useAnimationActive(active && !disabled);
@@ -95,11 +98,15 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
     onPress={() => { if (!disabled) { localPress.current = !checked; onPress(); } }}
     style={[{ minWidth: accessibility.minTouchTarget, minHeight: accessibility.minTouchTarget,
       alignItems: 'center', justifyContent: 'center' }, pressedStyle]}>
+    {children}
+    <View pointerEvents="none" style={badge ? { position: 'absolute', top: spacing.xxl - starCheck.size / 2,
+      left: '50%', marginLeft: spacing.xxl / 2 - starCheck.size / 2,
+      transform: [{ scale: starCheck.badgeScale }] } : undefined}>
     <View accessible={false} importantForAccessibility="no-hide-descendants"
       style={{ width: starCheck.size, height: starCheck.size, borderRadius: radius.avatar,
         borderWidth: starCheck.strokeWidth, borderColor: color.textMuted }}>
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: color.accentSoft, borderRadius: radius.avatar }, fillStyle]} />
-      <Animated.View testID={testID === undefined ? undefined : `${testID}-star`}
+      <Animated.View testID={testID === undefined || badge ? undefined : `${testID}-star`}
         style={[StyleSheet.absoluteFill, starStyle]}>
         <Svg width={starCheck.size} height={starCheck.size} accessible={false}
           style={{ position: 'absolute', left: -starCheck.strokeWidth, top: -starCheck.strokeWidth }}>
@@ -109,6 +116,7 @@ export function StarCheck({ checked, accessibilityLabel, onPress, active, disabl
       </Animated.View>
     </View>
     <Sparks active={animationActive && checked && !reduced} progress={burst}
-      {...(testID === undefined ? {} : { testID: `${testID}-sparks` })} />
+      {...(testID === undefined || badge ? {} : { testID: `${testID}-sparks` })} />
+    </View>
   </AnimatedPressable>;
 }

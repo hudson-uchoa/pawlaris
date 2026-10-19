@@ -1,5 +1,5 @@
 import { addDays, localDate, upcomingCare, type DayView, type DayViewItem } from '@pawlaris/shared';
-import { useCallback, useContext, useMemo, useState, type ReactElement } from 'react';
+import { useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { RefreshControl, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type ListRenderItemInfo } from 'react-native';
 import Animated, { LinearTransition, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -19,7 +19,7 @@ import { useTheme } from '../../ui/theme';
 import { spacing } from '../../ui/tokens/spacing';
 import { illustrations } from '../../ui/tokens/cosmos';
 import { SyncIndicator } from '../shell/SyncIndicator';
-import { DashboardTaskCard } from './DashboardTaskCard';
+import { TaskCard } from './TaskCard';
 import { DashboardEntry } from './DashboardEntry';
 import { dashboardMotion } from './motion';
 import { DayHeader } from './DayHeader';
@@ -29,6 +29,7 @@ import type { DashboardScope, DashboardScreenProps, DashboardServices } from './
 import { useNow } from './useNow';
 
 type Group = 'overdue' | 'now' | 'later' | 'done';
+type HeldGroup = { group: Exclude<Group, 'done'>; index: number; date: string; scope: DashboardScope };
 type Row = { key: string } & (
   | { kind: 'section'; group: Group; count: number }
   | { kind: 'task'; item: DayViewItem; index: number }
@@ -43,12 +44,18 @@ function readScope(preferences: DashboardServices['preferences']): DashboardScop
   return 'mine';
 }
 
-function listRows(view: DayView, loading: boolean, expanded: boolean): Row[] {
+function listRows(view: DayView, loading: boolean, expanded: boolean, held: ReadonlyMap<string, HeldGroup>): Row[] {
   if (loading) return Array.from({ length: 5 }, (_, index) => ({ key: `skeleton-${index}`, kind: 'skeleton' }));
   const rows: Row[] = [];
+  const displayed: DayView = { ...view, overdue: [...view.overdue], now: [...view.now], later: [...view.later], done: [] };
+  for (const item of view.done) {
+    const hold = held.get(`${item.taskId}:${item.occurrenceKey}`);
+    if (hold === undefined) displayed.done.push(item);
+    else displayed[hold.group].splice(hold.index, 0, item);
+  }
   let index = 0;
   for (const group of ['overdue', 'now', 'later', 'done'] as const) {
-    const items = view[group];
+    const items = displayed[group];
     if (items.length === 0) continue;
     rows.push({ key: `section-${group}`, kind: 'section', group, count: items.length });
     if (group === 'done' && !expanded) continue;
@@ -96,7 +103,31 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
   const [refreshing, setRefreshing] = useState(false);
   const loading = !ready || family === null || viewer === undefined;
   const view = useReplica((state) => selectDayView(state, { date, now, me: user?.id ?? '', scope }));
-  const rows = useMemo(() => listRows(view, loading, expanded), [view, loading, expanded]);
+  const [heldGroups, setHeldGroups] = useState<ReadonlyMap<string, HeldGroup>>(() => new Map());
+  const currentView = useRef({ view, date, scope });
+  useLayoutEffect(() => { currentView.current = { view, date, scope }; }, [view, date, scope]);
+  const holdInGroup = useCallback((taskId: string, occurrenceKey: string) => {
+    const { view, date, scope } = currentView.current;
+    for (const group of ['overdue', 'now', 'later'] as const) {
+      const index = view[group].findIndex((item) => item.taskId === taskId && item.occurrenceKey === occurrenceKey);
+      if (index >= 0) {
+        setHeldGroups((previous) => new Map(previous).set(`${taskId}:${occurrenceKey}`, { group, index, date, scope }));
+        return;
+      }
+    }
+  }, []);
+  const moveToDone = useCallback((taskId: string, occurrenceKey: string) => {
+    setHeldGroups((previous) => {
+      const key = `${taskId}:${occurrenceKey}`;
+      if (!previous.has(key)) return previous;
+      const next = new Map(previous);
+      next.delete(key);
+      return next;
+    });
+  }, []);
+  const rows = useMemo(() => listRows(view, loading, expanded,
+    new Map([...heldGroups].filter(([, hold]) => hold.date === date && hold.scope === scope))),
+  [view, loading, expanded, heldGroups, date, scope]);
   const care = useMemo(() => loading || date !== today ? [] : upcomingCare({
     healthEvents: Object.values(healthEvents), pets: Object.values(pets), today,
   }), [loading, date, today, healthEvents, pets]);
@@ -127,8 +158,9 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
       illustration={<ClearSky width={illustrations.width} height={illustrations.height} active={false} />}
       action={{ label: strings.dashboard.createTask, accessibilityLabel: strings.dashboard.createTask, onPress: onAdd }} />;
     if (row.kind === 'task') return <DashboardEntry id={row.key} index={row.index} enabled={motionEnabled} entered={entered}>
-      <DashboardTaskCard item={row.item} members={members}
-        viewerId={user?.id ?? ''} date={date} timezone={family?.timezone ?? 'UTC'} />
+      <TaskCard item={row.item} members={members} active={focused} services={services}
+        viewerId={user?.id ?? ''} date={date} timezone={family?.timezone ?? 'UTC'}
+        onHoldInGroup={holdInGroup} onMoveToDone={moveToDone} />
     </DashboardEntry>;
     const label = row.group === 'overdue' ? strings.dashboard.overdue(row.count)
       : row.group === 'done' ? strings.dashboard.done(row.count) : strings.dashboard[row.group];
@@ -137,7 +169,8 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
       <Text variant="heading">{label}</Text>
     </PressableScale> : <Text testID={`section-${row.group}`} variant="heading" accessibilityRole="header"
       color={row.group === 'overdue' ? 'danger' : 'text'}>{label}</Text>;
-  }, [width, onAdd, members, user?.id, date, family?.timezone, expanded, toggleDone, focused, motionEnabled, entered]);
+  }, [width, onAdd, members, user?.id, date, family?.timezone, expanded, toggleDone, focused, motionEnabled, entered,
+    services, holdInGroup, moveToDone]);
 
   return <View testID="dashboard" style={{ flex: 1, backgroundColor: color.bg }} onLayout={painted}>
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: headerHeight + (insets?.top ?? 0), overflow: 'hidden' }]}>

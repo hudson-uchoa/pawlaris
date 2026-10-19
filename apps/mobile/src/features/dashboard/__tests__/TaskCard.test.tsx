@@ -290,8 +290,9 @@ describe('TaskCard', () => {
       completed_at: '2026-10-13T10:12:00Z' });
     await paint(c);
     await fireEvent.press(screen.getByTestId(checkId(c.task, c.date)));
-    expect(screen.getByRole('dialog')).toHaveTextContent(c.other.display_name);
-    expect(screen.getByRole('dialog')).toHaveTextContent('07:12');
+    expect(within(screen.getByRole('dialog')).getByText(
+      strings.dashboard.undoBody(c.other.display_name, '07:12'),
+    )).toBeOnTheScreen();
     expect(c.store.getState().completions[row.id]?.undone_at).toBeNull();
     expect(c.outbox.count()).toBe(0);
     // Android back dismisses the real Sheet without confirming an undo.
@@ -303,6 +304,7 @@ describe('TaskCard', () => {
     await fireEvent.press(screen.getByTestId(checkId(c.task, c.date)));
     await fireEvent.press(screen.getByTestId('undo-confirm'));
     expect(c.store.getState().completions[row.id]).toMatchObject({ ...row,
+      updated_at: new Date(c.clock.now()).toISOString(),
       undone_at: new Date(c.clock.now()).toISOString(), undone_by: c.sessionUser.id });
     expect(c.replica.get('task_completions', row.id)?.row.undone_by).toBe(c.sessionUser.id);
     expect(c.outbox.count()).toBe(1);

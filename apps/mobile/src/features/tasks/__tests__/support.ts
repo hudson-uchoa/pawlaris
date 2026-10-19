@@ -5,8 +5,8 @@ import { syncContext } from '../../../sync/__tests__/support';
 import { fakeFileSystem } from '../../../testing/fakeFileSystem';
 import type { TaskScreenServices } from '../types';
 
-export async function taskContext(role: AuthUser['role'] = 'leader') {
-  const c = await syncContext();
+export async function taskContext(role: AuthUser['role'] = 'leader', randomValues: number[] = []) {
+  const c = await syncContext(undefined, randomValues);
   // UTC has reached the next day; the family is still on October 13.
   c.clock.advance(Date.parse('2026-10-14T01:30:00Z') - c.clock.now());
   const user = { ...c.sessionUser, role };

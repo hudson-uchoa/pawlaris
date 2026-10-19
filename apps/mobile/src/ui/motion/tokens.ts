@@ -33,4 +33,4 @@ export const ambient = {
   breath: 4000,
 } as const;
 
-export const hold = { toast: 4000 } as const;
+export const hold = { toast: 4000, completion: 400 } as const;

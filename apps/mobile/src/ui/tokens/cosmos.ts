@@ -26,6 +26,7 @@ export const starCheck = {
   starRadius: icon.small / 2,
   pressScale: 0.92,
   ignitionScale: 1.15,
+  badgeScale: 0.65,
 } as const;
 
 export const sparks = {

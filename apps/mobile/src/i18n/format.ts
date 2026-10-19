@@ -30,6 +30,11 @@ export function formatShortDate(date: DateKey): string {
   return `${twoDigits(d)}/${twoDigits(m)}`;
 }
 
+export function formatCarryOverDate(date: DateKey): string {
+  const weekday = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', weekday: 'short' });
+  return `${weekday.format(utcDate(parseDateKey(date)))}, ${formatShortDate(date)}`;
+}
+
 export function formatFullDate(date: DateKey): string {
   const { y, m, d } = parseDateKey(date);
   return `${twoDigits(d)}/${twoDigits(m)}/${String(y).padStart(4, '0')}`;
