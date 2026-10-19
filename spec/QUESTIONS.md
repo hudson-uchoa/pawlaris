@@ -1435,3 +1435,18 @@ apps/mobile/src/i18n/format.ts and keep using forkEffectiveDate unchanged.
 **Answer (2026-10-19, orchestrator):** as assumed. When `E` is later
 than tomorrow, the note reads "As mudanças de agenda valem a partir de
 dd/MM/aaaa." with the date in the family timezone. Now in `09` §5.1.
+
+## Q-49 — P5-2 — Should the empty scene twinkle beside the header sky?
+**Asked:** 2026-10-19
+**Where:** spec/06-ux-motion-spec.md §1.3, §4.1, §4.10;
+spec/09-screens.md §3.1, §3.2.
+**Problem:** The dashboard always has a header Starfield. The existing
+ClearSky illustration owns another Starfield canvas. Animating both would
+conflict with the limit of one animated canvas, while the illustration
+description asks for gentle twinkling in each scene.
+**I would assume:** Keep the header animated, with parallax, and render
+the existing ClearSky with active=false. Both keep their theme tokens;
+only the header twinkles. Confine this choice to the empty-row branch in
+apps/mobile/src/features/dashboard/DashboardScreen.tsx.
+**Blocking:** no. The scene is visible and the screen has only one
+animated canvas. The orchestrator can settle the scene's motion on review.
