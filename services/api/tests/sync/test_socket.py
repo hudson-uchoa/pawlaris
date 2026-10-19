@@ -94,7 +94,7 @@ def revision(client: TestClient, user: AppUser) -> int:
 
 @contextmanager
 def authenticated(client: TestClient, user: AppUser) -> Iterator[WebSocketTestSession]:
-    with client.websocket_connect("/ws") as socket:
+    with client.websocket_connect("/api/v1/ws") as socket:
         socket.send_json({"type": "auth", "access_token": token(client, user)})
         assert socket.receive_json() == {
             "type": "ready",
@@ -129,6 +129,19 @@ def assert_close(socket: WebSocketTestSession, code: int) -> None:
 def advance(client: TestClient, delta: timedelta) -> None:
     assert client.portal is not None
     client.portal.call(application(client).state.clock.advance, delta)
+
+
+def test_ws1_api_v1_ws_receives_ready(
+    socket_client: TestClient, socket_family: TestFamily
+) -> None:
+    with authenticated(socket_client, socket_family.users[0]):
+        pass
+
+
+def test_ws2_root_ws_connection_is_refused(socket_client: TestClient) -> None:
+    with pytest.raises(WebSocketDisconnect):
+        with socket_client.websocket_connect("/ws"):
+            pass
 
 
 def test_ws1_reconnect_ready_catches_mutation_while_disconnected(
@@ -276,7 +289,7 @@ def test_ws1_non_wrapped_synced_writer_pokes(
 def test_ws2_missing_auth_closes_4408(
     socket_client: TestClient,
 ) -> None:
-    with socket_client.websocket_connect("/ws") as socket:
+    with socket_client.websocket_connect("/api/v1/ws") as socket:
         assert_close(socket, 4408)
 
 
@@ -322,7 +335,7 @@ def test_ws2_invalid_first_frame_closes_4401(
 
         assert socket_client.portal is not None
         socket_client.portal.call(disable)
-    with socket_client.websocket_connect("/ws") as socket:
+    with socket_client.websocket_connect("/api/v1/ws") as socket:
         if frame == "bad_json":
             socket.send_text("{")
         elif frame == "not_auth":
@@ -341,7 +354,7 @@ def test_ws2_url_token_does_not_authenticate(
     socket_client: TestClient, socket_family: TestFamily
 ) -> None:
     access = token(socket_client, socket_family.users[0])
-    with socket_client.websocket_connect(f"/ws?access_token={access}") as socket:
+    with socket_client.websocket_connect(f"/api/v1/ws?access_token={access}") as socket:
         assert_close(socket, 4408)
 
 
@@ -368,7 +381,7 @@ def test_ws2_first_ping_with_valid_token_closes_4401(
     socket_client: TestClient, socket_family: TestFamily
 ) -> None:
     access = token(socket_client, socket_family.users[0])
-    with socket_client.websocket_connect("/ws") as socket:
+    with socket_client.websocket_connect("/api/v1/ws") as socket:
         socket.send_json({"type": "ping", "access_token": access})
         assert_close(socket, 4401)
 
@@ -428,7 +441,7 @@ def test_ws1_hub_registers_before_reading_ready_revision(
     engine = app.state.engine.sync_engine
     event.listen(engine, "before_cursor_execute", observe)
     try:
-        with socket_client.websocket_connect("/ws") as socket:
+        with socket_client.websocket_connect("/api/v1/ws") as socket:
             socket.send_json(
                 {
                     "type": "auth",
@@ -634,7 +647,7 @@ def test_ws1_poke_failure_logs_only_unexpected_errors(
         await original(ws, message)
 
     user = socket_family.users[0]
-    with socket_client.websocket_connect("/ws?failing=1") as failing:
+    with socket_client.websocket_connect("/api/v1/ws?failing=1") as failing:
         failing.send_json({"type": "auth", "access_token": token(socket_client, user)})
         assert failing.receive_json() == {
             "type": "ready",
@@ -678,7 +691,7 @@ def test_ws1_uvicorn_finds_websocket_protocol() -> None:
     assert AutoWebSocketsProtocol is not None
 
 
-def test_ws2_route_census_has_exactly_one_ws(
+def test_ws2_route_census_has_exactly_one_ws_at_api_v1_ws(
     socket_client: TestClient,
 ) -> None:
     app = application(socket_client)
@@ -687,5 +700,5 @@ def test_ws2_route_census_has_exactly_one_ws(
         for context in iter_route_contexts(app.routes)
         if isinstance(context.original_route, WebSocketRoute)
     ]
-    assert paths == ["/ws"]
+    assert paths == ["/api/v1/ws"]
     assert_route_census(app)

@@ -59,8 +59,8 @@ def assert_route_census(application: FastAPI) -> None:
                 violations.append(f"{label} requires authentication")
             if key not in matrix_routes:
                 violations.append(f"{label} requires a permission matrix row")
-    if sockets != ["/ws"]:
-        violations.append(f"WebSocket routes must be exactly one /ws: {sockets}")
+    if sockets != ["/api/v1/ws"]:
+        violations.append(f"WebSocket routes must be exactly one /api/v1/ws: {sockets}")
     for key in matrix_routes - registered:
         violations.append(f"{key[0]} {key[1]} matrix row has no route")
     assert not violations, "\n".join(violations)
@@ -171,7 +171,10 @@ def test_census_rejects_documentation_configuration(
         assert_route_census(production_app)
 
 
-@pytest.mark.parametrize("paths", [[], ["/other"], ["/ws", "/ws"]])
+@pytest.mark.parametrize(
+    "paths",
+    [[], ["/other"], ["/ws"], ["/ws", "/ws"], ["/api/v1/ws", "/api/v1/ws"]],
+)
 def test_census_rejects_missing_wrong_or_multiple_websocket_routes(
     production_app: FastAPI, paths: list[str]
 ) -> None:
@@ -190,7 +193,7 @@ def test_census_rejects_missing_wrong_or_multiple_websocket_routes(
         assert_route_census(production_app)
 
 
-def test_census_requires_exactly_one_production_ws_route(
+def test_census_requires_exactly_one_production_ws_route_at_api_v1_ws(
     production_app: FastAPI,
 ) -> None:
     assert_route_census(production_app)
