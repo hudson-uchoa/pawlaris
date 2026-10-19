@@ -1432,3 +1432,6 @@ later effective date, say "As mudanças de agenda valem a partir de
 <dd/MM/yyyy>." Confine this copy choice to formatTaskEffectiveDate in
 apps/mobile/src/i18n/format.ts and keep using forkEffectiveDate unchanged.
 **Blocking:** no. The form can proceed with the explicit-date fallback.
+**Answer (2026-10-19, orchestrator):** as assumed. When `E` is later
+than tomorrow, the note reads "As mudanças de agenda valem a partir de
+dd/MM/aaaa." with the date in the family timezone. Now in `09` §5.1.

@@ -272,6 +272,8 @@ One screen, sections in this order:
 - Edit, any schedule field changed → `forkTask` *(R3.8)*. Before saving, a note
   appears above the button: "As mudanças de agenda valem a partir de hoje." or
   "… a partir de amanhã, porque a tarefa de hoje já foi marcada."
+  When `E` is later than tomorrow (a task that has not started yet), the
+  note reads "As mudanças de agenda valem a partir de dd/MM/aaaa." *(Q-48)*
 
 Edit also offers **Encerrar tarefa** `task-end` *(R3.9)* — sheet: "A tarefa para
 de aparecer. O histórico fica." — and, only when the template has no
