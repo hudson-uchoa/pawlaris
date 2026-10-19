@@ -159,6 +159,18 @@ test('R2.1 saving calls createPet once and closes after the local replica and ou
   expect(c.http.requests).toEqual([]);
 });
 
+test('R2.1 pressing save twice creates one pet, enqueues once and closes once', async () => {
+  const c = await scene();
+  await paint(c, form(c));
+  await fillPet('Aurora');
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  await fireEvent.press(screen.getByTestId('pet-save'));
+  expect(c.createPet).toHaveBeenCalledTimes(1);
+  expect(c.outbox.count()).toBe(1);
+  expect(Object.values(c.store.getState().pets)).toHaveLength(1);
+  expect(c.onClose).toHaveBeenCalledTimes(1);
+});
+
 test('R2.2 a member editing a pet sees no archive button', async () => {
   const c = await scene('member');
   const pet = c.seedPet();
