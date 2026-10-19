@@ -1088,7 +1088,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 ## P5 — Tasks
 
-- [~] **P5-1 — Task form and task list**
+- [x] **P5-1 — Task form and task list**
   **Depends:** P4-5, P2-9, P1-4 · **Read:** `09` §5.1, §5.2 · `02` §3.1
   **Build:** install `@react-native-community/datetimepicker`. `task/new`,
   `task/[id]/edit`, `tasks/index`. The form validates with `validateTask`,
