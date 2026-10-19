@@ -207,9 +207,10 @@ from `db/`, `api/` or `sync/outbox` directly *(10 §9)*. An ESLint
 
 ## 4. Infrastructure
 
-The box does not exist yet. The stack is sized so it runs on the **smallest**
-candidate — 1 vCPU and **1 GB** of RAM — and simply has headroom on anything
-bigger *(ADR-025)*.
+The box is the owner's VPS: 6 GB of RAM and 100 GB of NVMe *(ADR-040)*.
+The stack stays sized so it runs on the **smallest** candidate — 1 vCPU and
+**1 GB** of RAM — so any fallback box can take it, and simply has headroom
+on the VPS *(ADR-025)*.
 
 **Where the box lives matters for latency *(pillar 2)*.** Network round-trip is
 most of what a phone waits for, so the box goes as close to the family as
@@ -884,3 +885,17 @@ row had, which `10` §3 now says.
 **Consequence:** RS-1 reworded, RS-11 added; `11` §4.3 and §7, `10` §2.3
 and §3, `03` §10, the `arrive` row of `07` §6, and tasks P3-1, P3-4 and
 P3-10.
+
+### ADR-040 — The primary runs on a paid VPS *(2026-10-18)*
+**Context:** the primary was to be a free virtual machine, which its
+provider may reclaim (`01` A-01) and which ADR-038's reserve exists to
+cover. The owner has hired a VPS instead: 6 GB of RAM and 100 GB of NVMe
+storage, at a fixed monthly price.
+**Decision (the owner):** the VPS is the box of `05` §4 and the family's
+primary server. The reserve on the owner's computer stays as ADR-038 built
+it.
+**Consequence:** compute becomes the one paid line of `00` P1, which still
+binds every dependency, SDK and service: none may need a card or bill by
+use. The stack keeps its 1 GB sizing, so the free fallbacks of `00` P1
+still hold, and the VPS only adds headroom. H8 is met by the VPS once it is
+reachable over SSH and its ingress profile is chosen.
