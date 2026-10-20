@@ -28,7 +28,7 @@ SHAPES: tuple[tuple[str, type[BaseModel], str], ...] = (
     (
         "pet",
         Pet,
-        "id name species sex breed color birthdate microchip_id "
+        "id name species sex breed color identity_color birthdate microchip_id "
         "avatar_asset_id notes sort_order archived_at created_by "
         "revision updated_at deleted_at",
     ),
