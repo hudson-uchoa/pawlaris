@@ -67,6 +67,8 @@ export const strings = {
     assignee: 'Responsável',
     photo: 'Exigir foto',
     timer: 'Cronômetro',
+    startTimer: 'Iniciar',
+    cancelTimer: 'Cancelar',
     timerStartedBy: (name: string): string => `iniciado por ${name}`,
     minutes: 'Minutos',
     reminder: 'Lembrete',

@@ -1,5 +1,6 @@
-import { localDate, type Timer } from '@pawlaris/shared';
+import { addDays, localDate, type Timer } from '@pawlaris/shared';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import * as Haptics from 'expo-haptics';
 import { AppState } from 'react-native';
 import { Easing } from 'react-native-reanimated';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
@@ -10,6 +11,8 @@ import { selectDayView, selectTimerFor } from '../../../replica/selectors';
 import { createReplicaStore, type ReplicaStore } from '../../../replica/store';
 import { ReplicaProvider, useReplica } from '../../../replica/useReplica';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
+import * as Theme from '../../../ui/theme';
+import { dark, light } from '../../../ui/tokens/color';
 import { TaskCard } from '../../dashboard/TaskCard';
 import { CountdownRing } from '../CountdownRing';
 import { TaskDetailScreen, type TaskDetailServices } from '../TaskDetailScreen';
@@ -20,6 +23,7 @@ type AnimationAPI = typeof import('react-native-reanimated');
 const animationEntry = jest.requireActual<{ main: string }>('react-native-reanimated/package.json').main;
 const animationRoot = `react-native-reanimated/${animationEntry.replace(/\/index(?:\.js)?$/, '')}`;
 const timingAnimation = jest.requireActual<Pick<AnimationAPI, 'withTiming'>>(`${animationRoot}/animation/timing`);
+const animationUtil = jest.requireActual<Pick<AnimationAPI, 'cancelAnimation'>>(`${animationRoot}/animation/util`);
 
 const timezone = 'America/Sao_Paulo';
 const initialAppState = AppState.currentState;
@@ -45,8 +49,8 @@ afterEach(async () => {
   AppState.currentState = initialAppState;
 });
 
-// Q-59: these cases have one together occurrence, so no target-selection
-// policy for multiple slots or pets is assumed by the RED tests.
+// The original RED cases use a single together occurrence. Q-59 coverage
+// below also seeds multiple slots, per-pet progress and days without targets.
 async function scene(timesOfDay: string[] = []) {
   const c = await taskContext();
   context = c;
@@ -257,4 +261,147 @@ test('TM-1 R3.28 detail renders the remaining time from a rebuilt store and an a
   expect(screen.getByText(formatDuration(175))).toBeOnTheScreen();
   expect(screen.queryByText(formatDuration(300))).toBeNull();
   expect(c.outbox.count()).toBe(0);
+});
+
+test('Q-59 multi-slot per-pet detail starts the first incomplete key with pet_id null', async () => {
+  const c = await scene(['20:00', '08:00', '12:00']);
+  const secondPet = c.seedPet();
+  const petIds = [...c.task.pet_ids, secondPet.id];
+  c.apply.applyServerRows([{ entity: 'task_templates', row: { ...c.task,
+    completion_mode: 'per_pet', pet_ids: petIds } }]);
+  for (const petId of petIds) c.seedCompletion(c.task, { occurrence_key: `${c.date}T08:00`, pet_id: petId });
+  c.seedCompletion(c.task, { occurrence_key: `${c.date}T12:00`, pet_id: secondPet.id });
+  const start = jest.spyOn(c.mutations, 'startTimer');
+  await paintDetail(c);
+  await fireEvent.press(screen.getByTestId('timer-start'));
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(start).toHaveBeenCalledWith(expect.objectContaining({ occurrence_key: `${c.date}T12:00`, pet_id: null }));
+  expect(c.outbox.count()).toBe(1);
+});
+
+test('Q-59 a multi-slot card starts its own later occurrence with pet_id null', async () => {
+  const c = await scene(['20:00', '08:00']);
+  const start = jest.spyOn(c.mutations, 'startTimer');
+  await render(<ReplicaProvider store={c.store}>
+    <AssetFilesProvider files={c.files}><ReplicaCard c={c} /></AssetFilesProvider>
+  </ReplicaProvider>);
+  await fireEvent(screen.getByRole('button', { name: c.task.title }), 'longPress');
+  expect(start).toHaveBeenCalledWith(expect.objectContaining({ occurrence_key: `${c.date}T20:00`, pet_id: null }));
+  await fireEvent(screen.getByRole('button', { name: c.task.title }), 'longPress');
+  expect(start).toHaveBeenCalledTimes(1);
+  expect(c.onOpenTask).not.toHaveBeenCalled();
+  expect(Object.values(c.store.getState().completions)).toEqual([]);
+});
+
+test('Q-59 03 section 6 detail shows the latest eligible timer across today before offering a start', async () => {
+  const c = await scene(['08:00', '20:00']);
+  seedTimer(c, { ends_at: new Date(c.clock.now() + 120_000).toISOString() });
+  const latest = seedTimer(c, { occurrence_key: `${c.date}T20:00`, started_by: c.other.id });
+  seedTimer(c, { ends_at: new Date(c.clock.now() + 600_000).toISOString(),
+    cancelled_at: new Date(c.clock.now()).toISOString() });
+  seedTimer(c, { occurrence_key: addDays(c.date, -1), ends_at: new Date(c.clock.now() + 900_000).toISOString() });
+  c.seedCompletion(c.task, { occurrence_key: `${c.date}T20:00`, pet_id: null });
+  const cancel = jest.spyOn(c.mutations, 'cancelTimer');
+  await paintDetail(c);
+  expect(screen.queryByTestId('timer-start')).toBeNull();
+  expect(screen.getByText(formatDuration(300))).toBeOnTheScreen();
+  expect(screen.getByText(strings.tasks.timerStartedBy(c.other.display_name))).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('timer-cancel'));
+  expect(cancel).toHaveBeenCalledWith(latest.id);
+  expect(screen.getByText(formatDuration(120))).toBeOnTheScreen();
+});
+
+test('Q-59 empty day keeps the timer section without a start target', async () => {
+  const c = await scene();
+  const tomorrow = addDays(c.date, 1);
+  c.apply.applyServerRows([{ entity: 'task_templates', row: { ...c.task,
+    starts_on: tomorrow, recurrence: { freq: 'once', date: tomorrow } } }]);
+  const start = jest.spyOn(c.mutations, 'startTimer');
+  await paintDetail(c);
+  expect(screen.getByRole('header', { name: strings.tasks.timer })).toBeOnTheScreen();
+  expect(screen.queryByTestId('timer-start')).toBeNull();
+  expect(screen.queryByTestId('timer-cancel')).toBeNull();
+  expect(start).not.toHaveBeenCalled();
+  expect(c.outbox.count()).toBe(0);
+});
+
+test('Q-59 a fully completed day has no start target', async () => {
+  const c = await scene(['08:00', '20:00']);
+  for (const time of c.task.times_of_day) c.seedCompletion(c.task, { occurrence_key: `${c.date}T${time}`, pet_id: null });
+  await paintDetail(c);
+  expect(screen.queryByTestId('timer-start')).toBeNull();
+  expect(screen.queryByTestId('timer-cancel')).toBeNull();
+  expect(c.outbox.count()).toBe(0);
+});
+
+test('Q-59 03 section 6 the finished timer remains visible for less than sixty seconds', async () => {
+  const c = await scene();
+  seedTimer(c, { started_at: new Date(c.clock.now() - 300_000).toISOString(),
+    ends_at: new Date(c.clock.now() - 59_000).toISOString() });
+  await paintDetail(c);
+  expect(screen.getByText(formatDuration(0))).toBeOnTheScreen();
+  expect(screen.getByTestId('timer-cancel')).toBeOnTheScreen();
+  await act(async () => {
+    c.clock.advance(1000);
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+  expect(screen.queryByTestId('timer-cancel')).toBeNull();
+  expect(screen.getByTestId('timer-start')).toBeEnabled();
+});
+
+test.each(['light', 'dark'] as const)('R3.31 Reduce Motion keeps a static %s orbit and ticking text without timing', async (scheme) => {
+  const c = await scene();
+  const timer = seedTimer(c);
+  jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
+  jest.spyOn(Theme, 'useTheme').mockReturnValue({ scheme, color: scheme === 'light' ? light : dark });
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  await render(<CountdownRing timer={timer} clock={c.clock} active testID="timer-ring" />);
+  expect(screen.getByText(formatDuration(300))).toBeOnTheScreen();
+  await act(async () => {
+    c.clock.advance(1000);
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+  expect(screen.getByText(formatDuration(299))).toBeOnTheScreen();
+  expect(timing).not.toHaveBeenCalled();
+});
+
+test('R3.31 losing focus cancels the ring and refocusing derives a fresh animation from the clock', async () => {
+  const c = await scene();
+  const timer = seedTimer(c);
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+  const view = await render(<CountdownRing timer={timer} clock={c.clock} active testID="timer-ring" />);
+  cancel.mockClear();
+  await view.rerender(<CountdownRing timer={timer} clock={c.clock} active={false} testID="timer-ring" />);
+  expect(cancel).toHaveBeenCalled();
+  expect(timing).toHaveBeenCalledTimes(1);
+  c.clock.advance(125_000);
+  await view.rerender(<CountdownRing timer={timer} clock={c.clock} active testID="timer-ring" />);
+  expect(timing).toHaveBeenCalledTimes(2);
+  expect(timing.mock.calls[1]?.[1]).toEqual(expect.objectContaining({ duration: 175_000 }));
+  expect(screen.getByText(formatDuration(175))).toBeOnTheScreen();
+});
+
+test('R3.31 06 section 4.4 expiry fires one foreground haptic and none on an expired mount', async () => {
+  const c = await scene();
+  const timer = seedTimer(c, { ends_at: new Date(c.clock.now() + 1000).toISOString() });
+  const haptic = jest.spyOn(Haptics, 'notificationAsync');
+  const view = await render(<CountdownRing timer={timer} clock={c.clock} active />);
+  await act(async () => {
+    c.clock.advance(1000);
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+  expect(haptic).toHaveBeenCalledTimes(1);
+  expect(haptic).toHaveBeenCalledWith(Haptics.NotificationFeedbackType.Success);
+  await view.unmount();
+  await render(<CountdownRing timer={timer} clock={c.clock} active />);
+  expect(haptic).toHaveBeenCalledTimes(1);
+});
+
+test('R3.28 09 section 10 remaining text uses the duration formatter for fractional seconds', async () => {
+  const c = await scene();
+  const timer = seedTimer(c);
+  c.clock.advance(125_250);
+  await render(<CountdownRing timer={timer} clock={c.clock} active />);
+  expect(screen.getByText(formatDuration(174.75))).toBeOnTheScreen();
 });

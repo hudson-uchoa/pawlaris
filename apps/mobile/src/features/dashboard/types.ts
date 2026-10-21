@@ -14,7 +14,7 @@ export interface PhotoProofTarget {
 
 export interface DashboardServices {
   clock: Clock;
-  mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion'>;
+  mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion' | 'startTimer'>;
   sessionUser(): AuthUser | null;
   preferences: {
     get(key: string): string | null;

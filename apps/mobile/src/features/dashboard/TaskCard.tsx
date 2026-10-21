@@ -7,6 +7,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { formatCarryOverDate } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import type { Clock } from '../../platform/clock';
+import { selectTimerFor } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
 import type { Mutations } from '../../sync/mutations';
 import { ConstellationLine } from '../../ui/cosmos/ConstellationLine';
@@ -18,6 +19,7 @@ import { Icon } from '../../ui/primitives/Icon';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { Text } from '../../ui/primitives/Text';
 import { spacing } from '../../ui/tokens/spacing';
+import { startOccurrenceTimer } from '../tasks/timer';
 import { CompletionAttribution } from './CompletionAttribution';
 import { PetAvatar } from './PetAvatar';
 import { PetToggle, type PetToggleProps } from './PetToggle';
@@ -34,7 +36,7 @@ export interface TaskCardProps {
   active: boolean;
   services: {
     clock: Clock;
-    mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion'>;
+    mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion' | 'startTimer'>;
   };
   onOpenTask?: (taskId: string) => void;
   onPhotoRequired?: (target: PhotoProofTarget) => void;
@@ -53,6 +55,8 @@ const PetControl = memo(function PetControl({ pet, onToggle, ...props }: Omit<Pe
 export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, timezone, active, services,
   onOpenTask, onPhotoRequired, onOpenPhoto, onHoldInGroup, onMoveToDone }: TaskCardProps): ReactElement {
   const template = useReplica((state) => state.taskTemplates[item.taskId]);
+  const timer = useReplica((state) => selectTimerFor(state, { taskId: item.taskId,
+    occurrenceKey: item.occurrenceKey, petId: null, now: services.clock.now() }));
   const animationActive = useAnimationActive(active);
   const complete = item.progress.total > 0 && item.progress.done >= item.progress.total;
   const readOnly = date > localDate(services.clock.now(), timezone);
@@ -116,6 +120,13 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
     setUndoId(null);
   }, [undo, readOnly, services.mutations]);
   const openTask = useCallback(() => { onOpenTask?.(item.taskId); }, [onOpenTask, item.taskId]);
+  const canStartTimer = !readOnly && !item.orphan && template?.timer_seconds !== null
+    && template?.timer_seconds !== undefined;
+  const startTimer = useCallback(() => {
+    if (!canStartTimer || template === undefined
+      || (timer !== null && Date.parse(timer.ends_at) > services.clock.now() - 60_000)) return;
+    startOccurrenceTimer(template, item.occurrenceKey, services);
+  }, [canStartTimer, template, timer, item.occurrenceKey, services]);
 
   const { width } = useWindowDimensions();
   const [bounds, setBounds] = useState({ width: Math.max(spacing.xxl * 2, width - spacing.md * 4), height: spacing.xxl * 2 });
@@ -167,8 +178,9 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
   return <Card testID={`task-card-${item.taskId}-${item.occurrenceKey}`}
     accessibilityLabel={item.title} active={active} style={{ gap: spacing.xs, padding: spacing.sm }}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-      {onOpenTask === undefined ? body : <PressableScale accessibilityLabel={item.title}
-        onPress={openTask} active={active} style={{ flex: 1, minWidth: 0 }}>{body}</PressableScale>}
+      {onOpenTask === undefined && !canStartTimer ? body : <PressableScale accessibilityLabel={item.title}
+        onPress={openTask} onLongPress={canStartTimer ? startTimer : undefined}
+        active={active} style={{ flex: 1, minWidth: 0 }}>{body}</PressableScale>}
       {item.mode === 'together' && done?.photo_asset_id !== undefined && done.photo_asset_id !== null
         && <PhotoProofThumbnail assetId={done.photo_asset_id} active={active}
           {...(onOpenPhoto === undefined ? {} : { onOpen: onOpenPhoto })} />}

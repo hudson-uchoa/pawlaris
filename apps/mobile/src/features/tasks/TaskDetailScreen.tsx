@@ -1,4 +1,4 @@
-import { addDays, localDate, splitKey, type AuthUser, type Completion, type Member, type Pet, type TaskTemplate } from '@pawlaris/shared';
+import { addDays, localDate, splitKey, type AuthUser, type Completion, type DayViewItem, type Member, type Pet, type TaskTemplate } from '@pawlaris/shared';
 import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { memo, useCallback, useContext, useMemo, useState, type ReactElement } from 'react';
 import { View } from 'react-native';
@@ -6,7 +6,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { formatFullDate, formatScheduleSummary } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import type { Clock } from '../../platform/clock';
-import { selectDayView } from '../../replica/selectors';
+import { selectDayView, selectTimerFor } from '../../replica/selectors';
 import { useReplica } from '../../replica/useReplica';
 import type { Mutations } from '../../sync/mutations';
 import { Button } from '../../ui/primitives/Button';
@@ -20,12 +20,14 @@ import { TaskCard } from '../dashboard/TaskCard';
 import { PhotoProofThumbnail } from '../dashboard/PhotoProofThumbnail';
 import type { PhotoProofTarget } from '../dashboard/types';
 import { useNow } from '../dashboard/useNow';
+import { CountdownRing } from './CountdownRing';
 import { buildTaskHistory, type TaskHistoryRow } from './taskHistory';
+import { startOccurrenceTimer } from './timer';
 
 export interface TaskDetailServices {
   clock: Clock;
   sessionUser(): AuthUser;
-  mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion'>;
+  mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion' | 'startTimer' | 'cancelTimer'>;
   readCompletionRange(from: string, to: string): readonly Completion[];
 }
 
@@ -125,8 +127,36 @@ function TaskDetailContent({ task, today, now, timezone, services, active, onEdi
             {...(onPhotoRequired === undefined ? {} : { onPhotoRequired })}
             {...(onOpenPhoto === undefined ? {} : { onOpenPhoto })} />)}
         </View>
+        {task.timer_seconds !== null && <TaskTimerSection task={task} cards={todayCards} services={services}
+          members={members} viewerId={viewerId} active={active} />}
         <Text variant="heading" accessibilityRole="header">{strings.tasks.history}</Text>
       </View>} />
+  </View>;
+}
+
+function TaskTimerSection({ task, cards, services, members, viewerId, active }: {
+  task: TaskTemplate; cards: readonly DayViewItem[]; services: TaskDetailServices;
+  members: Readonly<Record<string, Member>>; viewerId: string; active: boolean;
+}): ReactElement {
+  const now = useNow(services.clock, 1000, active);
+  // Q-59 and 03 section 6: show the latest eligible timer across today's
+  // occurrences, including completed ones, before offering a new timer.
+  const timer = useReplica((state) => cards.map((card) => selectTimerFor(state, {
+    taskId: task.id, occurrenceKey: card.occurrenceKey, petId: null, now,
+  })).filter((row) => row !== null).sort((a, b) => Date.parse(b.ends_at) - Date.parse(a.ends_at))[0] ?? null);
+  const target = cards.find((card) => card.progress.done < card.progress.total);
+  return <View style={{ gap: spacing.sm }}>
+    <Text variant="heading" accessibilityRole="header">{strings.tasks.timer}</Text>
+    {timer !== null ? <>
+      <CountdownRing key={timer.id} timer={timer} clock={services.clock} active={active} testID="timer-ring" />
+      {timer.started_by !== viewerId && <Text color="textMuted">
+        {strings.tasks.timerStartedBy(members[timer.started_by]?.display_name ?? strings.format.unavailable)}
+      </Text>}
+      <Button testID="timer-cancel" label={strings.tasks.cancelTimer} accessibilityLabel={strings.tasks.cancelTimer}
+        onPress={() => { services.mutations.cancelTimer(timer.id); }} active={active} />
+    </> : target !== undefined && <Button testID="timer-start" label={strings.tasks.startTimer}
+      accessibilityLabel={strings.tasks.startTimer}
+      onPress={() => { startOccurrenceTimer(task, target.occurrenceKey, services); }} active={active} />}
   </View>;
 }
 
