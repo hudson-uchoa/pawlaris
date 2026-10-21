@@ -4,6 +4,17 @@ import permissions from './permissions.json';
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
+  notifications: {
+    timerTitle: 'Tempo esgotado',
+    healthDueBody: (pet: string): string => `${pet} — vence hoje`,
+    rationale: 'Para lembrar dos horários e avisar quando alguém da família concluir uma tarefa.',
+    activate: 'Ativar lembretes',
+    later: 'Agora não',
+    channels: {
+      critical: 'Lembretes críticos', routine: 'Lembretes',
+      timers: 'Cronômetros', familyActivity: 'Atividade da família',
+    },
+  },
   dashboard: {
     today: 'Hoje',
     yesterday: 'Ontem',
