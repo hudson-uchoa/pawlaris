@@ -183,6 +183,10 @@ export const strings = {
     breed: 'Raça',
     color: 'Pelagem',
     identity: 'Cor no app',
+    identityNames: {
+      polaris: 'Polaris', antares: 'Antares', aurora: 'Aurora', solar: 'Sol',
+      nebula: 'Nebulosa', neptune: 'Netuno', mars: 'Marte', andromeda: 'Andrômeda',
+    },
     other: 'Outra…',
     search: 'Buscar',
     choose: 'Escolher',

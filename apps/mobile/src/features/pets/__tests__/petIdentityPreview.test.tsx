@@ -53,7 +53,7 @@ test('R2.13 clearing an edited swatch restores the derived preview and queues nu
   await render(<ReplicaProvider store={c.store}><AssetFilesProvider files={c.files}>
     <PetFormScreen services={c.services} petId={pet.id} active onClose={c.onClose} onAvatar={c.onAvatar} />
   </AssetFilesProvider></ReplicaProvider>);
-  const swatch = within(screen.getByTestId('pet-identity')).getByRole('radio', { name: selected.name });
+  const swatch = within(screen.getByTestId('pet-identity')).getByRole('radio', { name: strings.pets.identityNames[selected.name] });
   expect(swatch).toBeChecked();
   expect(screen.getByRole('image', { name: strings.pets.photo })).toHaveStyle({ backgroundColor: selected.light });
   await fireEvent.press(swatch);

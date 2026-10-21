@@ -1,3 +1,8 @@
+// Independent transcription of 09 §4.2; do not derive from the implementation.
+export const expectedIdentityNames = [
+  'Polaris', 'Antares', 'Aurora', 'Sol', 'Nebulosa', 'Netuno', 'Marte', 'Andrômeda',
+];
+
 // Independent transcription of 09 §4.2.1; do not derive from the implementation.
 export const expectedPetLists = {
   breeds: {

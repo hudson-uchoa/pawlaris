@@ -3,7 +3,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import type { ReactNode } from 'react';
 import { processColor } from 'react-native';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
-import { expectedOtherLabel, expectedPetLists } from '../../../i18n/__tests__/petListExpectations';
+import { expectedIdentityNames, expectedOtherLabel, expectedPetLists } from '../../../i18n/__tests__/petListExpectations';
 import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import { HeroProvider } from '../../../ui/motion/hero';
@@ -159,6 +159,13 @@ test.each(['card', 'profile'] as const)('R2.13 %s preserves free-text breed and 
   expect(body.queryByText('Silver With White Paws', { exact: false })).toBeOnTheScreen();
 });
 
+test('09 §4.2 identity swatches announce body names in palette order', async () => {
+  const c = await scene();
+  await paint(c, form(c));
+  expect(within(control('pet-identity')).getAllByRole('radio')
+    .map((swatch) => swatch.props.accessibilityLabel)).toEqual(expectedIdentityNames);
+});
+
 test.each(IDENTITY_KEYS)('R2.13 / 09 §4.2 selecting swatch %s stores the palette key', async (key) => {
   const c = await scene();
   await paint(c, form(c));
@@ -168,7 +175,7 @@ test.each(IDENTITY_KEYS)('R2.13 / 09 §4.2 selecting swatch %s stores the palett
   const entry = identity.find((candidate) => candidate.key === key);
   expect(entry).toBeDefined();
   if (entry === undefined) throw new Error(`Expected palette key ${key}`);
-  const swatch = swatches.getByRole('radio', { name: entry.name });
+  const swatch = swatches.getByRole('radio', { name: strings.pets.identityNames[entry.name] });
   await fireEvent.press(swatch);
   expect(swatch).toBeChecked();
   await fireEvent.press(screen.getByTestId('pet-save'));

@@ -146,7 +146,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
     <View testID="pet-identity" style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.pets.identity}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-        {identity.map((entry) => <PressableScale key={entry.key} accessibilityRole="radio" accessibilityLabel={entry.name}
+        {identity.map((entry) => <PressableScale key={entry.key} accessibilityRole="radio" accessibilityLabel={strings.pets.identityNames[entry.name]}
           accessibilityState={{ checked: draft.identity_color === entry.key }} active={active}
           onPress={() => { update('identity_color', draft.identity_color === entry.key ? null : entry.key); }}
           style={{ alignItems: 'center', justifyContent: 'center', borderWidth, borderRadius: radius.avatar,
