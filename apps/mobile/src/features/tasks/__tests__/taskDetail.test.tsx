@@ -1,5 +1,5 @@
 import { addDays, localDate, type TaskTemplate } from '@pawlaris/shared';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
 import TaskDetail from '../../../../app/task/[id]';
@@ -10,6 +10,7 @@ import { servers } from '../../../auth/__tests__/support';
 import { createAppRuntime, type AppRuntime } from '../../../bootstrap';
 import { formatFullDate, formatScheduleSummary } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
+import { selectDayView } from '../../../replica/selectors';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import { fakeLogFiles } from '../../../testing/fakeLogFiles';
 import { fakeWebSocket } from '../../../testing/fakeWebSocket';
@@ -91,6 +92,131 @@ function expectedKeys(date: string, days: number, times: readonly string[]): str
 function historyRow(task: TaskTemplate, key: string) {
   return within(screen.getByTestId(`task-history-${task.id}-${key}`));
 }
+
+test('P5-4 R1 per-pet history keeps a done row and a not-done row for the same slot', async () => {
+  const c = await scene();
+  const otherPet = c.seedPet({ name: 'Second pet' });
+  const yesterday = addDays(c.date, -1);
+  const task = c.seedTask({ pet_ids: [c.pet.id, otherPet.id], completion_mode: 'per_pet',
+    starts_on: yesterday, times_of_day: ['08:00'] });
+  const key = `${yesterday}T08:00`;
+  const done = c.seedCompletion(task, { occurrence_key: key, pet_id: c.pet.id,
+    completed_by: c.other.id, completed_at: `${yesterday}T11:02:00.000Z` });
+  expect(historyRows(c, task)).toEqual([
+    { occurrenceKey: key, petId: c.pet.id, completion: done },
+    { occurrenceKey: key, petId: otherPet.id, completion: null },
+  ]);
+  await paint(c, task);
+  expect(within(historyList()).getAllByTestId(new RegExp(`^task-history-${task.id}-${key}`)))
+    .toHaveLength(2);
+  const finished = within(screen.getByTestId(`task-history-${task.id}-${key}-${c.pet.id}`));
+  expect(finished.getByText(c.pet.name)).toBeOnTheScreen();
+  expect(finished.getByText(strings.dashboard.completedBy(c.other.display_name, '08:02'))).toBeOnTheScreen();
+  expect(finished.queryByText(strings.tasks.notDone)).toBeNull();
+  const missed = within(screen.getByTestId(`task-history-${task.id}-${key}-${otherPet.id}`));
+  expect(missed.getByText(otherPet.name)).toBeOnTheScreen();
+  expect(missed.getByText(strings.tasks.notDone)).toBeOnTheScreen();
+  expect(missed.queryByText(strings.dashboard.completedBy(c.other.display_name, '08:02'))).toBeNull();
+});
+
+test('P5-4 R2 reseed duplicates cannot replace the canonical history attribution', async () => {
+  const c = await scene();
+  const yesterday = addDays(c.date, -1);
+  const key = `${yesterday}T08:00`;
+  const canonical = c.seedCompletion(c.task, { occurrence_key: key, completed_by: c.other.id,
+    completed_at: `${yesterday}T11:02:00.000Z` });
+  c.seedCompletion(c.task, { occurrence_key: key, duplicate_of: canonical.id,
+    completed_by: c.sessionUser.id, completed_at: `${yesterday}T11:03:00.000Z` });
+  expect(historyRows(c).filter((row) => row.occurrenceKey === key)).toEqual([
+    { occurrenceKey: key, petId: null, completion: canonical },
+  ]);
+  await paint(c);
+  expect(within(historyList()).getAllByTestId(`task-history-${c.task.id}-${key}`)).toHaveLength(1);
+  const row = historyRow(c.task, key);
+  expect(row.getByText(strings.dashboard.completedBy(c.other.display_name, '08:02'))).toBeOnTheScreen();
+  expect(row.queryByText(strings.dashboard.completedBy(c.sessionUser.display_name, '08:03'))).toBeNull();
+});
+
+test.each(['local', 'synced'] as const)(
+  'P5-4 R3 a %s undo refreshes loaded history rows without remounting', async (source) => {
+    const c = await scene();
+    const done = [1, 2].map((daysAgo) => {
+      const date = addDays(c.date, -daysAgo);
+      return c.seedCompletion(c.task, { occurrence_key: `${date}T08:00`,
+        completed_by: c.other.id, completed_at: `${date}T11:02:00.000Z` });
+    });
+    await paint(c);
+    const attribution = strings.dashboard.completedBy(c.other.display_name, '08:02');
+    for (const completion of done) {
+      expect(historyRow(c.task, completion.occurrence_key).getByText(attribution)).toBeOnTheScreen();
+    }
+    await act(() => {
+      if (source === 'local') {
+        for (const completion of done) c.mutations.undoCompletion(completion.id);
+      } else {
+        c.apply.applyServerRows(done.map((completion) => ({ entity: 'task_completions',
+          row: { ...completion, undone_at: new Date(c.clock.now()).toISOString(), undone_by: c.sessionUser.id },
+        })));
+      }
+    });
+    for (const completion of done) {
+      expect(c.replica.get('task_completions', completion.id)?.row).toMatchObject({
+        undone_at: new Date(c.clock.now()).toISOString(), undone_by: c.sessionUser.id,
+      });
+      const row = historyRow(c.task, completion.occurrence_key);
+      expect(row.queryByText(strings.tasks.notDone)).toBeOnTheScreen();
+      expect(row.queryByText(attribution)).toBeNull();
+    }
+    expect(c.outbox.count()).toBe(source === 'local' ? done.length : 0);
+  },
+);
+
+test('P5-4 R4 the today section excludes yesterday carry-over and keeps today slots', async () => {
+  const c = await scene();
+  const yesterday = addDays(c.date, -1);
+  // Carry-over is produced only on a template's unscheduled days.
+  const carried = c.seedTask({ pet_ids: [c.pet.id], starts_on: yesterday,
+    recurrence: { freq: 'daily', interval: 2 }, times_of_day: ['08:00'] });
+  const day = selectDayView(c.store.getState(), {
+    date: c.date, now: c.clock.now(), me: c.sessionUser.id, scope: 'all',
+  });
+  expect(day.overdue).toContainEqual(expect.objectContaining({
+    taskId: carried.id, occurrenceKey: `${yesterday}T08:00`, originalDate: yesterday,
+  }));
+  const view = await paint(c, carried);
+  const carriedToday = within(screen.getByTestId('task-today'));
+  expect(carriedToday.getByText(strings.dashboard.today)).toBeOnTheScreen();
+  expect(carriedToday.queryAllByTestId(/^task-card-/)).toHaveLength(0);
+  expect(historyRow(carried, `${yesterday}T08:00`).getByText(strings.tasks.notDone)).toBeOnTheScreen();
+  await view.unmount();
+  await paint(c);
+  const today = within(screen.getByTestId('task-today'));
+  expect(today.getAllByTestId(/^task-card-/)).toHaveLength(c.task.times_of_day.length);
+  for (const time of c.task.times_of_day) {
+    expect(today.getByTestId(`task-card-${c.task.id}-${c.date}T${time}`)).toBeOnTheScreen();
+  }
+  expect(today.queryByTestId(`task-card-${carried.id}-${yesterday}T08:00`)).toBeNull();
+});
+
+test('P5-4 R5 history shows a local photo only when the completion has a photo asset', async () => {
+  const c = await scene();
+  const yesterday = addDays(c.date, -1);
+  const id = c.ids.uuid();
+  const uri = `file:///fake/documents/assets/${id}.jpg`;
+  c.fileSystem.write(uri, new Uint8Array([1, 2, 3]));
+  // Render the stored capture offline, with the upload worker stopped.
+  c.files.uploads.dispose();
+  c.files.registerCapture({ id, kind: 'task_proof', localUri: uri, sha256: 'a'.repeat(64) });
+  const withPhoto = c.seedCompletion(c.task, { occurrence_key: `${yesterday}T08:00`, photo_asset_id: id });
+  const withoutPhoto = c.seedCompletion(c.task, { occurrence_key: `${yesterday}T20:00`, photo_asset_id: null });
+  await paint(c);
+  const photoRow = historyRow(c.task, withPhoto.occurrence_key);
+  expect(photoRow.getByText(withPhoto.title_snapshot)).toBeOnTheScreen();
+  expect(photoRow.queryByRole('image', { name: strings.pets.photo })).toHaveProp('source', [{ uri }]);
+  const plainRow = historyRow(c.task, withoutPhoto.occurrence_key);
+  expect(plainRow.getByText(withoutPhoto.title_snapshot)).toBeOnTheScreen();
+  expect(plainRow.queryByRole('image')).toBeNull();
+});
 
 test('P5-4 R3.24 history lists done and not-done slots for the last 30 family dates newest first', async () => {
   const c = await scene();
