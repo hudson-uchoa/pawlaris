@@ -14,6 +14,9 @@ export const strings = {
     finish: 'Encerrar',
     pause: 'Pausar',
     resume: 'Continuar',
+    recoveryMessage: (time: string, distance: string): string =>
+      `Você tem um passeio em andamento, iniciado às ${time} (${distance}).`,
+    recoveryFinish: 'Encerrar com o que temos',
     discard: 'Descartar',
     speedUnit: 'km/h',
   },
