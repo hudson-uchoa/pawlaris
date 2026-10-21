@@ -1313,7 +1313,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and after). If the background cancel does not run on a phone, record that as
   observed — it is best effort *(ADR-027)*.
 
-- [ ] **P5-9 — Céu completo**
+- [~] **P5-9 — Céu completo**
   **Depends:** P5-3, P5-14 · **Read:** `06` §4.2, §4.5, §5 · `02` R6.13
   **Build:** `ShootingStars` with the supernova of `06` §4.5, and the "Céu
   completo" header wired to `allDone`, gated by `kv.celebrated_on`; the
