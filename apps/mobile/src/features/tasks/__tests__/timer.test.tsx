@@ -213,6 +213,21 @@ test('P5-6 09 section 3.3 R5.1 long-press starts the card occurrence with startT
   expect(c.onOpenTask).not.toHaveBeenCalled();
 });
 
+test('R2 R3.26 09 section 3.3 long-press on a future day does not start a timer', async () => {
+  const c = await scene(['08:00']);
+  const date = addDays(c.date, 1);
+  const future = { ...c, date, key: `${date}T08:00` };
+  const start = jest.spyOn(c.mutations, 'startTimer');
+  await render(<ReplicaProvider store={c.store}>
+    <AssetFilesProvider files={c.files}><ReplicaCard c={future} /></AssetFilesProvider>
+  </ReplicaProvider>);
+  expect(screen.getByTestId(`task-check-${c.task.id}-${future.key}`)).toBeDisabled();
+  await fireEvent(screen.getByRole('button', { name: c.task.title }), 'longPress');
+  expect(start).not.toHaveBeenCalled();
+  expect(Object.values(c.store.getState().timers)).toEqual([]);
+  expect(c.outbox.count()).toBe(0);
+});
+
 test('P5-6 09 section 5.3 cancel calls cancelTimer and persists cancellation offline', async () => {
   const c = await scene();
   const timer = seedTimer(c);
@@ -229,6 +244,18 @@ test('P5-6 09 section 5.3 cancel calls cancelTimer and persists cancellation off
   expect(selectTimerFor(c.store.getState(), { taskId: c.task.id, occurrenceKey: c.key,
     petId: null, now: c.clock.now() })).toBeNull();
   expect(screen.getByTestId('timer-start')).toBeEnabled();
+});
+
+test('R1 R3.30 09 section 5.3 starting the viewer timer omits the initiated-by label', async () => {
+  const c = await scene();
+  await paintDetail(c);
+  await fireEvent.press(screen.getByTestId('timer-start'));
+  expect(Object.values(c.store.getState().timers)).toEqual([
+    expect.objectContaining({ started_by: c.sessionUser.id }),
+  ]);
+  expect(screen.getByText(formatDuration(300))).toBeOnTheScreen();
+  expect(screen.getByTestId('timer-cancel')).toBeEnabled();
+  expect(screen.queryAllByText(strings.tasks.timerStartedBy(''), { exact: false })).toHaveLength(0);
 });
 
 test('R3.30 09 section 5.3 another member timer shows its initiated-by label and a ticking countdown from the replica', async () => {
