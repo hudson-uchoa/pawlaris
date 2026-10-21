@@ -11,9 +11,11 @@ import { pathToFileURL } from 'node:url';
  * @returns {number[]} one-based offending line numbers
  */
 export function motionProblems(path, text) {
-  void path;
-  void text;
-  throw new Error('not implemented');
+  if (!path.startsWith('apps/mobile/')
+    || path === 'apps/mobile/src/ui/motion/tokens.ts') return [];
+  const literal = /\b(?:damping|stiffness|mass|duration)\s*(?::\s*|=\s*\{\s*)[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?(?![\w.])/;
+  return text.split(/\r?\n/).flatMap((line, index) =>
+    literal.test(line) ? [index + 1] : []);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
