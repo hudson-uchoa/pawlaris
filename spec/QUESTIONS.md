@@ -1713,3 +1713,31 @@ same row. Make it a substring match,
 `toHaveTextContent('Duda · 22:30', { exact: false })`, in the green
 commit, and say so in its body. The ordering, title and date checks
 stay as they are.
+
+## Q-57 — P5-13 — How should the existing living-sky timeout gate be resolved?
+**Asked:** 2026-10-20
+**Where:** apps/mobile/src/ui/cosmos/__tests__/livingSky.test.tsx:153;
+AGENTS.md sections 3.12, 4.2 step 5 and 7; P5-13's mobile test gate.
+**Problem:** P5-13's pets gate passes all 114 tests, including its 15 red
+cases, after the single assertion adaptation authorized by Q-56. The
+required full mobile gate cannot pass on this machine because the existing
+P5-14 satellite-window case exceeds its explicit 60,000 ms timeout. Two
+complete runs of `pnpm -C apps/mobile run test` each report 2 failed,
+1,547 passed, 1,549 total. The other timeout varies: the first run names
+the new-pet keyboard-return case; the second names the pet-list picker.
+A two-worker rerun also times out in the satellite case and was stopped
+after that failure. An isolated serial run,
+`pnpm -C apps/mobile exec jest src/ui/cosmos/__tests__/livingSky.test.tsx --runInBand`,
+reports 1 failed, 7 passed, 8 total; the satellite case takes 69,341 ms
+against its unchanged 60,000 ms limit. Neither that test nor its production
+modules are changed by this task. Reducing workers did not resolve it.
+Changing another red assertion or increasing its timeout is outside the
+owner's authorization for this session. Lint and typecheck have not run,
+following the stop-at-first-failure gate rule. Verify has not run, as the
+owner assigned it to the orchestrator.
+**I would assume:** Keep P5-13's implementation and the Q-56 adaptation
+uncommitted for review. The orchestrator resolves the P5-14 gate separately
+or supplies an environment in which the unchanged test passes, then the
+remaining P5-13 gates resume. Is that the intended boundary?
+**Blocking:** yes. The owner prohibited commits and checkbox changes in
+this session; this question is appended without a commit as instructed.
