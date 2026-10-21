@@ -124,6 +124,13 @@ test('R4.3 09 section 8.2 declining step 3b explicitly selects foreground record
   expect(Linking.openSettings).not.toHaveBeenCalled();
 });
 
+test('R2 R4.3 step 3b stays absent with the fallback flag set and background location granted', async () => {
+  c.kv.set('needs_background_location', '1');
+  jest.mocked(Location.getBackgroundPermissionsAsync).mockResolvedValue(permissionResponse(true));
+  expect(await c.permissions.readLadder()).not.toContain('backgroundLocation');
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
+});
+
 test('R4.1 09 section 8.2 completed normal steps finish without a background request', async () => {
   jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue(locationResponse('granted'));
   jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue(permissionResponse(true));
@@ -147,4 +154,12 @@ test('09 section 7 P6-1 Permissions supplies live location, background, battery 
   await fireEvent.press(screen.getByRole('button', { name: strings.diagnostics.location }));
   expect(onLocation).toHaveBeenCalledTimes(1);
   expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
+});
+
+test('R2 09 section 7 a permanent background location refusal renders the blocked row state', async () => {
+  jest.mocked(Location.getBackgroundPermissionsAsync).mockResolvedValue(permissionResponse(false, false));
+  expect((await c.permissions.readRows()).backgroundLocation).toBe('blocked');
+  await render(<PermissionsScreen walkPermissions={c.permissions} active onLocation={jest.fn()} />);
+  expect(screen.getByTestId('permission-backgroundLocation')).toHaveTextContent(strings.location.blocked, { exact: false });
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
 });
