@@ -1445,7 +1445,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 ## P7 — Polish
 
-- [ ] **P7-1 — Motion and Reduce Motion audit**
+- [~] **P7-1 — Motion and Reduce Motion audit**
   **Depends:** P6-5, P5-9 · **Read:** `06` §3, §4, §5
   **Build:** every animation uses a token from `ui/motion/tokens.ts`; every row
   of the Reduce Motion table has its fallback; every ambient effect stops when
