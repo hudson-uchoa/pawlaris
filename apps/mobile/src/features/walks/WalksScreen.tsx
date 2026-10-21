@@ -39,6 +39,8 @@ export function WalksScreen({ services, active: focused, locationState, onStart,
   const members = useReplica((state) => state.members);
   const timezone = useReplica((state) => state.family?.timezone ?? 'UTC');
   const dogs = Object.values(pets).filter((pet) => pet.species === 'dog' && pet.archived_at === null);
+  const startLabel = dogs.length === 1 && dogs[0] !== undefined
+    ? strings.walks.startWithDog(dogs[0].name) : strings.walks.start;
   const local = services.readLocalWalk();
   const resumable = local?.state === 'active' || local?.state === 'paused';
   const user = services.sessionUser();
@@ -56,9 +58,8 @@ export function WalksScreen({ services, active: focused, locationState, onStart,
         {resumable ? <Button testID="walk-resume" label={strings.walks.resumeWalk}
           accessibilityLabel={strings.walks.resumeWalk} active={active} disabled={!active} onPress={onResume} />
           : dogs.length === 0 ? <Text>{strings.walks.noDogs}</Text>
-            : <Button testID="walk-start" label={dogs.length === 1 && dogs[0] !== undefined
-              ? strings.walks.startWithDog(dogs[0].name) : strings.walks.start}
-            accessibilityLabel={strings.walks.start} active={active} disabled={!active || locationState !== 'granted'}
+            : <Button testID="walk-start" label={startLabel}
+            accessibilityLabel={startLabel} active={active} disabled={!active || locationState !== 'granted'}
             onPress={() => {
               const dog = dogs[0];
               if (dogs.length === 1 && dog !== undefined) onStart(dog.id);
