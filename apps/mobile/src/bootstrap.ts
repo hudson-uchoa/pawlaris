@@ -1,6 +1,7 @@
 import type { AuthUser, Completion } from '@pawlaris/shared';
 import { AppState } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as Location from 'expo-location';
 import { createApi } from './api/client';
 import { createAssetFiles, type AssetFiles } from './assets/files';
 import { createLifecycle, type Lifecycle } from './auth/lifecycle';
@@ -42,6 +43,10 @@ import { createExpoNotifications, type NotificationsPort } from './notifications
 import { createNotificationChannels } from './notifications/channels';
 import { createNotificationPermission, type NotificationPermission, type RationaleTrigger } from './notifications/permission';
 import { isLocalNotification, reconcile } from './notifications/reconcile';
+import { discardLocalWalk, finishLocalWalk, type LiveWalkServices } from './walks/live';
+import { createPointStore } from './walks/pointStore';
+import { createTracker } from './walks/tracker';
+import { WalkRepo } from './db/walkRepo';
 
 export interface AppDependencies {
   driver: SqlDriver;
@@ -84,6 +89,7 @@ export interface AppRuntime {
   logger: Logger;
   notifications: NotificationsPort;
   notificationPermission: NotificationPermission;
+  liveWalk: LiveWalkServices;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
   dispose(): void;
@@ -183,8 +189,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
         }
       }
     },
-    // Location tracking begins in P6-2.
-    stopTracking: async () => {},
+    stopTracking: () => liveWalk.tracker.stop(),
   });
   const mutations = createMutations({ ...deps, apply,
     sessionUser: {
@@ -202,6 +207,17 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
       if (rows.some((row) => row.entity === 'task_templates' && row.method === 'POST')) checkRationale('task_created');
     },
   });
+  const points = createPointStore(driver);
+  const tracker = createTracker({ driver, kv, clock, points, mutations, location: Location,
+    requestBackgroundLocation: async () => (await Location.requestBackgroundPermissionsAsync()).granted,
+  });
+  const localWalks = new WalkRepo(driver);
+  const liveDependencies = { driver, clock, points, tracker, mutations };
+  const liveWalk: LiveWalkServices = { clock, points, tracker,
+    readLocalWalk: () => localWalks.getLocal(),
+    finish: () => finishLocalWalk(liveDependencies),
+    discard: () => discardLocalWalk(liveDependencies),
+  };
   const changeMyPassword: FamilyActions['changePassword'] = (currentPassword, newPassword) => changePassword({
     api, session, connection: engine.state,
     sessionUser: () => {
@@ -220,7 +236,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   };
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
-    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission,
+    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk,
     readCompletionRange: (from, to) => replica.range('task_completions', from, to).map((record) => record.row),
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,

@@ -94,6 +94,8 @@ function Navigation(): ReactElement {
         <Stack.Screen name="tasks/index" options={{ headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="photo/[id]" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="walk/live" />
+        <Stack.Screen name="walk/[id]" options={{ headerShown: true, title: strings.tabs.walks }} />
         <Stack.Screen name="settings/password" options={{ headerShown: true, title: strings.settings.password }} />
         <Stack.Screen name="settings/family" options={{ headerShown: true, title: strings.settings.family }} />
         <Stack.Screen name="settings/diagnostics" options={{ headerShown: true, title: strings.settings.diagnostics }} />

@@ -12,6 +12,8 @@ export const strings = {
     foregroundBanner: 'Neste celular o rastreio só funciona com o app aberto. Toque para permitir o tempo todo.',
     finishTitle: 'Encerrar o passeio?',
     finish: 'Encerrar',
+    pause: 'Pausar',
+    resume: 'Continuar',
     discard: 'Descartar',
     speedUnit: 'km/h',
   },
