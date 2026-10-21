@@ -1833,3 +1833,9 @@ assertion is wrong and prohibits changing red assertions. Implementation
 remains uncommitted and unvalidated beyond the first targeted gate.
 Later gates, device checklist and commit-message files are not completed.
 No commit or checkbox change is authorized in this session.
+**Answer (2026-10-21, orchestrator):** as assumed, as in Q-56. `09` §7
+puts each row's label and its state in the same row, so each assertion
+checks a part of the row's text. Make both substring matches,
+`toHaveTextContent(…, { exact: false })`, in the green commit, and say
+so in its body. The four rows, the button press and the no-request
+checks stay as they are.
