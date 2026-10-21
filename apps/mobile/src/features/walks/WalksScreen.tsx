@@ -8,6 +8,7 @@ import { useAnimationActive } from '../../ui/motion/useAnimationActive';
 import { Button } from '../../ui/primitives/Button';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { Sheet } from '../../ui/primitives/Sheet';
+import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { spacing } from '../../ui/tokens/spacing';
@@ -20,7 +21,7 @@ import type { WalkScreenServices } from './types';
 export interface WalksScreenProps {
   services: WalkScreenServices;
   active: boolean;
-  locationState: LocationState;
+  locationState: LocationState | null;
   onStart(petId: string): void;
   onResume(): void;
   onOpenWalk(walkId: string): void;
@@ -65,8 +66,10 @@ export function WalksScreen({ services, active: focused, locationState, onStart,
               if (dogs.length === 1 && dog !== undefined) onStart(dog.id);
               else setPicker(true);
             }} />}
-        <PermissionGate state={locationState} active={active} onRequest={onRequestLocation}
-          onOpenSettings={onOpenSettings}>{null}</PermissionGate>
+        {locationState === null
+          ? <Skeleton testID="walk-permission-loading" width={spacing.xxl * 5} height={spacing.xxl} active={active} />
+          : <PermissionGate state={locationState} active={active} onRequest={onRequestLocation}
+            onOpenSettings={onOpenSettings}>{null}</PermissionGate>}
         {failed && <Text accessibilityRole="alert">{strings.settings.operationFailed}</Text>}
       </View>}
       renderItem={({ item: walk }) => <View testID={`walk-row-${walk.id}`}

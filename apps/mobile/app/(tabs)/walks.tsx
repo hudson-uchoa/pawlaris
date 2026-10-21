@@ -13,7 +13,7 @@ export default function Walks(): ReactElement {
   const permissions = useWalkPermissions();
   const router = useRouter();
   const active = useIsFocused();
-  const [location, setLocation] = useState<LocationState>('denied');
+  const [location, setLocation] = useState<LocationState | null>(null);
   const [failed, setFailed] = useState(false);
   const [starting, setStarting] = useState(false);
   useEffect(() => {
