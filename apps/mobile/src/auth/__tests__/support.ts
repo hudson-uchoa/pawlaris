@@ -9,6 +9,7 @@ import { fakeSecretBox } from '../../testing/fakeSecretBox';
 import { memoryDriver } from '../../testing/memoryDriver';
 import { rowFactories } from '../../testing/rowFactories';
 import { sequentialIds } from '../../testing/sequentialIds';
+import { identity } from '../../ui/tokens/color';
 import { createSession, type WireSession } from '../session';
 
 export const epoch = Date.UTC(2026, 9, 13, 12);
@@ -26,7 +27,7 @@ export function wireSession(server: Server, generation = 'initial', remaining = 
       id: '00000000-0000-4000-8000-000000000001',
       family_id: '00000000-0000-4000-8000-000000000002',
       email: 'family@example.invalid', display_name: 'Test member',
-      role: 'leader', color: '#5B7DB1',
+      role: 'leader', color: identity[0].key,
     },
   };
 }

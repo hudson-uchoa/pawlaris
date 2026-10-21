@@ -1,4 +1,5 @@
 import { generateSky, starAlpha, starDepth, starRadius, type Magnitude } from '../sky';
+import { starTints } from '../../tokens/cosmos';
 
 test('generateSky is deterministic for a seed and changes the sky for another seed', () => {
   const options = { width: 360, height: 800, density: 'full' } as const;
@@ -37,7 +38,7 @@ test('06 section 4.1 magnitude replaces the old layer paint and parallax table',
     [1.2, 0.53, 0.08], [0.85, 0.39, 0.04], [0.5, 0.25, 0.04],
   ];
   magnitudes.forEach((magnitude, index) => {
-    const star = { x: 0, y: 0, magnitude, tint: '#FFFFFF', period: 2000, phase: 0.25 } as const;
+    const star = { x: 0, y: 0, magnitude, tint: starTints[1], period: 2000, phase: 0.25 } as const;
     const actual = [starRadius(magnitude), starAlpha(star, 0), starDepth(magnitude)];
     actual.forEach((value, column) => expect(value).toBeCloseTo(expected[index]?.[column] ?? 0));
     const amplitude = magnitude <= 2 ? 0.15 : magnitude <= 4 ? 0.35 : 0.5;

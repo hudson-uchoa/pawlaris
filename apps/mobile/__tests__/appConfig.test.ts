@@ -1,4 +1,5 @@
 import config from '../app.config';
+import { dark } from '../src/ui/tokens/color';
 
 declare const __dirname: string;
 
@@ -70,10 +71,10 @@ describe('P0-9 app icon and splash', () => {
       'expo-splash-screen',
       expect.objectContaining({
         image: './assets/splash-icon.png',
-        backgroundColor: '#090B1A',
+        backgroundColor: dark.bg,
         dark: {
           image: './assets/splash-icon.png',
-          backgroundColor: '#090B1A',
+          backgroundColor: dark.bg,
         },
       }),
     ]);

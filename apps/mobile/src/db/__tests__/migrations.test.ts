@@ -3,6 +3,7 @@ import { openDatabase } from '../open';
 import { memoryDriver, type MemoryDriver } from '../../testing/memoryDriver';
 import { rowFactories } from '../../testing/rowFactories';
 import { sequentialIds } from '../../testing/sequentialIds';
+import { identity } from '../../ui/tokens/color';
 
 const columns: Record<string, string[]> = {
   replica: ['entity', 'id', 'revision', 'pending', 'deleted', 'pull_gen', 'sort_key', 'json'],
@@ -43,7 +44,7 @@ test('Q-55 migrating legacy pets backfills a missing identity as null and preser
   const { identity_color: omittedIdentity, ...legacy } = factory.pets();
   expect(omittedIdentity).toBeNull();
   expect(legacy).not.toHaveProperty('identity_color');
-  const chosen = factory.pets({ identity_color: '#B15B6B' });
+  const chosen = factory.pets({ identity_color: identity[1].key });
   for (const pet of [legacy, chosen]) {
     driver.run('INSERT INTO replica (entity, id, json) VALUES (?, ?, ?)', ['pets', pet.id, JSON.stringify(pet)]);
   }

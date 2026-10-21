@@ -6,6 +6,7 @@ import type { AssetFile } from '../db/assetRepo';
 import type { DeadLetterEntry } from '../db/deadLetterRepo';
 import type { NewOutboxEntry } from '../db/outboxRepo';
 import type { LocalWalk, WalkPoint } from '../db/walkRepo';
+import { identity } from '../ui/tokens/color';
 
 export function rowFactories(clock: { now(): number }, ids: { uuid(): string }) {
   const base = () => ({
@@ -19,7 +20,7 @@ export function rowFactories(clock: { now(): number }, ids: { uuid(): string }) 
     memberId, petId, taskId,
     members: (overrides: Partial<Member> = {}): Member => ({
       ...deleted(), display_name: 'Hudson', role: 'leader',
-      color: '#5B7DB1', disabled_at: null, ...overrides,
+      color: identity[0].key, disabled_at: null, ...overrides,
     }),
     family: (overrides: Partial<Family> = {}): Family => ({
       ...deleted(), name: 'Our family', timezone: 'America/Sao_Paulo', ...overrides,
