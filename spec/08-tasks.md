@@ -1402,7 +1402,9 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   Permissões reading `expo-battery`.
   **Tests:** an orphaned `local_walk` produces the sheet with the stored distance;
   Continuar restarts tracking and keeps points; Encerrar finishes with
-  `ended_at` = the last point's time; the battery step shows once.
+  `ended_at` = the last point's time; a walk with no point is offered
+  too and finishes at `started_at` with an empty route *(Q-61)*; the battery
+  step shows once.
   **Gate:** `pnpm -C apps/mobile exec jest src/walks`
   **Device:** [ ] Start a walk, force-stop the app, reopen → the sheet appears
   and no point is lost.

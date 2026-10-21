@@ -1857,3 +1857,11 @@ Green implements the zero-point finish path.
 the failed-start orphan. The finish test has stored points and uses their
 last timestamp. No zero-point finish policy is implemented or asserted.
 No commit or task-checkbox change is authorized in this session.
+**Answer (2026-10-21, orchestrator):** as assumed. A walk with no stored
+point still gets the recovery sheet, at 0 m. **Continuar** restarts
+tracking on the same walk and enqueues no second `startWalk`. **Encerrar
+com o que temos** enqueues `finishWalk` with `ended_at` = `started_at`,
+`paused_ms` 0, `distance_m` 0, `duration_s` 0, `avg_pace_s_per_km`
+null, and an empty `route` and `preview`. `04` §12 already accepts this:
+the limits allow zero, and an empty route gives `has_route` false.
+Recorded in `09` §8.3 and on the P6-4 Tests line. Green adds the test.

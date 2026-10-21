@@ -565,6 +565,10 @@ At startup and on foreground: if `local_walk` has a row and tracking is not
 running → sheet "Você tem um passeio em andamento, iniciado às 18:02 (1,2 km)."
 **Continuar** (restart tracking, keep points) / **Encerrar com o que temos**
 (`finishWalk` with the stored points, `ended_at` = last point's time).
+A walk with no stored point (tracking never delivered a fix) still gets the
+sheet, at 0 m. **Continuar** restarts tracking on the same walk, with no new
+`startWalk`. **Encerrar com o que temos** finishes it with `ended_at` =
+`started_at`, zero distance and duration, and an empty route and preview *(Q-61)*.
 
 ### 8.4 Notifications — `permission/notifications`
 
