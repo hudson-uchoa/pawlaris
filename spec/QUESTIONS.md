@@ -1883,3 +1883,9 @@ same API. Tests import the token used by the implementation. Instant
 keeps reduced celebration holds intact and map transitions disabled.
 **Blocking:** no (proceeded on the naming assumption, isolated in the
 Q-62 duration entries in apps/mobile/src/ui/motion/tokens.ts).
+**Answer (2026-10-21, orchestrator):** as assumed. The values stay,
+named `duration.meteor`, `starBurst`, `shockwave`, `celebration`,
+`weightChart` and `instant` in `ui/motion/tokens.ts`.
+`ui/tokens/cosmos.ts` keeps its geometry and takes its timings from
+there. `06` §3 now lists every duration and hold the app uses, and
+says that the guard scans all of `apps/mobile`, tests included.

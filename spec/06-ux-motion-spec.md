@@ -236,17 +236,26 @@ export const spring = {
   stiff:  { damping: 26, stiffness: 420, mass: 0.7 },   // press feedback
 } as const;
 
-export const duration = { micro: 120, quick: 200, base: 280, hero: 320, sheet: 380, burst: 520 } as const;
+export const duration = {
+  micro: 120, quick: 200, base: 280, hero: 320, sheet: 380, burst: 520,
+  skeletonSweep: 1400, reducedFade: 150, walkRoute: 900,       // §4.8, §5, §4.9
+  meteor: 700, starBurst: 700, shockwave: 420,                 // §4.1, §4.2
+  celebration: 1600, weightChart: 600,                         // §4.5, §6
+  instant: 0,                                                  // a timed cut, no tween
+} as const;                                                    // Q-62
 
 export const ambient = { orbit: 24000, syncOrbit: 1200, breath: 4000, nebula: 20000 } as const;
 // The sky's own timings (twinkle periods, meteor and satellite schedules)
 // are the ranges of §4.1, drawn by the seeded generator.
 
-export const hold = { toast: 4000 } as const;                 // how long a toast stays
+export const hold = { toast: 4000, completion: 400 } as const; // how long a toast or a done card stays
 ```
 
 All numbers live in this file. Components import a named token, never an inline
-number.
+number. Cosmos geometry in `ui/tokens/cosmos.ts` takes its timings from here
+*(Q-62)*; `scripts/guard-motion.mjs` fails on a numeric `damping`,
+`stiffness`, `mass` or `duration` anywhere else in `apps/mobile`, tests
+included.
 
 **Non-negotiable *(P6)*:** every animation runs on the UI thread. An animation
 driven by `setState`, by `setInterval`/`setTimeout`, or by the core `Animated`
