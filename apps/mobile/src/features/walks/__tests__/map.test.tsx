@@ -1,11 +1,14 @@
 import './maplibreMock';
 import { Map } from '@maplibre/maplibre-react-native';
-import { cleanup, render } from '@testing-library/react-native';
+import { cleanup, render, screen } from '@testing-library/react-native';
+import { strings } from '../../../i18n/strings';
+import { dark, light } from '../../../ui/tokens/color';
 import { WALK_TILE_URL } from '../tiles';
 import { WalkMap } from '../WalkMap';
 
 declare const __dirname: string;
 
+const appearance = jest.requireActual<Pick<typeof import('react-native'), 'useColorScheme'>>('react-native');
 const { readFileSync } = jest.requireActual<{
   readFileSync(path: string, encoding: 'utf8'): string;
 }>('node:fs');
@@ -30,6 +33,21 @@ afterEach(async () => {
   jest.clearAllTimers();
   jest.useRealTimers();
 });
+
+test.each(['light', 'dark'] as const)(
+  'ADR-005 R4.15 map background uses the %s theme and shows OSM attribution', async (scheme) => {
+    const color = scheme === 'light' ? light : dark;
+    jest.spyOn(appearance, 'useColorScheme').mockReturnValue(scheme);
+    await render(<WalkMap points={[]} mode="detail" active />);
+    expect(screen.getByTestId('walk-map')).toHaveStyle({ backgroundColor: color.bg });
+    const style = jest.mocked(Map).mock.lastCall?.[0].mapStyle;
+    if (style === undefined || typeof style === 'string') throw new Error('The map needs an inline raster style');
+    expect(style.layers.find((layer) => layer.type === 'background'))
+      .toMatchObject({ paint: { 'background-color': color.bg } });
+    expect(screen.getByText(strings.walks.attribution)).toBeOnTheScreen();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  },
+);
 
 test('ADR-005 R4.15 mobile files contain no provider keys and the map uses keyless raster tiles', async () => {
   const root = resolve(__dirname, '../../../../../..');
