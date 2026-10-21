@@ -1460,9 +1460,11 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Depends:** P7-1 · **Read:** `06` §2 · `00` P9
   **Build:** fix every screen for the light and the dark theme, 130% font scale,
   44 dp targets, labels and roles. `scripts/guard-colors.mjs` fails on a hex or
-  `rgb()` color literal outside `ui/tokens/`. Rename the Passeios route's
-  stale `walks-placeholder` `testID` to `walks-screen`, with the shell test
-  that finds it (P6-5 review).
+  `rgb()` color literal outside `ui/tokens/`, except `app.config.ts`: Expo
+  reads its splash colour before the bundle and cannot import the tokens,
+  so it keeps the literal and a test pins it to `dark.bg`. Rename the
+  Passeios route's stale `walks-placeholder` `testID` to `walks-screen`,
+  with the shell test that finds it (P6-5 review).
   **Tests:** each screen renders in both themes from tokens only (snapshot of
   resolved root and card styles); every `Pressable` in the screen tests has a
   label and role.
