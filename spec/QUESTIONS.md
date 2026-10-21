@@ -1809,3 +1809,27 @@ occurrences that `03` §6 would show, if one exists. Otherwise
 key order. With no incomplete occurrence today, the section has no
 **Iniciar**. `09` §3.3 and §5.3 now say so. The red tests stand. Green
 adds a test for the multi-slot day and the empty day.
+
+## Q-60 — P6-1 — How should the red permission-row matcher be corrected?
+**Asked:** 2026-10-21
+**Where:** apps/mobile/src/features/walks/__tests__/permissions.test.tsx
+lines 142 and 144; spec/09-screens.md section 7; AGENTS.md section 3.12.
+**Problem:** The red test requires each live permission row to contain its
+label and its state. In the installed React Native Testing Library 14.0.1,
+toHaveTextContent(string) defaults to exact matching. Both assertions use
+the same row test ID. The location row must therefore equal both the label
+and the distinct denied-state string, which no static row can satisfy.
+The implemented row displays both values, as section 7 requires. The first
+targeted gate reports 28 passed and 1 failed out of 29 tests; the failure
+shows the concatenated label and state against the label-only expectation.
+The installed dist/matchers/to-have-text-content.js delegates to matches
+without an exact option, and dist/matches.js defaults exact to true.
+**I would assume:** The orchestrator changes these two red assertions to
+substring matching with { exact: false }, or asserts the label and state
+on their separate Text elements. Keep both semantic checks. Production
+code and the global matcher must not be changed to evade the assertions.
+**Blocking:** yes. The owner explicitly requires stopping if a red
+assertion is wrong and prohibits changing red assertions. Implementation
+remains uncommitted and unvalidated beyond the first targeted gate.
+Later gates, device checklist and commit-message files are not completed.
+No commit or checkbox change is authorized in this session.
