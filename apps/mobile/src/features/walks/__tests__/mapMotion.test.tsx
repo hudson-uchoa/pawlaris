@@ -109,6 +109,40 @@ test('06 section 4.9 the saved stroke draws once over 900 ms without a JS interv
   expect(interval).not.toHaveBeenCalled();
 });
 
+test('06 section 4.9 saved draw completes on mid-draw blur and never replays on focus', async () => {
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+  const done = jest.fn();
+  const view = await render(<SavedRoute points={line} width={200} height={200} active onDrawn={done} />);
+  expect(timing).toHaveBeenCalledTimes(1);
+  const progress = cancel.mock.calls[0]?.[0];
+  await act(async () => { await jest.advanceTimersByTimeAsync(duration.walkRoute / 2); });
+  expect(progress?.value).toBeGreaterThan(0);
+  expect(progress?.value).toBeLessThan(1);
+  expect(done).not.toHaveBeenCalled();
+  timing.mockClear(); cancel.mockClear();
+  await view.rerender(<SavedRoute points={line} width={200} height={200} active={false} onDrawn={done} />);
+  expect(cancel).toHaveBeenCalledWith(progress);
+  expect(progress?.value).toBe(1);
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(timing).not.toHaveBeenCalled();
+  await view.rerender(<SavedRoute points={line} width={200} height={200} active onDrawn={done} />);
+  expect(progress?.value).toBe(1);
+  expect(timing).not.toHaveBeenCalled();
+});
+
+test('06 section 4.9 saved draw mounted out of focus is complete without timing', async () => {
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
+  const done = jest.fn();
+  const view = await render(<SavedRoute points={line} width={200} height={200} active={false} onDrawn={done} />);
+  expect(timing).not.toHaveBeenCalled();
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(cancel.mock.calls[0]?.[0].value).toBe(1);
+  await view.rerender(<SavedRoute points={line} width={200} height={200} active onDrawn={done} />);
+  expect(timing).not.toHaveBeenCalled();
+});
+
 test.each(['focus', 'background'] as const)('P6 saved draw, comet and camera stop after losing %s', async (reason) => {
   const listeners = new Set<(state: AppStateStatus) => void>();
   jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
