@@ -1263,7 +1263,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] Airplane mode → complete with a photo → reconnect → the other
   phone shows the photo.
 
-- [~] **P5-6 — Timers**
+- [x] **P5-6 — Timers**
   **Depends:** P5-4, P2-11 · **Read:** `09` §5.3 (Cronômetro) · `06` §4.4 · `02` §3.4
   **Build:** `CountdownRing`, start/cancel from the detail screen and by
   long-press on a card, the "iniciado por" label for another member's timer.
