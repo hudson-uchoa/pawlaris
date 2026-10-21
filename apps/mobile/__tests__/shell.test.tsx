@@ -612,7 +612,7 @@ test('P4-6 pet routes save a weight with a toast, edit the pet and return to wal
   expect(screen.getByTestId('pet-name')).toHaveDisplayValue(pet.name);
   await act(() => { router.back(); });
   await fireEvent.press(screen.getByRole('button', { name: strings.pets.viewAll }));
-  expect(screen.getByTestId('walks-placeholder')).toBeOnTheScreen();
+  expect(screen.getByTestId('walks-screen')).toBeOnTheScreen();
   expect(c.http.requests).toEqual([]);
 });
 
