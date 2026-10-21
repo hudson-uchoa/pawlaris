@@ -1800,3 +1800,12 @@ day state before GREEN implements those cases.
 together case, including both date-only and timed occurrence keys. No
 selection policy is implemented, no task checkbox changes, and no commit
 is made, as directed by the owner.
+**Answer (2026-10-21, orchestrator):** the controls never ask for a
+target, and the UI always starts a timer with `pet_id` null, one timer
+per occurrence. A card's long-press starts the timer for that card's
+own occurrence. The detail's **Cronômetro** shows the timer of today's
+occurrences that `03` §6 would show, if one exists. Otherwise
+**Iniciar** starts a timer for today's first incomplete occurrence in
+key order. With no incomplete occurrence today, the section has no
+**Iniciar**. `09` §3.3 and §5.3 now say so. The red tests stand. Green
+adds a test for the multi-slot day and the empty day.

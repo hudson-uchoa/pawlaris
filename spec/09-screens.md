@@ -207,7 +207,7 @@ Bottom-right FAB **+** `task-add` → `task/new`. The header action **Tarefas**
 | release on an unchecked box, no photo required | `createCompletion` → the star lights + haptic → after 400 ms the card moves to Concluídas |
 | release, `requires_photo` | open `camera` with the occurrence as param; on capture, complete; on cancel, nothing |
 | release on a checked box | `Sheet`: "Desfazer? Feito por Duda às 08:02." — **Desfazer** `undo-confirm` / **Cancelar** |
-| long-press on the card, template has `timer_seconds` | start the timer *(§5.3)* |
+| long-press on the card, template has `timer_seconds` | start the timer for this card's occurrence, `pet_id` null *(§5.3, Q-59)* |
 | event `completion_lost` for this occurrence | attribution crossfades to the winner; toast "Duda já tinha feito às 07:12" |
 
 A failed sync never un-checks a card. The only visible sign is the indicator.
@@ -384,7 +384,11 @@ start with a capital, the times part does not *(Q-34)*:
 2. **Hoje** — today's occurrences of this template as TaskCards.
 3. **Cronômetro** (when `timer_seconds` is set): the ring *(06 §4.4)*,
    **Iniciar** `timer-start` / **Cancelar** `timer-cancel`. A timer started by
-   the other member shows as running with "iniciado por Duda".
+   the other member shows as running with "iniciado por Duda". The section
+   shows the timer of today's occurrences that `03` §6 would show, if any;
+   otherwise **Iniciar** starts one for today's first incomplete occurrence
+   in key order, with `pet_id` null. With no incomplete occurrence today
+   there is no **Iniciar** *(Q-59)*.
 4. **Histórico** — the 30 days before today, newest first: date, slot, and
    per row either `Duda · 08:02` (with photo thumbnail) or `não feito`.
    Undone completions are not listed. Scrolling past them loads older ranges
