@@ -11,6 +11,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { formatDecimal, formatShortDate } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { starPath } from '../../ui/cosmos/glyphs';
+import { duration } from '../../ui/motion/tokens';
 import { useAnimationActive } from '../../ui/motion/useAnimationActive';
 import { useReduceMotion } from '../../ui/motion/useReduceMotion';
 import { Text } from '../../ui/primitives/Text';
@@ -30,7 +31,6 @@ export type WeightChartProps = {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
-const drawDuration = 600;
 
 export function WeightChart(props: WeightChartProps): ReactElement {
   if (props.entries.length < 2) return <Text color="textMuted">{strings.weights.empty}</Text>;
@@ -58,7 +58,7 @@ function Chart({ entries, width, height, timezone, active }: WeightChartProps): 
     cancelAnimation(progress);
     if (animationActive && !started.current && geometry.points.length >= 2) {
       started.current = true;
-      progress.set(reduced ? 1 : withTiming(1, { duration: drawDuration, easing: Easing.linear }));
+      progress.set(reduced ? 1 : withTiming(1, { duration: duration.weightChart, easing: Easing.linear }));
     } else if (started.current || reduced) {
       progress.set(1);
     }

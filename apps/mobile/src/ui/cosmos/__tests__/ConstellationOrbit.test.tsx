@@ -2,6 +2,7 @@ import { identityIndexForId } from '@pawlaris/shared';
 import { act, cleanup, render, screen } from '@testing-library/react-native';
 import { AppState, processColor, useColorScheme, type AppStateStatus } from 'react-native';
 import { getAnimatedStyle } from 'react-native-reanimated';
+import { ambient, duration } from '../../motion/tokens';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { Text } from '../../primitives/Text';
 import { dark, identity, light } from '../../tokens/color';
@@ -55,7 +56,7 @@ test('ConstellationLine draws on over 280 ms, stays while complete and disappear
   expect(timing).not.toHaveBeenCalled();
   await view.rerender(<ConstellationLine points={points} width={120} height={64} complete active testID="line" />);
   expect(timing).toHaveBeenCalledTimes(1);
-  expect(timing).toHaveBeenCalledWith(0, { duration: 280 });
+  expect(timing).toHaveBeenCalledWith(0, { duration: duration.base });
   // The real cleanup exposes the same shared offset now being animated.
   // SVG's host props are a snapshot; its animated updates live on the UI thread.
   const offset = () => cancel.mock.calls[0]?.[0].value;
@@ -137,7 +138,7 @@ test.each(['light', 'dark'] as const)('Orbit preserves avatar semantics and uses
 test('Orbit completes one clockwise revolution every 24000 ms on a circular path', async () => {
   const timing = jest.spyOn(timingAnimation, 'withTiming');
   await render(<Orbit petId="pet-a" size={96} active satellite testID="orbit" />);
-  expect(timing.mock.calls).toEqual([[2 * Math.PI, expect.objectContaining({ duration: 24000 })]]);
+  expect(timing.mock.calls).toEqual([[2 * Math.PI, expect.objectContaining({ duration: ambient.orbit })]]);
   const dot = screen.getByTestId('orbit-satellite', { includeHiddenElements: true });
   expect(dot).toHaveAnimatedStyle({ transform: [{ translateX: Math.cos(-Math.PI / 2) * 47.25 }, { translateY: -47.25 }] });
   await act(async () => { await jest.advanceTimersByTimeAsync(6000); });

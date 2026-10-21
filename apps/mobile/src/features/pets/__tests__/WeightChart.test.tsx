@@ -6,6 +6,7 @@ import { fireGestureHandler, getByGestureTestId } from 'react-native-gesture-han
 import { fakeClock } from '../../../testing/fakeClock';
 import { rowFactories } from '../../../testing/rowFactories';
 import { sequentialIds } from '../../../testing/sequentialIds';
+import { duration } from '../../../ui/motion/tokens';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { dark, light } from '../../../ui/tokens/color';
 import { WeightChart } from '../WeightChart';
@@ -63,7 +64,7 @@ test('R2.6 the first appearance draws for 600 ms with stars following the head a
   const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
   const view = await render(<WeightChart {...props} />);
   expect(timing).toHaveBeenCalledTimes(1);
-  expect(timing).toHaveBeenCalledWith(1, expect.objectContaining({ duration: 600 }));
+  expect(timing).toHaveBeenCalledWith(1, expect.objectContaining({ duration: duration.weightChart }));
   expect(screen.getAllByTestId(/^weight-chart-star-/).map((star) => star.props.opacity)).toEqual([1, 0, 0]);
   const progress = cancel.mock.calls[0]?.[0];
   expect(progress?.value).toBe(0);

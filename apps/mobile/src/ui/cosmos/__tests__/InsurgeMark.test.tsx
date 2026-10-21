@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen } from '@testing-library/react-native';
 import { AppState, processColor, useColorScheme, type AppStateStatus } from 'react-native';
+import { ambient } from '../../motion/tokens';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { insurge } from '../../tokens/color';
 import { InsurgeMark } from '../insurgeMark';
@@ -74,7 +75,7 @@ test('InsurgeMark breathes from 0.7 to 1 and back over the full 4000 ms period',
   const repeat = jest.spyOn(repeatAnimation, 'withRepeat');
   const view = await render(<InsurgeMark active={false} />);
   await view.rerender(<InsurgeMark active />);
-  expect(timing).toHaveBeenCalledWith(1, { duration: 2000 });
+  expect(timing).toHaveBeenCalledWith(1, { duration: ambient.breath / 2 });
   expect(repeat).toHaveBeenCalledTimes(1);
   expect(repeat.mock.calls[0]?.slice(1)).toEqual([-1, true]);
   // Read the real ring value exposed by cleanup when activity changed.

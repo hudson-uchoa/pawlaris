@@ -44,7 +44,7 @@ test.each(['light', 'dark'] as const)('MO-3 reduced walk motion uses a static do
   expect(screen.getByTestId('walk-map')).toHaveStyle({ backgroundColor: color.bg });
   expect(screen.getByTestId('walk-position')).toHaveStyle({ backgroundColor: color.star });
   expect(screen.getByTestId('walk-fix-pulse')).toHaveAnimatedStyle({ opacity: 0 });
-  expect(jest.mocked(Camera).mock.lastCall?.[0]).toMatchObject({ duration: 0 });
+  expect(jest.mocked(Camera).mock.lastCall?.[0]).toMatchObject({ duration: duration.instant });
   expect(jest.mocked(Layer).mock.calls.some(([props]) => props.id === 'walk-tail-line')).toBe(false);
   expect(timing).not.toHaveBeenCalled();
   await cleanup();
@@ -80,7 +80,7 @@ test('06 section 4.9 live camera eases natively and switches to a jump on blur',
   });
   expect(jest.mocked(Layer).mock.calls.some(([props]) => props.id === 'walk-tail-line')).toBe(true);
   await view.rerender(<WalkMap points={route} mode="live" active={false} />);
-  expect(jest.mocked(Camera).mock.lastCall?.[0]).toMatchObject({ duration: 0 });
+  expect(jest.mocked(Camera).mock.lastCall?.[0]).toMatchObject({ duration: duration.instant });
   expect(screen.getByTestId('walk-fix-pulse')).toHaveAnimatedStyle({ opacity: 0 });
 });
 
@@ -89,7 +89,7 @@ test('06 section 4.9 the saved stroke draws once over 900 ms without a JS interv
   const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
   const interval = jest.spyOn(globalThis, 'setInterval');
   const view = await render(<WalkMap points={route} mode="detail" active />);
-  expect(timing).toHaveBeenCalledWith(1, { duration: 900 }, expect.any(Function));
+  expect(timing).toHaveBeenCalledWith(1, { duration: duration.walkRoute }, expect.any(Function));
   // SVG extracts the initial props onto its native path. Reanimated's Jest
   // implementation advances shared values without updating that SVG host.
   expect(screen.getByTestId('walk-route-stroke').props.strokeDashoffset).toBeGreaterThan(0);

@@ -1,6 +1,7 @@
 import { Circle, Group, Line, LinearGradient, Skia, vec } from '@shopify/react-native-skia';
 import { memo, useContext, useEffect, useMemo, useRef, type ReactElement } from 'react';
 import { cancelAnimation, clamp, Easing, ReduceMotion, useDerivedValue, withDelay, withTiming, type SharedValue } from 'react-native-reanimated';
+import { duration } from '../motion/tokens';
 import { useAnimationActive } from '../motion/useAnimationActive';
 import { useReduceMotion } from '../motion/useReduceMotion';
 import { useTheme } from '../theme';
@@ -69,7 +70,7 @@ export function ShootingStars({ width, height, play, active }: ShootingStarsProp
       if (reduced) {
         time.set(-1);
         // This is a timed cut, so the system must not elide the hold itself.
-        time.set(withDelay(shootingStars.duration, withTiming(shootingStars.duration, { duration: 0 }), ReduceMotion.Never));
+        time.set(withDelay(shootingStars.duration, withTiming(shootingStars.duration, { duration: duration.instant }), ReduceMotion.Never));
       } else {
         time.set(0);
         time.set(withTiming(shootingStars.duration, { duration: shootingStars.duration, easing: Easing.linear }));
@@ -77,7 +78,7 @@ export function ShootingStars({ width, height, play, active }: ShootingStarsProp
     } else if (reduced && elapsed >= 0 && elapsed < shootingStars.duration) {
       // Switching to Reduce Motion preserves the remaining celebration window.
       time.set(-1);
-      time.set(withDelay(shootingStars.duration - elapsed, withTiming(shootingStars.duration, { duration: 0 }), ReduceMotion.Never));
+      time.set(withDelay(shootingStars.duration - elapsed, withTiming(shootingStars.duration, { duration: duration.instant }), ReduceMotion.Never));
     } else {
       time.set(shootingStars.duration);
     }

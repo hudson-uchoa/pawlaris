@@ -1,3 +1,4 @@
+import { duration } from '../motion/tokens';
 import { icon } from './icon';
 import { spacing } from './spacing';
 
@@ -25,7 +26,7 @@ export const starfield = {
   band: { angle: [20, 35], width: 0.25, alpha: 0.1, blur: 0.08,
     dustCount: 300, dustRadius: 0.4, dustAlpha: [0.06, 0.15] },
   meteor: { interval: [18000, 45000], length: [80, 140], angle: [20, 35],
-    duration: 700, strokeWidth: 1.75, headRadius: 1.5 },
+    duration: duration.meteor, strokeWidth: 1.75, headRadius: 1.5 },
   satellite: { interval: [60000, 120000], duration: [25000, 40000], radius: 1, alpha: 0.5 },
   scheduleCount: 128,
   nebula: {
@@ -43,9 +44,9 @@ export const starfield = {
 // Spec 06 section 4.2. Drag is exponential; gravity is dp/s².
 export const burst = {
   count: 14, sparkles: 8, jitter: 12, speed: [40, 110], size: [1.5, 4],
-  gravity: 30, drag: 2, duration: 700, canvasSize: 192,
+  gravity: 30, drag: 2, duration: duration.starBurst, canvasSize: 192,
   halo: { peak: 1, settled: 0.4, radius: 20 },
-  ring: { fromRadius: 14, toRadius: 40, strokeWidth: 1.5, alpha: 0.6, duration: 420 },
+  ring: { fromRadius: 14, toRadius: 40, strokeWidth: 1.5, alpha: 0.6, duration: duration.shockwave },
 } as const;
 
 // Spec 06 section 4.2. Interior glyph size and ring stroke follow the icons.
@@ -76,7 +77,7 @@ export const orbit = {
 
 // Spec 06 section 4.5, Q-38. Meteor geometry is a visual choice.
 export const shootingStars = {
-  duration: 1600,
+  duration: duration.celebration,
   stagger: 160,
   crossing: 960,
   tailLength: 60,

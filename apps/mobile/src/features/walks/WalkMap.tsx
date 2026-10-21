@@ -37,7 +37,7 @@ export function WalkMap({ points, mode, active: focused }: WalkMapProps): ReactE
   const projected = useMemo(() => screenLine(pairs, size.width, size.height, viewport), [pairs, size, viewport]);
   const mapStyle = useMemo<StyleSpecification>(() => ({
     version: 8,
-    transition: { duration: 0, delay: 0 },
+    transition: { duration: duration.instant, delay: 0 },
     sources: { osm: { type: 'raster', tiles: [WALK_TILE_URL], tileSize: 256,
       attribution: strings.walks.attribution, maxzoom: 19 } },
     layers: [{ id: 'background', type: 'background', paint: { 'background-color': color.bg } },
@@ -55,7 +55,7 @@ export function WalkMap({ points, mode, active: focused }: WalkMapProps): ReactE
       doubleTapZoom={active && !revealing} doubleTapHoldZoom={active && !revealing}>
       <Camera center={mode === 'live' ? center : viewport.center}
         zoom={mode === 'live' && head !== undefined ? 16 : viewport.zoom} bearing={0} pitch={0}
-        duration={mode === 'live' && active && !reduced ? duration.quick : 0}
+        duration={mode === 'live' && active && !reduced ? duration.quick : duration.instant}
         easing={mode === 'live' && active && !reduced ? 'ease' : undefined} />
       {coordinates.length > 1 && <GeoJSONSource id="walk-route"
         data={{ type: 'LineString', coordinates }}>

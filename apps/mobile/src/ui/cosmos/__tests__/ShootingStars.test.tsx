@@ -2,8 +2,10 @@ import { Circle, Group } from '@shopify/react-native-skia';
 import { act, cleanup, render } from '@testing-library/react-native';
 import { AppState, useColorScheme, type AppStateStatus } from 'react-native';
 import { ReduceMotion as MotionPolicy, type SharedValue } from 'react-native-reanimated';
+import { duration } from '../../motion/tokens';
 import * as ReduceMotion from '../../motion/useReduceMotion';
 import { dark, light } from '../../tokens/color';
+import { shootingStars } from '../../tokens/cosmos';
 import { ShootingStars } from '../ShootingStars';
 import { Starfield } from '../Starfield';
 import { generateSky } from '../sky';
@@ -111,7 +113,7 @@ test('Q-38 one 1600 ms timeline staggers five 960 ms diagonal crossings by 160 m
   const timing = jest.spyOn(timingAnimation, 'withTiming');
   const view = await render(<Scene />);
   expect(timing.mock.calls.filter(([target]) => target === 1600))
-    .toEqual([[1600, expect.objectContaining({ duration: 1600 })]]);
+    .toEqual([[1600, expect.objectContaining({ duration: shootingStars.duration })]]);
   const visible = () => meteors(view).map((node) => (node.props.opacity as SharedValue<number>).get());
   await act(async () => { await jest.advanceTimersByTimeAsync(0); });
   expect(visible()).toEqual([1, 0, 0, 0, 0]);
@@ -205,7 +207,7 @@ test.each(['light', 'dark'] as const)('Q-38 Reduce Motion cuts to a still bright
   expectBright(view);
   expect(meteors(view)).toHaveLength(0);
   expect([...celebrationNodes(view, 'skCircle'), ...celebrationNodes(view, 'skLine')]).toHaveLength(0);
-  expect(timing.mock.calls).toEqual([[1600, { duration: 0 }]]);
+  expect(timing.mock.calls).toEqual([[1600, { duration: duration.instant }]]);
   expect(delay.mock.calls[0]?.[0]).toBe(1600);
   expect(delay.mock.calls[0]?.[2]).toBe(MotionPolicy.Never);
   expect(spring).not.toHaveBeenCalled();

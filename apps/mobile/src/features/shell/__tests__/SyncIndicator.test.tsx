@@ -3,6 +3,7 @@ import { AppState, StyleSheet, processColor, useColorScheme, type AppStateStatus
 import { getAnimatedStyle } from 'react-native-reanimated';
 import { strings } from '../../../i18n/strings';
 import type { ConnectionObservable, ConnectionState } from '../../../sync/engine';
+import { ambient } from '../../../ui/motion/tokens';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
 import { dark, light } from '../../../ui/tokens/color';
 import { SyncIndicator } from '../SyncIndicator';
@@ -143,7 +144,7 @@ test('SyncIndicator orbits once in 1200 ms while syncing and cancels when synced
   const cancel = jest.spyOn(animationUtil, 'cancelAnimation');
   const state = connection({ status: 'syncing', server: 'primary', outboxCount: 1 });
   await render(<SyncIndicator connection={state} active />);
-  expect(timing).toHaveBeenCalledWith(2 * Math.PI, expect.objectContaining({ duration: 1200 }));
+  expect(timing).toHaveBeenCalledWith(2 * Math.PI, expect.objectContaining({ duration: ambient.syncOrbit }));
   expect(repeat).toHaveBeenCalledTimes(1);
   const dot = screen.getByTestId('sync-indicator-dot', { includeHiddenElements: true });
   const initial = getAnimatedStyle(dot);

@@ -1,4 +1,4 @@
-import { starTints } from '../../tokens/cosmos';
+import { burst as tokens, starTints } from '../../tokens/cosmos';
 import { generateStarBurst } from '../starBurst';
 
 test('06 §4.2 a seeded burst emits eight sparkles, six motes and a shockwave ring', () => {
@@ -17,5 +17,5 @@ test('06 §4.2 a seeded burst emits eight sparkles, six motes and a shockwave ri
     expect([...starTints, 'star']).toContain(particle.tint);
     expect(Number.isFinite(particle.angle)).toBe(true);
   }
-  expect(burst.ring).toEqual({ fromRadius: 14, toRadius: 40, strokeWidth: 1.5, alpha: 0.6, duration: 420 });
+  expect(burst.ring).toEqual({ fromRadius: 14, toRadius: 40, strokeWidth: 1.5, alpha: 0.6, duration: tokens.ring.duration });
 });

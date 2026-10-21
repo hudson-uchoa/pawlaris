@@ -23,6 +23,13 @@ export const duration = {
   skeletonSweep: 1400,
   reducedFade: 150,
   walkRoute: 900,
+  // Q-62: preserve section 4/6 timings and instantaneous cuts.
+  meteor: 700,
+  starBurst: 700,
+  shockwave: 420,
+  celebration: 1600,
+  weightChart: 600,
+  instant: 0,
 } as const;
 
 export const ambient = {
