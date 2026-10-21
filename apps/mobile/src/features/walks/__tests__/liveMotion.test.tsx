@@ -109,6 +109,21 @@ test('R4.13 06 section 4.9 the paused panel fades to sixty percent over duration
   expect(screen.getByTestId('walk-metrics')).toHaveAnimatedStyle({ opacity: 1 });
 });
 
+test.each(['light', 'dark'] as const)('R4.13 reduced pause dims the panel without timing in the %s theme', async (scheme) => {
+  jest.spyOn(ReduceMotion, 'useReduceMotion').mockReturnValue(true);
+  const color = scheme === 'light' ? light : dark;
+  jest.spyOn(Theme, 'useTheme').mockReturnValue({ scheme, color });
+  c = await liveContext();
+  await seedMovingWalk(c);
+  await c.paint();
+  expect(screen.getByTestId('walk-metrics')).toHaveAnimatedStyle({ opacity: 1 });
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  await fireEvent.press(screen.getByTestId('walk-pause'));
+  await act(async () => { await jest.advanceTimersByTimeAsync(20); });
+  expect(timing).not.toHaveBeenCalled();
+  expect(screen.getByTestId('walk-metrics')).toHaveAnimatedStyle({ opacity: 0.6 });
+});
+
 test('R4.12 P6 losing focus stops text refresh while fixes stay durable and refocus catches up', async () => {
   c = await liveContext();
   await seedMovingWalk(c);
