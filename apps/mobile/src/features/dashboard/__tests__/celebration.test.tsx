@@ -53,9 +53,9 @@ function today(c: DashboardContext): string {
   return localDate(c.clock.now(), 'America/Sao_Paulo');
 }
 
-function tree(c: DashboardContext, store: ReplicaStore = c.store, preferences = c.kv, initialDate?: string) {
+function tree(c: DashboardContext, store: ReplicaStore = c.store, preferences = c.kv, initialDate?: string, active = true) {
   return <ReplicaProvider store={store}><AssetFilesProvider files={c.files}>
-    <DashboardScreen services={{ ...c.services, preferences }} active onAdd={c.onAdd}
+    <DashboardScreen services={{ ...c.services, preferences }} active={active} onAdd={c.onAdd}
       onManage={c.onManage} onOpenPet={c.onOpenPet}
       {...(initialDate === undefined ? {} : { initialDate })} />
   </AssetFilesProvider></ReplicaProvider>;
@@ -164,6 +164,24 @@ test('R6.13 / 06 §4.5 plays when allDone turns true today in the viewer scope',
   expect(atlasAlphas(view).every((alpha) => alpha === 1)).toBe(true);
   await advance(1450);
   expect(atlasAlphas(view).some((alpha) => alpha < 1)).toBe(true);
+});
+
+test('R6.13 waits for focus before spending the day', async () => {
+  const c = await scene();
+  const scheduled = task(c);
+  const timing = jest.spyOn(timingAnimation, 'withTiming');
+  const view = await render(tree(c, c.store, c.kv, undefined, false));
+  expect(dayView(c).allDone).toBe(false);
+  expect(c.kv.get('celebrated_on')).toBeNull();
+
+  await complete(c, scheduled);
+  expect(dayView(c).allDone).toBe(true);
+  expect(c.kv.get('celebrated_on')).toBeNull();
+  expect(celebrationStarts(timing)).toHaveLength(0);
+
+  await view.rerender(tree(c));
+  expect(celebrationStarts(timing)).toHaveLength(1);
+  expect(c.kv.get('celebrated_on')).toBe(today(c));
 });
 
 test('R6.13 does not play twice in a day after undo, scope changes or a replica rebuild (kv.celebrated_on)', async () => {
