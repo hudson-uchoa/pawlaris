@@ -38,3 +38,16 @@ test('R4.17 09 section 3.1 dashboard names the other walker and hides the banner
   expect(c.http.requests).toEqual([]);
   expect(globalThis.fetch).not.toHaveBeenCalled();
 });
+
+test('R4.17 09 section 3.1 dashboard never banners the viewer own active walk', async () => {
+  const dog = c.seedPet({ name: 'Katarina', species: 'dog' });
+  c.seedWalk({ pet_id: dog.id, user_id: c.sessionUser.id,
+    started_at: new Date(c.clock.now() - 3_600_000).toISOString() });
+  await render(<ReplicaProvider store={c.store}>
+    <DashboardScreen services={c.dashboardServices} active
+      onAdd={c.onAdd} onManage={c.onManage} onOpenPet={c.onOpenPet} />
+  </ReplicaProvider>);
+  expect(screen.queryByTestId('walk-banner')).toBeNull();
+  expect(c.http.requests).toEqual([]);
+  expect(globalThis.fetch).not.toHaveBeenCalled();
+});
