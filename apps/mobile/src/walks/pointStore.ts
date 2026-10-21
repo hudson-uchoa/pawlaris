@@ -1,6 +1,6 @@
-import type { WalkAccumulator, WalkPoint } from '@pawlaris/shared';
+import { createAccumulator, type WalkAccumulator, type WalkPoint } from '@pawlaris/shared';
 import type { SqlDriver } from '../db/driver';
-import type { WalkPoint as StoredWalkPoint } from '../db/walkRepo';
+import { WalkRepo, type WalkPoint as StoredWalkPoint } from '../db/walkRepo';
 
 export interface PointStore {
   append(walkId: string, point: WalkPoint, accumulator?: WalkAccumulator): void;
@@ -9,19 +9,25 @@ export interface PointStore {
 }
 
 export function createPointStore(driver: SqlDriver): PointStore {
-  void driver;
+  const walks = new WalkRepo(driver);
   return {
     append(walkId, point, accumulator) {
-      void walkId; void point; void accumulator;
-      throw new Error('not implemented');
+      driver.transaction(() => {
+        const seq = driver.all<{ seq: number }>(
+          'SELECT COALESCE(MAX(seq), 0) + 1 AS seq FROM walk_point WHERE walk_id = ?', [walkId],
+        )[0]?.seq ?? 1;
+        walks.insertPoint({ ...point, walkId, seq });
+      });
+      // A failed aggregation must never cost the fix that triggered it.
+      accumulator?.add(point);
     },
-    read(walkId) {
-      void walkId;
-      throw new Error('not implemented');
-    },
+    read: (walkId) => walks.points(walkId),
     rebuild(walkId) {
-      void walkId;
-      throw new Error('not implemented');
+      const accumulator = createAccumulator();
+      for (const { lat, lon, t, acc, paused } of walks.points(walkId)) {
+        accumulator.add({ lat, lon, t, acc, paused });
+      }
+      return accumulator;
     },
   };
 }
