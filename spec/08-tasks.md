@@ -1395,7 +1395,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   trivial walk offers Descartar first; the banner only in `foreground` mode.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/walks`
 
-- [ ] **P6-4 — Recovery and battery prompt**
+- [~] **P6-4 — Recovery and battery prompt**
   **Depends:** P6-3 · **Read:** `09` §8.2 (step 3), §8.3 · `02` §4.2
   **Build:** `walks/recover.ts` called at startup and on foreground; the recovery
   sheet; the one-time battery step with manufacturer help; the battery row in
