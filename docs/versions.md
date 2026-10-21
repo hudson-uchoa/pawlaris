@@ -359,3 +359,22 @@ Local scheduling runs on the phone with no account or service. Its
 runtime dependencies are `@expo/image-utils`, `abort-controller`,
 `badgin`, `expo-application` and `expo-constants`. Push delivery, which
 needs Firebase, is P5-8 and the owner's H6.
+
+## P6-1 — Location permissions (2026-10-21)
+
+The mobile manifest and workspace lockfile pin these versions.
+The licences below come from each installed package's `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-location` | 57.0.21 | Location permission, walk tracking, its foreground service | MIT |
+| `expo-task-manager` | 57.0.21 | The background location task of a walk | MIT |
+| `expo-device` | 57.0.2 | Device facts for the permission ladder | MIT |
+| `expo-battery` | 57.0.3 | Battery optimisation state on Permissões | MIT |
+| `expo-intent-launcher` | 57.0.1 | Opening Android settings screens from the ladder | MIT |
+
+`expo install` chose the versions bundled with Expo SDK 57. All five
+run on the phone with no account, key or service. Their runtime
+dependencies are `@expo/image-utils` (expo-location),
+`unimodules-app-loader` (expo-task-manager) and `ua-parser-js`
+(expo-device); expo-battery and expo-intent-launcher have none.
