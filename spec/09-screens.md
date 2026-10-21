@@ -385,10 +385,11 @@ start with a capital, the times part does not *(Q-34)*:
 3. **Cronômetro** (when `timer_seconds` is set): the ring *(06 §4.4)*,
    **Iniciar** `timer-start` / **Cancelar** `timer-cancel`. A timer started by
    the other member shows as running with "iniciado por Duda".
-4. **Histórico** — the last 30 days, newest first: date, slot, and per row
-   either `Duda · 08:02` (with photo thumbnail) or `não feito`. Undone
-   completions are not listed. Scrolling past 30 days loads older ranges from
-   SQLite, 30 days at a time, down to 90.
+4. **Histórico** — the 30 days before today, newest first: date, slot, and
+   per row either `Duda · 08:02` (with photo thumbnail) or `não feito`.
+   Undone completions are not listed. Scrolling past them loads older ranges
+   from SQLite, 30 days at a time, down to today − 90 *(R3.15)*. Today stays
+   in **Hoje**; no page starts before the template's `starts_on` *(Q-58)*.
 
 ### 5.4 Camera — `camera`
 

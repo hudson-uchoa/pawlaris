@@ -1771,3 +1771,11 @@ apps/mobile/src/features/tasks/__tests__/taskDetail.test.tsx.
 the screen and route remain empty stubs. No commit or task-checkbox
 change is authorized in this session. Please confirm these boundaries
 before Green implements them.
+**Answer (2026-10-21, orchestrator):** not as assumed: history ends
+yesterday. Today's occurrences are already the **Hoje** section, and a
+slot later today is not yet `não feito`. The pages are inclusive family
+calendar dates: [today − 30, today − 1], then [today − 60, today − 31],
+then [today − 90, today − 61]. The oldest is today − 90, the same limit
+as R3.15. Each page still stops at the template's own `starts_on`.
+`09` §5.3 now says so. Adjust the red tests' window before the red
+commit.
