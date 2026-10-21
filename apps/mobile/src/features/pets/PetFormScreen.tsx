@@ -18,8 +18,12 @@ import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { TextField } from '../../ui/primitives/TextField';
 import { useTheme } from '../../ui/theme';
+import { identity } from '../../ui/tokens/color';
+import { borderWidth } from '../../ui/tokens/elevation';
+import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
 import { BirthdatePicker } from './BirthdatePicker';
+import { PetListPicker } from './PetListPicker';
 import type { PetScreenProps } from './types';
 
 export type PetFormScreenProps = PetScreenProps & {
@@ -47,6 +51,7 @@ type Draft = {
   sex: Pet['sex'];
   breed: string;
   color: string;
+  identity_color: Pet['identity_color'];
   birthdate: string | null;
   microchip_id: string;
   notes: string;
@@ -56,11 +61,14 @@ type Draft = {
 function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, leader, today }: PetFormScreenProps & {
   pet: Pet | null; leader: boolean; today: string;
 }): ReactElement {
-  const { color } = useTheme();
+  const { color, scheme } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
+  // Reserve the eventual row ID so the derived preview survives saving.
+  const [draftId] = useState(() => pet?.id ?? services.mutations.reservePetId());
   const [draft, setDraft] = useState<Draft>(() => ({
     name: pet?.name ?? '', species: pet?.species ?? '', sex: pet?.sex ?? 'unknown',
     breed: pet?.breed ?? '', color: pet?.color ?? '', birthdate: pet?.birthdate ?? null,
+    identity_color: pet?.identity_color ?? null,
     microchip_id: pet?.microchip_id ?? '', notes: pet?.notes ?? '', avatar_asset_id: pet?.avatar_asset_id ?? null,
   }));
   const [errors, setErrors] = useState<FormValidationError[]>([]);
@@ -81,17 +89,18 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
     if (finished.current) return;
     const fields = { name: draft.name, sex: draft.sex, breed: draft.breed || null, color: draft.color || null,
       birthdate: draft.birthdate, microchip_id: draft.microchip_id || null, notes: draft.notes || null,
-      avatar_asset_id: avatarId };
+      avatar_asset_id: avatarId, identity_color: draft.identity_color };
     const nextErrors = validatePet({ ...fields, name: draft.name || undefined, species: draft.species || undefined });
     setErrors(nextErrors);
     if (nextErrors.length > 0 || (draft.species !== 'cat' && draft.species !== 'dog')) return;
-    if (pet === null) services.mutations.createPet({ ...fields, species: draft.species });
+    if (pet === null) services.mutations.createPet({ ...fields, id: draftId, species: draft.species });
     else services.mutations.patchPet(pet.id, fields);
     finished.current = true;
     onClose();
   }
-  const photoPlaceholder = pet === null ? <Icon glyph={Camera} />
-    : <Avatar petId={pet.id} species={pet.species} accessibilityLabel={strings.pets.photo} />;
+  const photoPlaceholder = draft.species === '' ? <Icon glyph={Camera} />
+    : <Avatar petId={draftId} species={draft.species} identityColor={draft.identity_color}
+      accessibilityLabel={strings.pets.photo} />;
   return <KeyboardAwareForm style={{ flex: 1, backgroundColor: color.bg }}
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
@@ -104,13 +113,19 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
       <Text variant="label">{strings.pets.photo}</Text>
     </PressableScale>
     <TextField testID="pet-name" label={strings.pets.name} accessibilityLabel={strings.pets.name}
-      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => { inputs.current.breed?.focus(); }}
+      returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => {
+        (inputs.current.breed ?? inputs.current.color ?? inputs.current.microchip_id)?.focus();
+      }}
       value={draft.name} onChangeText={(value) => { update('name', value); }} {...errorFor('name')} />
     <View testID="pet-species" style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.pets.species}</Text>
       <SegmentedControl accessibilityLabel={strings.pets.species} value={draft.species} disabled={pet !== null} active={active}
         options={[{ value: 'cat', label: strings.pets.cat }, { value: 'dog', label: strings.pets.dog }]}
-        onValueChange={(value) => { if (pet === null && (value === 'cat' || value === 'dog')) update('species', value); }} />
+        onValueChange={(value) => {
+          if (pet !== null || (value !== 'cat' && value !== 'dog') || value === draft.species) return;
+          setDraft((current) => ({ ...current, species: value, breed: '', color: '' }));
+          setErrors((current) => current.filter((error) => !['species', 'breed', 'color'].includes(error.field)));
+        }} />
       {errorFor('species').error !== undefined && <Text color="danger" accessibilityRole="alert">{errorFor('species').error}</Text>}
     </View>
     <View style={{ gap: spacing.xs }}>
@@ -120,10 +135,27 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
         { value: 'unknown', label: strings.pets.unknownSex }]}
       onValueChange={(value) => { if (value === 'female' || value === 'male' || value === 'unknown') update('sex', value); }} />
     </View>
-    {(['breed', 'color'] as const).map((field) => <TextField key={field} label={strings.pets[field]} accessibilityLabel={strings.pets[field]}
-      ref={(input) => { inputs.current[field] = input; }} returnKeyType="next" submitBehavior="submit"
-      onSubmitEditing={() => { inputs.current[field === 'breed' ? 'color' : 'microchip_id']?.focus(); }}
-      value={draft[field]} onChangeText={(value) => { update(field, value); }} {...errorFor(field)} />)}
+    {(['breed', 'coat'] as const).map((kind) => {
+      const field = kind === 'breed' ? 'breed' : 'color';
+      return <PetListPicker key={`${kind}-${draft.species}`} kind={kind} species={draft.species}
+        inputRef={(input) => { inputs.current[field] = input; }} onSubmitEditing={() => {
+          (field === 'breed' ? inputs.current.color ?? inputs.current.microchip_id : inputs.current.microchip_id)?.focus();
+        }}
+        value={draft[field]} active={active} onChange={(value) => { update(field, value); }} {...errorFor(field)} />;
+    })}
+    <View testID="pet-identity" style={{ gap: spacing.xs }}>
+      <Text variant="label">{strings.pets.identity}</Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+        {identity.map((entry) => <PressableScale key={entry.key} accessibilityRole="radio" accessibilityLabel={entry.name}
+          accessibilityState={{ checked: draft.identity_color === entry.key }} active={active}
+          onPress={() => { update('identity_color', draft.identity_color === entry.key ? null : entry.key); }}
+          style={{ alignItems: 'center', justifyContent: 'center', borderWidth, borderRadius: radius.avatar,
+            borderColor: draft.identity_color === entry.key ? color.text : color.border,
+            backgroundColor: draft.identity_color === entry.key ? color.accentSoft : color.surface }}>
+          <View style={{ width: spacing.lg, height: spacing.lg, borderRadius: radius.avatar, backgroundColor: entry[scheme] }} />
+        </PressableScale>)}
+      </View>
+    </View>
     <PressableScale accessibilityLabel={strings.pets.birthdate} active={active} onPress={() => { setPickingDate(true); }}>
       <Text variant="label">{strings.pets.birthdate}</Text>
       {draft.birthdate !== null && <Text>{formatFullDate(draft.birthdate)}</Text>}

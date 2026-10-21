@@ -27,7 +27,7 @@ type PetFields = Pick<Pet,
   'name' | 'species' | 'sex' | 'breed' | 'color' | 'identity_color' | 'birthdate'
   | 'microchip_id' | 'avatar_asset_id' | 'notes' | 'sort_order'>;
 export type PetCreate = Pick<PetFields, 'name' | 'species'>
-  & Partial<Omit<PetFields, 'name' | 'species'>>;
+  & Partial<Omit<PetFields, 'name' | 'species'>> & { id?: string };
 export type PetPatch = Partial<Omit<PetFields, 'species'>>;
 export type WeightCreate = Pick<WeightEntry, 'pet_id' | 'weight_kg' | 'measured_at'>
   & Partial<Pick<WeightEntry, 'note'>>;
@@ -54,6 +54,7 @@ export type WalkFinish = Pick<Walk,
   & { ended_at: string; note?: string | null; route: RoutePoint[] };
 
 export interface Mutations {
+  reservePetId(): string;
   enqueue(...mutations: Mutation[]): void;
   createPet(body: PetCreate): string;
   patchPet(id: string, body: PetPatch): void;
@@ -126,8 +127,9 @@ export function createMutations({ driver, apply, clock, ids, sessionUser, kick }
   const create = <E extends SyncEntity>(
     entity: E, path: string, body: object,
     buildRow: (id: string, updatedAt: string) => EntityRows[E],
+    reservedId?: string,
   ): string => driver.transaction(() => {
-    const id = ids.uuid();
+    const id = reservedId ?? ids.uuid();
     enqueue(mutation(entity, id, 'POST', path, { id, ...body }, buildRow(id, now())));
     return id;
   });
@@ -161,13 +163,14 @@ export function createMutations({ driver, apply, clock, ids, sessionUser, kick }
   });
 
   return {
+    reservePetId: () => ids.uuid(),
     enqueue,
     createPet: (body) => create('pets', '/pets', body, (id, updatedAt) => ({
       sex: 'unknown', breed: null, color: null, identity_color: null,
       birthdate: null, microchip_id: null,
       avatar_asset_id: null, notes: null, sort_order: 0, ...body, ...base(id, updatedAt),
       archived_at: null, created_by: sessionUser.id, deleted_at: null,
-    })),
+    }), body.id),
     patchPet: (id, body) => edit('pets', id, `/pets/${id}`, body, body, 'PATCH'),
     archivePet(id) {
       driver.transaction(() => { edit('pets', id, `/pets/${id}/archive`, { archived_at: now() }, null); });

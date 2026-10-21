@@ -1,4 +1,4 @@
-import { identityIndexForId } from '@pawlaris/shared';
+import { identityIndexForId, identityIndexForKey } from '@pawlaris/shared';
 import { Cat, Dog } from 'lucide-react-native';
 import type { ReactElement } from 'react';
 import { Image, View } from 'react-native';
@@ -10,6 +10,7 @@ import { spacing } from '../tokens/spacing';
 
 export type AvatarProps = {
   petId: string;
+  identityColor?: string | null;
   species: 'cat' | 'dog';
   accessibilityLabel: string;
   uri?: string | null;
@@ -17,9 +18,10 @@ export type AvatarProps = {
   testID?: string;
 };
 
-export function Avatar({ petId, species, accessibilityLabel, uri, size = spacing.xxl, testID }: AvatarProps): ReactElement {
+export function Avatar({ petId, identityColor = null, species, accessibilityLabel, uri, size = spacing.xxl, testID }: AvatarProps): ReactElement {
   const { scheme, color } = useTheme();
-  const entry = identity[identityIndexForId(petId)] ?? identity[0];
+  const index = identityColor === null ? identityIndexForId(petId) : identityIndexForKey(identityColor);
+  const entry = identity[index] ?? identity[0];
   const Glyph = species === 'cat' ? Cat : Dog;
   return <View accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel}
     testID={testID} style={{ width: size, height: size, borderRadius: radius.avatar,

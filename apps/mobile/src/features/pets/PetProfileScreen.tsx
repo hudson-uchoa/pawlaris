@@ -77,7 +77,7 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
   if (family === null || pet === undefined) {
     return <Skeleton width={contentWidth} height={spacing.xxl * 4} active={focused} />;
   }
-  const placeholder = <Avatar petId={pet.id} species={pet.species} accessibilityLabel={pet.name} size={spacing.xxl * 2} />;
+  const placeholder = <Avatar petId={pet.id} identityColor={pet.identity_color} species={pet.species} accessibilityLabel={pet.name} size={spacing.xxl * 2} />;
   function completionLabel(item: DayViewItem): string | null {
     const completion = item.completions.find((row) => row.pet_id === (item.mode === 'together' ? null : petId));
     if (completion === undefined) return null;
@@ -92,7 +92,7 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
       <View style={StyleSheet.absoluteFill} pointerEvents="none">
         <Starfield seed={identityIndexForId(pet.id)} width={contentWidth} height={headerHeight} active={focused} />
       </View>
-      <Orbit petId={pet.id} size={spacing.xxl * 2 + spacing.lg} active={focused} satellite={hero.settled} testID={`pet-orbit-${pet.id}`}>
+      <Orbit petId={pet.id} identityColor={pet.identity_color} size={spacing.xxl * 2 + spacing.lg} active={focused} satellite={hero.settled} testID={`pet-orbit-${pet.id}`}>
         <Animated.View {...hero.avatar} testID={`pet-target-avatar-${pet.id}`}>
           <View style={{ width: spacing.xxl * 2, height: spacing.xxl * 2, borderRadius: radius.avatar, overflow: 'hidden' }}>
           {pet.avatar_asset_id === null ? placeholder

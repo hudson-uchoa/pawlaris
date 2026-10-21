@@ -152,7 +152,7 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
         {pets.filter((pet) => pet.archived_at === null).map((pet) => {
           const selected = draft.pet_ids.includes(pet.id);
-          const avatar = <Avatar petId={pet.id} species={pet.species} accessibilityLabel={pet.name} />;
+          const avatar = <Avatar petId={pet.id} identityColor={pet.identity_color} species={pet.species} accessibilityLabel={pet.name} />;
           return <PressableScale key={pet.id} accessibilityLabel={pet.name} active={active} disabled={!canEdit}
             accessibilityState={{ selected }} onPress={() => {
               if (!canEdit || finished.current) return;

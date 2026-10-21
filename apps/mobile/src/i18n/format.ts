@@ -1,6 +1,6 @@
 import {
   addDays, isDateKey, localDate, localTime, parseDateKey, petAge, slotInstant, utcDate,
-  type DateKey, type FormValidationError, type Pet, type Recurrence,
+  type DateKey, type FormValidationError, type Pet, type PetListKind, type Recurrence,
 } from '@pawlaris/shared';
 import { strings } from './strings';
 
@@ -70,10 +70,17 @@ export function parseDateTime(value: string, timezone: string): number | null {
   return slotInstant(date, `${match[4]}:${match[5]}`, timezone);
 }
 
+export function formatPetListValue(species: Pet['species'], kind: PetListKind, value: string): string {
+  const names: Readonly<Record<string, string>> = strings.pets[kind === 'breed' ? 'breeds' : 'coats'][species];
+  return Object.hasOwn(names, value) ? names[value] ?? value : value;
+}
+
 export function formatPetSummary(pet: Pet, now: number, timezone: string): string {
   const parts = [strings.pets.profileSpecies[pet.species][pet.sex]];
   const age = pet.birthdate === null ? null : formatPetAge(pet.birthdate, localDate(now, timezone));
-  return [...parts, ...(age === null ? [] : [age]), pet.breed || strings.pets.mixedBreed].join(' · ');
+  return [...parts, ...(age === null ? [] : [age]),
+    pet.breed ? formatPetListValue(pet.species, 'breed', pet.breed) : strings.pets.mixedBreed,
+    ...(pet.color ? [formatPetListValue(pet.species, 'coat', pet.color)] : [])].join(' · ');
 }
 
 export function formatDayLabel(date: DateKey): string {

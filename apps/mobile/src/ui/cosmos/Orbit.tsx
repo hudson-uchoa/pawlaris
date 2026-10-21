@@ -1,4 +1,4 @@
-import { identityIndexForId } from '@pawlaris/shared';
+import { identityIndexForId, identityIndexForKey } from '@pawlaris/shared';
 import { useEffect, type ReactElement, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
@@ -13,6 +13,7 @@ import { radius } from '../tokens/radius';
 
 export type OrbitProps = {
   petId: string;
+  identityColor?: string | null;
   size: number;
   active: boolean;
   children?: ReactNode;
@@ -20,10 +21,11 @@ export type OrbitProps = {
   testID?: string;
 };
 
-export function Orbit({ petId, size, active, children, satellite = false,
+export function Orbit({ petId, identityColor = null, size, active, children, satellite = false,
   testID }: OrbitProps): ReactElement {
   const { scheme } = useTheme();
-  const entry = identity[identityIndexForId(petId)] ?? identity[0];
+  const index = identityColor === null ? identityIndexForId(petId) : identityIndexForKey(identityColor);
+  const entry = identity[index] ?? identity[0];
   const color = entry[scheme];
   const animationActive = useAnimationActive(active);
   const reduced = useReduceMotion();

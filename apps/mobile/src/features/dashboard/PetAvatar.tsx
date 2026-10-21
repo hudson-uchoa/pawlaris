@@ -7,7 +7,7 @@ import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
 
 export const PetAvatar = memo(function PetAvatar({ pet }: { pet: Pet }): ReactElement {
-  const placeholder = <Avatar petId={pet.id} species={pet.species} accessibilityLabel={pet.name} />;
+  const placeholder = <Avatar petId={pet.id} identityColor={pet.identity_color} species={pet.species} accessibilityLabel={pet.name} />;
   return <View style={{ width: spacing.xxl, height: spacing.xxl, borderRadius: radius.avatar, overflow: 'hidden' }}>
     {pet.avatar_asset_id === null ? placeholder
       : <AssetImage assetId={pet.avatar_asset_id} placeholder={placeholder} accessibilityLabel={pet.name} />}

@@ -6,7 +6,7 @@ export interface PetScreenServices {
   clock: Clock;
   sessionUser(): AuthUser;
   mutations: Pick<Mutations,
-    'createPet' | 'patchPet' | 'archivePet' | 'unarchivePet' | 'createWeight' | 'deleteWeight'>;
+    'reservePetId' | 'createPet' | 'patchPet' | 'archivePet' | 'unarchivePet' | 'createWeight' | 'deleteWeight'>;
 }
 
 export type PetScreenProps = {

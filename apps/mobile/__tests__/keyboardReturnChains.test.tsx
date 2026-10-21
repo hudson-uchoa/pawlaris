@@ -1,5 +1,5 @@
 import { createElement, useImperativeHandle, type ReactElement, type Ref } from 'react';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { TextInputProps } from 'react-native';
 import { AssetFilesProvider } from '../src/assets/useAssetFile';
 import { response } from '../src/auth/__tests__/support';
@@ -117,6 +117,11 @@ test('R1 / 09 §1 new pet return keys focus breed, coat, microchip, notes and sa
     async fill() {
       await change(strings.pets.name, 'Aurora');
       await fireEvent.press(screen.getByRole('radio', { name: strings.pets.cat }));
+      for (const [id, label] of [['pet-breed', strings.pets.breed], ['pet-coat', strings.pets.color]] as const) {
+        await fireEvent.press(screen.getByTestId(id));
+        await fireEvent.press(within(screen.getByRole('dialog', { name: label })).getByRole('button', { name: strings.pets.other }));
+        await act(async () => { await jest.advanceTimersByTimeAsync(200); });
+      }
       await change(strings.pets.breed, 'Mixed');
       await change(strings.pets.color, 'Black');
       await change(strings.pets.microchip, '123456789012345');
@@ -125,6 +130,7 @@ test('R1 / 09 §1 new pet return keys focus breed, coat, microchip, notes and sa
     labels: [strings.pets.name, strings.pets.breed, strings.pets.color, strings.pets.microchip, strings.pets.notes],
     button: 'pet-save', calls: () => c.createPet.mock.calls,
     expected: [{ name: 'Aurora', species: 'cat', sex: 'unknown', breed: 'Mixed', color: 'Black',
+      id: expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/), identity_color: null,
       microchip_id: '123456789012345', notes: 'Gentle', birthdate: null, avatar_asset_id: null }],
   });
   expect(c.onClose).toHaveBeenCalledTimes(2);
