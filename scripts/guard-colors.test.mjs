@@ -17,6 +17,15 @@ test('P7-2 allows every colour form throughout the tokens directory', () => {
   }
 });
 
+test('P7-2 exempts only the exact Expo app config path', () => {
+  const source = "const splash = { backgroundColor: '#090B1A' };";
+  assert.deepEqual(colorProblems('apps/mobile/app.config.ts', source), []);
+  for (const path of ['app.config.tsx', 'app.config.ts.backup',
+    'src/app.config.ts']) {
+    assert.deepEqual(colorProblems(`apps/mobile/${path}`, source), [1]);
+  }
+});
+
 test('P7-2 allows semantic token references', () => {
   assert.deepEqual(colorProblems('apps/mobile/src/ui/primitives/Card.tsx',
     'const style = { backgroundColor: color.surface, color: color.text };'), []);

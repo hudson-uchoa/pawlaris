@@ -5,13 +5,18 @@ import { pathToFileURL } from 'node:url';
 
 /**
  * Return the lines containing hex or rgb()/rgba() colour literals.
- * Test files and src/testing are scanned; only src/ui/tokens/ is exempt.
+ * Test files and src/testing are scanned; tokens and app.config.ts are exempt.
  * @param {string} path repository-relative file path
  * @param {string} text complete source text
  * @returns {number[]} one-based offending line numbers
  */
 export function colorProblems(path, text) {
-  throw new Error('not implemented');
+  if (!path.startsWith('apps/mobile/')
+    || path === 'apps/mobile/app.config.ts'
+    || path.startsWith('apps/mobile/src/ui/tokens/')) return [];
+  const literal = /#(?:[\da-f]{8}|[\da-f]{6}|[\da-f]{4}|[\da-f]{3})\b|\brgba?\s*\(/i;
+  return text.split(/\r?\n/).flatMap((line, index) =>
+    literal.test(line) ? [index + 1] : []);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
