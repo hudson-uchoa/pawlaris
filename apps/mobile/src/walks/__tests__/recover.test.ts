@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { AppState, type AppStateStatus } from 'react-native';
 import { servers, wireSession } from '../../auth/__tests__/support';
 import { createAppRuntime, type AppRuntime } from '../../bootstrap';
+import * as Wiring from '../../sync/wiring';
 import { fakeFileSystem } from '../../testing/fakeFileSystem';
 import { fakeHttp } from '../../testing/fakeHttp';
 import { fakeLogFiles } from '../../testing/fakeLogFiles';
@@ -90,6 +91,35 @@ test('R4.6 startup checks for an orphaned local_walk after the first paint', asy
   expect(c.points.read(walk.id)).toEqual(points);
   expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(outbox);
   expect(http.requests).toEqual([]);
+});
+
+test('R4.6 R3 a foreground before first paint defers the recovery check and offer', async () => {
+  const createSyncEngine = Wiring.createSyncEngine;
+  let onForeground: (() => void) | undefined;
+  jest.spyOn(Wiring, 'createSyncEngine').mockImplementation((dependencies) => {
+    onForeground = dependencies.onForeground;
+    return createSyncEngine(dependencies);
+  });
+  const { app, walk } = await scene();
+  nativeRunning = false;
+  const check = jest.spyOn(app.walkRecovery, 'recoverIfNeeded');
+  const offered = jest.fn();
+  app.walkRecovery.subscribe(offered);
+  // Native listeners are deferred until paint; deliver the launch event at
+  // the runtime's foreground callback to exercise its own first-paint guard.
+  if (onForeground === undefined) throw new Error('The runtime did not wire foreground recovery');
+  onForeground();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(check).not.toHaveBeenCalled();
+  expect(Location.hasStartedLocationUpdatesAsync).not.toHaveBeenCalled();
+  expect(app.walkRecovery.getSnapshot()).toBeNull();
+  expect(offered).not.toHaveBeenCalled();
+  app.afterFirstPaint();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(check).toHaveBeenCalledTimes(1);
+  expect(Location.hasStartedLocationUpdatesAsync).toHaveBeenCalledWith(WALK_LOCATION_TASK);
+  expect(app.walkRecovery.getSnapshot()).toMatchObject({ walk });
+  expect(offered).toHaveBeenCalledTimes(1);
 });
 
 test('R4.6 foreground checks again when tracking stops after startup', async () => {
