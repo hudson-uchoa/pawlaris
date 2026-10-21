@@ -378,3 +378,25 @@ run on the phone with no account, key or service. Their runtime
 dependencies are `@expo/image-utils` (expo-location),
 `unimodules-app-loader` (expo-task-manager) and `ua-parser-js`
 (expo-device); expo-battery and expo-intent-launcher have none.
+
+## P6-5 — Walk history, detail and map (2026-10-21)
+
+The mobile manifest and workspace lockfile pin this version.
+The licences below come from the registry entry of each package.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `@maplibre/maplibre-react-native` | 11.5.0 | The walk map, with OSM raster tiles and no API key *(ADR-005)* | MIT |
+
+It needs no account, key or service. The native MapLibre SDK it embeds
+is BSD-2-Clause. Its JavaScript runtime dependencies, all permissive,
+are:
+
+- MIT: `@turf/distance`, `@turf/helpers`, `@turf/invariant`,
+  `@turf/length`, `@turf/meta`, `@turf/nearest-point-on-line` (7.4.0),
+  `@mapbox/jsonlint-lines-primitives` (2.0.3),
+  `json-stringify-pretty-compact` (4.0.0), and the `@types/geojson`
+  peer (7946.0.16);
+- ISC: `@maplibre/maplibre-gl-style-spec` (26.2.1), `quickselect`
+  and `tinyqueue` (3.0.0);
+- BSD-2-Clause: `@mapbox/unitbezier` (1.0.0).
