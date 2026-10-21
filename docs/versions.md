@@ -344,3 +344,18 @@ The licence below comes from the installed package's `package.json`.
 `expo install` chose 2.0.2 as the version bundled with Expo SDK 57. It
 is pure JavaScript on React Native's new architecture, with one runtime
 dependency, `tslib`. No account, service or billing is involved.
+
+## P5-7 — Local reminders (2026-10-21)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `expo-notifications` | 57.0.23 | Local reminders and timer alarms, channels, tap handling | MIT |
+
+`expo install` chose 57.0.23 as the version bundled with Expo SDK 57.
+Local scheduling runs on the phone with no account or service. Its
+runtime dependencies are `@expo/image-utils`, `abort-controller`,
+`badgin`, `expo-application` and `expo-constants`. Push delivery, which
+needs Firebase, is P5-8 and the owner's H6.
