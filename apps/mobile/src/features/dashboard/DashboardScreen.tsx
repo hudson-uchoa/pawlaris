@@ -29,6 +29,7 @@ import { ScopeFilter } from './ScopeFilter';
 import { UpcomingCare } from './UpcomingCare';
 import type { DashboardScope, DashboardScreenProps, DashboardServices } from './types';
 import { useNow } from './useNow';
+import { formatTime } from '../../i18n/format';
 
 type Group = 'overdue' | 'now' | 'later' | 'done';
 type HeldGroup = { group: Exclude<Group, 'done'>; index: number; date: string; scope: DashboardScope };
@@ -92,9 +93,13 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
   const members = useReplica((state) => state.members);
   const familyMembers = useReplica(selectMembers);
   const pets = useReplica((state) => state.pets);
+  const walks = useReplica((state) => state.walks);
   const healthEvents = useReplica((state) => state.healthEvents);
   const user = services.sessionUser();
   const viewer = user === null ? undefined : members[user.id];
+  const walking = Object.values(walks).filter((walk) => walk.status === 'active'
+    && walk.deleted_at === null && walk.user_id !== user?.id
+    && now - Date.parse(walk.started_at) < 12 * 3_600_000);
   const today = localDate(now, family?.timezone ?? 'UTC');
   const [selectedDate, setSelectedDate] = useState<string | null>(() =>
     initialDate !== undefined && isDateKey(initialDate) ? initialDate : null);
@@ -209,6 +214,10 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
         </View>
         {!loading && viewer !== undefined && <ScopeFilter viewer={viewer} members={familyMembers} value={scope}
           active={focused} onChange={changeScope} />}
+        {walking.map((walk) => <View key={walk.id} style={{ backgroundColor: color.accentSoft, padding: spacing.md }}>
+          <Text testID="walk-banner">{strings.walks.banner(members[walk.user_id]?.display_name ?? '',
+            pets[walk.pet_id]?.name ?? '', formatTime(Date.parse(walk.started_at), family?.timezone ?? 'UTC'))}</Text>
+        </View>)}
         <UpcomingCare items={care} pets={pets} active={focused} onOpenPet={onOpenPet} />
       </View>} />
     {!loading && <View style={{ position: 'absolute', right: spacing.md, bottom: spacing.md + (insets?.bottom ?? 0) }}>

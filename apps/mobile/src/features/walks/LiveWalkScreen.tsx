@@ -16,6 +16,8 @@ import { useTheme } from '../../ui/theme';
 import { spacing } from '../../ui/tokens/spacing';
 import { createLiveWalkReader, type LiveWalkServices } from '../../walks/live';
 import { RollingDistance } from './RollingDistance';
+import { WalkMap } from './WalkMap';
+import { routeForUpload } from '@pawlaris/shared';
 
 export interface LiveWalkScreenProps {
   services: LiveWalkServices;
@@ -44,6 +46,8 @@ export function LiveWalkScreen({ services, active: focused, onFinished, onDiscar
   const action = useRef(false);
   const opacity = useSharedValue(metrics.walk?.state === 'paused' ? 0.6 : 1);
   const paused = metrics.walk?.state === 'paused';
+  const route = useMemo(() => metrics.walk === null ? []
+    : routeForUpload(services.points.read(metrics.walk.id)), [metrics, services.points]);
   useEffect(() => {
     if (!active) return;
     // Refresh persisted data and elapsed-time text; Reanimated owns all frames.
@@ -85,8 +89,7 @@ export function LiveWalkScreen({ services, active: focused, onFinished, onDiscar
   const trivial = metrics.distanceM < 20 || metrics.seconds < 30;
   return <View style={{ flex: 1, backgroundColor: color.bg, paddingTop: insets?.top ?? 0 }}>
     {metrics.walk === null ? <Skeleton width={spacing.xxl * 5} height={spacing.xxl * 2} active={active} /> : <>
-      <View testID="walk-map-placeholder" accessible={false}
-        style={{ flex: 1, minHeight: spacing.xxl * 3, backgroundColor: color.surfaceSunken }} />
+      <WalkMap points={route} mode="live" active={active && !paused} />
       <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ padding: spacing.lg,
         paddingBottom: spacing.lg + (insets?.bottom ?? 0), gap: spacing.md }}>
         {metrics.walk.trackingMode === 'foreground' && <PressableScale testID="walk-foreground-banner"

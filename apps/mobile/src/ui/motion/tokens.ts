@@ -22,6 +22,7 @@ export const duration = {
   // Spec 06 sections 4.8 and 5.
   skeletonSweep: 1400,
   reducedFade: 150,
+  walkRoute: 900,
 } as const;
 
 export const ambient = {

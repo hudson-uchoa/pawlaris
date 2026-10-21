@@ -48,6 +48,7 @@ import { createPointStore } from './walks/pointStore';
 import { createTracker } from './walks/tracker';
 import { createWalkRecovery, type WalkRecovery } from './walks/recover';
 import { WalkRepo } from './db/walkRepo';
+import { createWalkRoutes, type WalkRoutes } from './walks/routes';
 
 export interface AppDependencies {
   driver: SqlDriver;
@@ -91,6 +92,7 @@ export interface AppRuntime {
   notifications: NotificationsPort;
   notificationPermission: NotificationPermission;
   liveWalk: LiveWalkServices;
+  walkRoutes: WalkRoutes;
   walkRecovery: WalkRecovery;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
@@ -210,6 +212,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     },
   });
   const points = createPointStore(driver);
+  const walkRoutes = createWalkRoutes({ driver, api });
   const tracker = createTracker({ driver, kv, clock, points, mutations, location: Location,
     requestBackgroundLocation: async () => (await Location.requestBackgroundPermissionsAsync()).granted,
   });
@@ -244,7 +247,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   };
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
-    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk, walkRecovery,
+    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk, walkRecovery, walkRoutes,
     readCompletionRange: (from, to) => replica.range('task_completions', from, to).map((record) => record.row),
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,

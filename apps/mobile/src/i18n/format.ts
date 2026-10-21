@@ -121,6 +121,14 @@ export function formatDuration(seconds: number): string {
     : `${Math.floor(minutes / 60)}:${twoDigits(minutes % 60)}:${remainder}`;
 }
 
+export function formatWalkSummary(walk: {
+  distance_m: number; duration_s: number; avg_pace_s_per_km: number | null;
+}): string {
+  return [formatDistance(walk.distance_m),
+    `${Math.floor(walk.duration_s / 60)} ${strings.walks.minutes}`,
+    formatPace(walk.avg_pace_s_per_km)].join(' · ');
+}
+
 export function formatPace(secondsPerKilometre: number | null): string {
   if (secondsPerKilometre === null) return strings.format.unavailable;
   const wholeSeconds = Math.round(secondsPerKilometre);

@@ -3,6 +3,15 @@ const { jest: jestRuntime } = require('@jest/globals');
 // Use Reanimated's Jest implementation and animation matchers.
 require('react-native-reanimated').setUpTests();
 
+// The native map boundary cannot load a renderer or request tiles in Jest.
+jestRuntime.mock('@maplibre/maplibre-react-native', () => {
+  const { createElement } = require('react');
+  const { View } = require('react-native');
+  const component = () => jestRuntime.fn((props) => createElement(View, props, props.children));
+  return { Map: component(), Camera: component(), GeoJSONSource: component(),
+    RasterSource: component(), Layer: component(), Marker: component() };
+});
+
 // FlashList 2.0.2's setup replaces FlashList with an unexported RecyclerView.
 // Keep the real component and the setup's native measurement mocks.
 jestRuntime.mock('@shopify/flash-list', () => jestRuntime.requireActual('@shopify/flash-list'));

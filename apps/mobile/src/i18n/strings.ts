@@ -5,6 +5,8 @@ export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
   walks: {
+    attribution: '© OpenStreetMap contributors',
+    minutes: 'min',
     startWithDog: (name: string): string => `Passear com a ${name}`,
     start: 'Iniciar passeio',
     noDogs: 'Nenhum cachorro cadastrado.',

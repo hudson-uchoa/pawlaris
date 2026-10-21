@@ -1,7 +1,15 @@
 import type { ReactElement } from 'react';
-import { PlaceholderScreen } from '../../src/features/shell/PlaceholderScreen';
-import { strings } from '../../src/i18n/strings';
+import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
+import { useApp } from '../../src/appContext';
+import { WalkDetailScreen } from '../../src/features/walks/WalkDetailScreen';
 
 export default function WalkDetail(): ReactElement {
-  return <PlaceholderScreen title={strings.tabs.walks} testID="walk-detail-placeholder" />;
+  const app = useApp();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const active = useIsFocused();
+  const router = useRouter();
+  return <WalkDetailScreen walkId={id} active={active}
+    services={{ clock: app.clock, sessionUser: app.sessionUser,
+      readLocalWalk: app.liveWalk.readLocalWalk, mutations: app.mutations }}
+    onDiscarded={() => { router.replace('/(tabs)/walks'); }} />;
 }
