@@ -1225,7 +1225,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   and the profile in both themes.
   **Not here:** a new species.
 
-- [~] **P5-13 — Care in the health timeline**
+- [x] **P5-13 — Care in the health timeline**
   **Depends:** P5-12, P5-3 · **Read:** `02` R2.12, R2.14 · `09` §4.3 · `05`
   ADR-042
   **Build:** the profile's timeline merges the pet's health events with its
