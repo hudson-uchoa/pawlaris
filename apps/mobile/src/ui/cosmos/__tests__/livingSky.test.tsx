@@ -151,6 +151,18 @@ test.each(['focus', 'background'] as const)('P5-14 R3/06 §5 %s freezes the sky 
 });
 
 test.each(['meteor', 'satellite'] as const)('P5-14 R2 the %s is visible only within its scheduled window', async (kind) => {
+  // Deliver frames only at the observations below. The real sky clock and
+  // derived opacities still run, without redrawing every star between checks.
+  const frames = new Map<number, (timestamp: number) => void>();
+  let frameId = 0;
+  jest.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((callback) => {
+    frameId += 1;
+    frames.set(frameId, callback);
+    return frameId;
+  });
+  jest.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation((id) => {
+    if (id != null) frames.delete(id);
+  });
   const schedule = generateSkyEventSchedule(42, starfield.scheduleCount);
   const start = (kind === 'meteor' ? schedule.meteors : schedule.satellites)[0];
   if (start === undefined) throw new Error('The first sky event is missing');
@@ -168,7 +180,12 @@ test.each(['meteor', 'satellite'] as const)('P5-14 R2 the %s is visible only wit
     [maximumDuration - minimumDuration / 2 + 32, 0],
   ] as const) {
     clock.advance(milliseconds);
-    await act(() => { jest.advanceTimersByTime(milliseconds); });
+    await act(() => {
+      jest.advanceTimersByTime(milliseconds);
+      const pending = [...frames.values()];
+      frames.clear();
+      pending.forEach((callback) => { callback(clock.now()); });
+    });
     expect(opacity()).toBe(alpha);
   }
 }, 60000);
