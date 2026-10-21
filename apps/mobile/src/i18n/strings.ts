@@ -4,7 +4,17 @@ import permissions from './permissions.json';
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
-  walks: { ongoingNotificationTitle: 'Passeio em andamento' },
+  walks: {
+    ongoingNotificationTitle: 'Passeio em andamento',
+    signalGood: 'sinal bom',
+    signalWeak: 'sinal fraco',
+    noSignal: 'sem sinal',
+    foregroundBanner: 'Neste celular o rastreio só funciona com o app aberto. Toque para permitir o tempo todo.',
+    finishTitle: 'Encerrar o passeio?',
+    finish: 'Encerrar',
+    discard: 'Descartar',
+    speedUnit: 'km/h',
+  },
   location: {
     preciseRequired: 'Para medir o passeio, o Pawlaris precisa da localização precisa.',
     allow: 'Permitir localização',
