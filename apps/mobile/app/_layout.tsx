@@ -99,6 +99,7 @@ function Navigation(): ReactElement {
         <Stack.Screen name="settings/diagnostics" options={{ headerShown: true, title: strings.settings.diagnostics }} />
         <Stack.Screen name="settings/permissions" options={{ headerShown: true, title: strings.settings.permissions }} />
         <Stack.Screen name="permission/notifications" options={{ presentation: 'modal', headerShown: true, title: strings.diagnostics.notifications }} />
+        <Stack.Screen name="permission/location" options={{ presentation: 'modal', headerShown: true, title: strings.diagnostics.location }} />
       </Stack.Protected>
     </Stack>
   </ThemeProvider>;

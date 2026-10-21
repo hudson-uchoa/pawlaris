@@ -32,6 +32,11 @@ import NewTaskRoute from '../app/task/new';
 import EditTaskRoute from '../app/task/[id]/edit';
 import TaskDetailRoute from '../app/task/[id]/index';
 import NotificationsRoute from '../app/permission/notifications';
+import LocationRoute from '../app/permission/location';
+import * as Location from 'expo-location';
+import * as Battery from 'expo-battery';
+import { Camera } from 'expo-camera';
+import { PermissionStatus } from 'expo';
 import { scheduledRequest } from '../src/notifications/__tests__/support';
 import { formatDashboardDay } from '../src/i18n/format';
 import { localDate } from '@pawlaris/shared';
@@ -62,6 +67,10 @@ jest.mock('react-native-reanimated', () => Object.defineProperties({}, {
   ...Object.getOwnPropertyDescriptors(jest.requireActual('react-native-reanimated')),
   measure: { value: jest.fn(), configurable: true, enumerable: true },
 }));
+
+// Copy native re-exports so the permission integration case can spy on them.
+jest.mock('expo-location', () => ({ ...jest.requireActual<typeof import('expo-location')>('expo-location') }));
+jest.mock('expo-battery', () => ({ ...jest.requireActual<typeof import('expo-battery')>('expo-battery') }));
 
 type AnimationAPI = typeof import('react-native-reanimated');
 type ThreadsAPI = typeof import('react-native-worklets');
@@ -171,6 +180,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './task/[id]/edit.tsx': { default: EditTaskRoute },
     './task/[id]/index.tsx': { default: TaskDetailRoute },
     './permission/notifications.tsx': { default: NotificationsRoute },
+    './permission/location.tsx': { default: LocationRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -182,6 +192,28 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
   });
   return render(<ExpoRoot context={context} location="/" />);
 }
+
+test('R4.1 Settings opens the location rationale without requesting permission or using the network', async () => {
+  const denied = { status: PermissionStatus.DENIED, granted: false,
+    canAskAgain: true, expires: 'never' as const };
+  jest.spyOn(Location, 'getForegroundPermissionsAsync').mockResolvedValue({ ...denied, android: { accuracy: 'none' } });
+  jest.spyOn(Location, 'getBackgroundPermissionsAsync').mockResolvedValue(denied);
+  jest.spyOn(Battery, 'isBatteryOptimizationEnabledAsync').mockResolvedValue(true);
+  jest.spyOn(Camera, 'getCameraPermissionsAsync').mockResolvedValue(denied);
+  const request = jest.spyOn(Location, 'requestForegroundPermissionsAsync');
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  await act(() => { router.push('./settings/permissions'); });
+  await fireEvent.press(await screen.findByRole('button', { name: strings.diagnostics.location }));
+  expect(await screen.findByText(strings.location.rationale)).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: strings.location.allow })).toBeOnTheScreen();
+  expect(request).not.toHaveBeenCalled();
+  expect(c.http.requests).toEqual([]);
+});
 
 test('R3.38 a notification tap opens Hoje on the occurrence date from a nested route', async () => {
   openDatabase(driver);

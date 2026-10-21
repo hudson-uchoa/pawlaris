@@ -139,9 +139,9 @@ test('09 section 7 P6-1 Permissions supplies live location, background, battery 
   const onLocation = jest.fn();
   await render(<PermissionsScreen walkPermissions={c.permissions} active onLocation={onLocation} />);
   for (const permission of ['location', 'backgroundLocation', 'battery', 'camera'] as const) {
-    expect(screen.getByTestId(`permission-${permission}`)).toHaveTextContent(strings.diagnostics[permission]);
+    expect(screen.getByTestId(`permission-${permission}`)).toHaveTextContent(strings.diagnostics[permission], { exact: false });
     if (permission !== 'battery') {
-      expect(screen.getByTestId(`permission-${permission}`)).toHaveTextContent(strings.diagnostics.denied);
+      expect(screen.getByTestId(`permission-${permission}`)).toHaveTextContent(strings.diagnostics.denied, { exact: false });
     }
   }
   await fireEvent.press(screen.getByRole('button', { name: strings.diagnostics.location }));

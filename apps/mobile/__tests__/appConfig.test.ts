@@ -9,6 +9,21 @@ const { resolve } = jest.requireActual<{
   resolve(...paths: string[]): string;
 }>('node:path');
 
+describe('P6-1 location configuration', () => {
+  it('R4.2 declares the location permissions and foreground service permissions', () => {
+    expect(config.android?.permissions).toEqual(expect.arrayContaining([
+      'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION',
+      'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION',
+    ]));
+  });
+
+  it('R4.2 enables the location foreground service and declares the fallback permission', () => {
+    expect(config.plugins).toContainEqual(['expo-location', {
+      isAndroidBackgroundLocationEnabled: true, isAndroidForegroundServiceEnabled: true,
+    }]);
+  });
+});
+
 describe('P0-9 app icon and splash', () => {
   it.each([
     ['icon.png', (): string | undefined => config.icon],
