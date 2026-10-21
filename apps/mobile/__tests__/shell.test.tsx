@@ -28,6 +28,7 @@ import PasswordRoute from '../app/settings/password';
 import TasksRoute from '../app/tasks/index';
 import NewTaskRoute from '../app/task/new';
 import EditTaskRoute from '../app/task/[id]/edit';
+import TaskDetailRoute from '../app/task/[id]/index';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -158,6 +159,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './tasks/index.tsx': { default: TasksRoute },
     './task/new.tsx': { default: NewTaskRoute },
     './task/[id]/edit.tsx': { default: EditTaskRoute },
+    './task/[id]/index.tsx': { default: TaskDetailRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -170,7 +172,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
   return render(<ExpoRoot context={context} location="/" />);
 }
 
-test('P5-1 the task list route opens the edit form until task detail exists', async () => {
+test('P5-4 the task list opens detail and its edit action opens the form', async () => {
   openDatabase(driver);
   const c = dependencies();
   const wire = wireSession('primary');
@@ -187,6 +189,9 @@ test('P5-1 the task list route opens the edit form until task detail exists', as
   await act(() => { router.push('./tasks'); });
   expect(screen.getByRole('radio', { name: strings.tasks.active })).toBeChecked();
   await fireEvent.press(screen.getByRole('button', { name: task.title }));
+  expect(screen.getByTestId('task-today')).toBeOnTheScreen();
+  expect(screen.getByTestId('task-history')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('task-edit'));
   expect(screen.getByTestId('task-title')).toHaveDisplayValue(task.title);
   expect(screen.getByTestId('task-end')).toBeOnTheScreen();
   expect(c.http.requests).toEqual([]);

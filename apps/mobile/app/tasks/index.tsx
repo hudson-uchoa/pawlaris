@@ -10,8 +10,7 @@ export default function Tasks(): ReactElement {
   const active = useIsFocused();
   const user = app.sessionUser();
   const openTask = useCallback((id: string) => {
-    // P5-4 will replace this temporary edit destination with task/[id].
-    router.push({ pathname: '../task/[id]/edit', params: { id } });
+    router.push({ pathname: '../task/[id]', params: { id } });
   }, [router]);
   if (user === null) return <View />;
   return <TasksListScreen services={{ clock: app.clock, sessionUser: () => user, mutations: app.mutations }}

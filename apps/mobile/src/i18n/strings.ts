@@ -84,6 +84,7 @@ export const strings = {
     ended: 'Encerradas',
     history: 'Histórico',
     notDone: 'não feito',
+    edit: 'Editar',
   },
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
   settings: {

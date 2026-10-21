@@ -1,5 +1,11 @@
+const { jest: jestRuntime } = require('@jest/globals');
+
 // Use Reanimated's Jest implementation and animation matchers.
 require('react-native-reanimated').setUpTests();
+
+// FlashList 2.0.2's setup replaces FlashList with an unexported RecyclerView.
+// Keep the real component and the setup's native measurement mocks.
+jestRuntime.mock('@shopify/flash-list', () => jestRuntime.requireActual('@shopify/flash-list'));
 
 // The Skia environment loads CanvasKit outside Jest's VM. Its shader API
 // checks instanceof against that realm's Array/Float32Array constructors.

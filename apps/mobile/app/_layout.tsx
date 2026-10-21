@@ -8,6 +8,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from '../src/appContext';
 import { createAppRuntime, productionDependencies, type AppDependencies } from '../src/bootstrap';
 import { strings } from '../src/i18n/strings';
+import { useReplica } from '../src/replica/useReplica';
 import { duration } from '../src/ui/motion/tokens';
 import { HeroProvider } from '../src/ui/motion/hero';
 import { useReduceMotion } from '../src/ui/motion/useReduceMotion';
@@ -38,6 +39,7 @@ export default function RootLayout({ dependencies }: RootLayoutProps = {}): Reac
 
 function Navigation(): ReactElement {
   const app = useApp();
+  const templates = useReplica((state) => state.taskTemplates);
   const connection = useSyncExternalStore(app.engine.state.subscribe, app.engine.state.getState);
   const signedIn = app.sessionUser() !== null && connection.status !== 'signed_out';
   const reduced = useReduceMotion();
@@ -62,6 +64,10 @@ function Navigation(): ReactElement {
         <Stack.Screen name="pet/[id]/health/new" options={{ presentation: 'modal', headerShown: true, title: strings.health.heading }} />
         <Stack.Screen name="health/[id]" options={{ presentation: 'modal', headerShown: true, title: strings.health.heading }} />
         <Stack.Screen name="task/new" options={{ presentation: 'modal', headerShown: true, title: strings.dashboard.createTask }} />
+        <Stack.Screen name="task/[id]/index" options={({ route }) => {
+          const params = route.params as { id?: string } | undefined;
+          return { headerShown: true, title: templates[params?.id ?? '']?.title ?? strings.tasks.heading };
+        }} />
         <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal', headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="tasks/index" options={{ headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />

@@ -1,4 +1,4 @@
-import type { AuthUser } from '@pawlaris/shared';
+import type { AuthUser, Completion } from '@pawlaris/shared';
 import { AppState } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { createApi } from './api/client';
@@ -12,6 +12,7 @@ import { readServers, type Servers } from './config/servers';
 import { expoSqliteDriver, type SqlDriver } from './db/driver';
 import { Kv, serverKey } from './db/kv';
 import { openDatabase } from './db/open';
+import { ReplicaRepo } from './db/replicaRepo';
 import { checkDiagnosticsHealth, createDiagnosticsReader, rebuildLocalData } from './diagnostics';
 import type { FamilyActions } from './features/family/types';
 import { runSelfTest } from './features/settings/selfTest';
@@ -72,6 +73,7 @@ export interface AppRuntime {
   marker: StartupMarker;
   assetFiles: AssetFiles;
   readonly mutations: Mutations;
+  readCompletionRange(from: string, to: string): readonly Completion[];
   camera: CameraDevice;
   photoCapture: PhotoCapture;
   logger: Logger;
@@ -84,6 +86,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const { driver, clock } = deps;
   openDatabase(driver);
   const kv = new Kv(driver);
+  const replica = new ReplicaRepo(driver);
   const sessionUser = (): AuthUser | null => {
     const stored = kv.get('session_user');
     return stored === null ? null : JSON.parse(stored) as AuthUser;
@@ -170,6 +173,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
     camera, photoCapture, familyActions, diagnostics,
+    readCompletionRange: (from, to) => replica.range('task_completions', from, to).map((record) => record.row),
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,
     afterFirstPaint() {
