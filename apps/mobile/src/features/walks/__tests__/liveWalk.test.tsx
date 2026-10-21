@@ -241,6 +241,46 @@ test('R4.14 09 section 6.2 finish requires confirmation and repeated taps queue 
   expect(s.discarded()).toBe(0);
 });
 
+test('R4.14 double confirmation while finish is pending calls finish and queues it once', async () => {
+  const s = await scene();
+  await seedMovingWalk(s);
+  let releaseFinish = () => {};
+  const pending = new Promise<void>((resolve) => { releaseFinish = resolve; });
+  const finish = jest.fn(async () => {
+    await pending;
+    return finishLocalWalk(s.dependencies);
+  });
+  s.services.finish = finish;
+  await s.paint();
+  await fireEvent.press(screen.getByTestId('walk-finish'));
+  const confirm = within(screen.getByTestId('walk-finish-sheet')).getByTestId('walk-finish-confirm');
+  const responder = confirm.props.onStartShouldSetResponder as {
+    testOnly_pressabilityConfig(): { onPress(): Promise<void> };
+  };
+  const pressConfirm = responder.testOnly_pressabilityConfig().onPress;
+  let first: Promise<void> | undefined;
+  let second: Promise<void> | undefined;
+  try {
+    // Both taps reach the enabled handler before React renders busy=true.
+    await act(() => {
+      first = pressConfirm();
+      second = pressConfirm();
+    });
+    expect(finish).toHaveBeenCalledTimes(1);
+    expect(s.outbox.count()).toBe(1);
+    expect(s.finished).toEqual([]);
+  } finally {
+    await act(async () => {
+      releaseFinish();
+      await Promise.all([first, second]);
+    });
+  }
+  expect(finish).toHaveBeenCalledTimes(1);
+  expect(s.driver.all<{ path: string }>('SELECT path FROM outbox ORDER BY seq'))
+    .toEqual([{ path: '/walks' }, { path: `/walks/${s.walk.id}/finish` }]);
+  expect(s.finished).toEqual([s.walk.id]);
+});
+
 test.each([
   { reason: 'distance under twenty metres', duration: 60_000, delta: 0.0001 },
   { reason: 'duration under thirty seconds', duration: 29_000, delta: 0.001 },
