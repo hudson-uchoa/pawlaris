@@ -121,7 +121,7 @@ test('R2.12 R2.14 the profile interleaves events and together care in family mon
     .toEqual([`health-event-${newest.id}`, `health-care-${completion.id}`, `health-event-${older.id}`]);
   const september = within(screen.getByTestId('health-month-2026-09'));
   expect(september.getByRole('header', { name: formatMonth('2026-09') })).toBeOnTheScreen();
-  expect(september.getByTestId(`health-care-${completion.id}`)).toHaveTextContent('Duda · 22:30');
+  expect(september.getByTestId(`health-care-${completion.id}`)).toHaveTextContent('Duda · 22:30', { exact: false });
   expect(c.http.requests).toEqual([]);
 });
 

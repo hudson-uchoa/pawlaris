@@ -31,6 +31,8 @@ import type { TaskScreenProps } from './types';
 
 export type TaskFormScreenProps = TaskScreenProps & {
   taskId?: string;
+  initialPetId?: string;
+  initialCategory?: TaskTemplate['category'];
   onClose(): void;
 };
 
@@ -48,7 +50,7 @@ const categories = ['feeding', 'medication', 'hygiene', 'litter', 'play', 'vet',
 const modes = ['together', 'per_pet'] as const;
 const reminders = ['routine', 'critical'] as const;
 
-function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenProps & {
+function TaskForm({ services, active, task, timezone, onClose, initialPetId, initialCategory }: TaskFormScreenProps & {
   task: TaskTemplate | null;
   timezone: string;
 }): ReactElement {
@@ -65,12 +67,13 @@ function TaskForm({ services, active, task, timezone, onClose }: TaskFormScreenP
   const effective = task === null ? today : forkEffectiveDate({ template: task,
     completions: Object.values(completions), today });
   const [draft, setDraft] = useState<Draft>(() => ({
-    title: task?.title ?? '', description: task?.description ?? null, category: task?.category ?? 'other',
+    title: task?.title ?? '', description: task?.description ?? null, category: task?.category ?? initialCategory ?? 'other',
     assigned_to: task?.assigned_to ?? null, requires_photo: task?.requires_photo ?? false,
     timer_seconds: task?.timer_seconds ?? null, reminder_class: task?.reminder_class ?? 'routine',
     sort_order: task?.sort_order ?? 0, recurrence: task?.recurrence ?? { freq: 'daily', interval: 1 },
     starts_on: task?.starts_on ?? today, times_of_day: task?.times_of_day ?? [],
-    pet_ids: task?.pet_ids ?? [], completion_mode: task?.completion_mode ?? 'together',
+    pet_ids: task?.pet_ids ?? pets.filter((pet) => pet.id === initialPetId && pet.archived_at === null).map((pet) => pet.id),
+    completion_mode: task?.completion_mode ?? 'together',
   }));
   const [timerMinutes, setTimerMinutes] = useState(task?.timer_seconds == null ? '1' : String(task.timer_seconds / 60));
   const [errors, setErrors] = useState<FormValidationError[]>([]);

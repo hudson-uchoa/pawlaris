@@ -247,6 +247,7 @@ export const strings = {
   health: {
     heading: 'Saúde',
     add: 'Adicionar',
+    scheduleTreatment: 'Agendar tratamento',
     title: 'Título',
     type: 'Tipo',
     occurredAt: 'Quando',

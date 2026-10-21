@@ -35,11 +35,13 @@ export type PetProfileScreenProps = PetScreenProps & {
   onAddWeight(): void;
   onAddHealth(): void;
   onOpenHealth(id: string): void;
+  onOpenTask?(id: string): void;
+  onScheduleTreatment?(): void;
   onWalks(): void;
   onBack?(): void;
 };
 
-export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onAddHealth, onOpenHealth, onWalks, onBack }: PetProfileScreenProps): ReactElement {
+export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight, onAddHealth, onOpenHealth, onOpenTask, onScheduleTreatment, onWalks, onBack }: PetProfileScreenProps): ReactElement {
   const state = useReplica((snapshot) => snapshot);
   const { color } = useTheme();
   const { width } = useWindowDimensions();
@@ -128,7 +130,8 @@ export function PetProfileScreen({ services, petId, active, onEdit, onAddWeight,
         </Card>;
       })}
     </View>
-    <HealthTimelineSection petId={petId} active={focused} onAdd={onAddHealth} onOpen={onOpenHealth} />
+    <HealthTimelineSection petId={petId} active={focused} onAdd={onAddHealth} onOpen={onOpenHealth}
+      onOpenTask={onOpenTask} onSchedule={onScheduleTreatment} />
     {pet.species === 'dog' && <View testID="pet-walks" style={{ gap: spacing.sm }}>
       <Text variant="heading" accessibilityRole="header">{strings.tabs.walks}</Text>
       {walks.map((walk) => <View key={walk.id} testID={`pet-walk-${walk.id}`}>
