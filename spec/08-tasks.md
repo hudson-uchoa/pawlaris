@@ -1273,7 +1273,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   `cancelTimer`.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/tasks/__tests__/timer.test.tsx`
 
-- [~] **P5-7 — Local reminders**
+- [x] **P5-7 — Local reminders**
   **Depends:** P5-3, P1-5 · **Read:** `09` §8.4, §9.1–§9.4 · `02` §3.5 · ADR-027
   **Build:** install `expo-notifications`. `notifications/channels.ts`;
   `notifications/text.ts` (turns the planner's data items into Portuguese title
