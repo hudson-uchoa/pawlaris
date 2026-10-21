@@ -5,6 +5,7 @@ import type { CameraDevice } from '../../platform/camera';
 import type { Logger } from '../../platform/logger';
 import type { ConnectionObservable, Engine } from '../../sync/engine';
 import type { SelfTestResult } from './selfTest';
+import type { LocationPermissions } from '../../walks/permissions';
 
 export interface SettingsServices {
   sessionUser(): AuthUser;
@@ -43,4 +44,6 @@ export interface DiagnosticsScreenProps {
 export interface PermissionsScreenProps {
   active: boolean;
   onNotifications?(): void;
+  walkPermissions?: LocationPermissions;
+  onLocation?(): void;
 }

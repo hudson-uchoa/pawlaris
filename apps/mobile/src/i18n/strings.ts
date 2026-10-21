@@ -4,6 +4,16 @@ import permissions from './permissions.json';
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
+  location: {
+    preciseRequired: 'Para medir o passeio, o Pawlaris precisa da localização precisa.',
+    allow: 'Permitir localização',
+    settings: 'Abrir configurações',
+    rationale: 'Para medir a distância e desenhar a rota do passeio. Escolha Precisa.',
+    notificationRationale: 'O Android exige uma notificação visível enquanto o passeio é gravado.',
+    batteryRationale: 'Alguns celulares encerram apps em segundo plano. Desative a otimização de bateria para o Pawlaris.',
+    backgroundTitle: 'O tempo todo',
+    backgroundRationale: 'Neste celular, gravar com a tela bloqueada exige Permitir o tempo todo.',
+  },
   notifications: {
     timerTitle: 'Tempo esgotado',
     healthDueBody: (pet: string): string => `${pet} — vence hoje`,
