@@ -17,6 +17,7 @@ import { Switch } from '../../ui/primitives/Switch';
 import { Text } from '../../ui/primitives/Text';
 import { TextField } from '../../ui/primitives/TextField';
 import { useTheme } from '../../ui/theme';
+import { identity } from '../../ui/tokens/color';
 import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
 import { accountAvailability, type AccountAction } from './accountAvailability';
@@ -34,7 +35,7 @@ export function FamilyScreen(props: FamilyScreenProps): ReactElement {
 function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
   family: Family; members: Member[];
 }): ReactElement {
-  const { color } = useTheme();
+  const { color, scheme } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const connection = useSyncExternalStore(services.connection.subscribe, services.connection.getState);
   const user = services.sessionUser();
@@ -136,7 +137,8 @@ function FamilyForm({ services, active, family, members }: FamilyScreenProps & {
     {members.map((member) => <View key={member.id} testID={`member-${member.id}`} style={{ gap: spacing.xs }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
         <View accessible={false} style={{ width: spacing.sm, height: spacing.sm,
-          borderRadius: radius.avatar, backgroundColor: member.color }} />
+          borderRadius: radius.avatar,
+          backgroundColor: (identity.find((entry) => entry.key === member.color) ?? identity[0])[scheme] }} />
         <Text style={{ flex: 1 }}>{member.display_name}</Text>
         <Text variant="caption" color="textMuted">{strings.family.roles[member.role]}</Text>
       </View>
