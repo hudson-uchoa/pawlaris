@@ -1252,7 +1252,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   history starts at its own `starts_on`.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/tasks`
 
-- [ ] **P5-5 — Photo proof**
+- [~] **P5-5 — Photo proof**
   **Depends:** P5-3, P4-5 · **Read:** `09` §3.3, §5.4 · `02` §3.7 · `10` §7
   **Build:** the camera's `proof` mode wired to completion; thumbnails and the
   photo states of R3.46; full-screen viewer; retry.
