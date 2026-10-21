@@ -56,18 +56,22 @@ export function createLiveWalkReader(services: LiveWalkServices): () => LiveWalk
 }
 
 export function totalPausedMs(walk: LocalWalk, now: number): number {
-  return walk.pausedMs + (walk.pauseStartedAt === null ? 0 : now - walk.pauseStartedAt);
+  return walk.pausedMs + (walk.pauseStartedAt === null ? 0 : Math.max(0, now - walk.pauseStartedAt));
 }
 
-export async function finishLocalWalk({ driver, clock, points, tracker, mutations }: LocalWalkActionDependencies): Promise<string> {
+export async function finishLocalWalk(
+  { driver, clock, points, tracker, mutations }: LocalWalkActionDependencies,
+  endedAt?: number,
+): Promise<string> {
   // Keep the raw fixes intact if the native recorder cannot be stopped.
   await tracker.stop();
   return driver.transaction(() => {
     const walks = new WalkRepo(driver);
     const walk = walks.getLocal();
     if (walk === null) throw new Error('There is no local walk to finish');
-    const now = clock.now();
-    const pausedMs = totalPausedMs(walk, now);
+    const now = endedAt ?? clock.now();
+    const pausedMs = endedAt === undefined ? totalPausedMs(walk, now)
+      : Math.max(0, Math.min(totalPausedMs(walk, now), now - walk.startedAt));
     const seconds = movingSeconds(walk.startedAt, now, pausedMs);
     const distanceM = points.rebuild(walk.id).snapshot().distanceM;
     const pace = paceSecPerKm(distanceM, seconds);

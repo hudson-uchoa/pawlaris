@@ -15,6 +15,7 @@ import { useReduceMotion } from '../src/ui/motion/useReduceMotion';
 import { ToastProvider, useToast } from '../src/ui/primitives/Toast';
 import { installNotificationHandlers } from '../src/notifications/handlers';
 import { typography } from '../src/ui/tokens/type';
+import { WalkRecoverySheet } from '../src/features/walks/WalkRecoverySheet';
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -41,6 +42,8 @@ export default function RootLayout({ dependencies }: RootLayoutProps = {}): Reac
 function Navigation(): ReactElement {
   const app = useApp();
   const templates = useReplica((state) => state.taskTemplates);
+  const timezone = useReplica((state) => state.family?.timezone ?? 'UTC');
+  const recovery = useSyncExternalStore(app.walkRecovery.subscribe, app.walkRecovery.getSnapshot);
   const connection = useSyncExternalStore(app.engine.state.subscribe, app.engine.state.getState);
   const signedIn = app.sessionUser() !== null && connection.status !== 'signed_out';
   const router = useRouter();
@@ -104,5 +107,14 @@ function Navigation(): ReactElement {
         <Stack.Screen name="permission/location" options={{ presentation: 'modal', headerShown: true, title: strings.diagnostics.location }} />
       </Stack.Protected>
     </Stack>
+    {signedIn && <WalkRecoverySheet recovery={recovery} timezone={timezone} active={signedIn}
+      onContinue={async () => {
+        await app.walkRecovery.continue();
+        router.navigate('/walk/live');
+      }}
+      onFinish={async () => {
+        const id = await app.walkRecovery.finish();
+        router.navigate({ pathname: '/walk/[id]', params: { id } });
+      }} />}
   </ThemeProvider>;
 }

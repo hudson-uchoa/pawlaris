@@ -109,3 +109,22 @@ test('R4.6 foreground checks again when tracking stops after startup', async () 
   expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(outbox);
   expect(http.requests).toEqual([]);
 });
+
+test('R4.6 runtime publishes recovery after first paint and clears listeners on disposal', async () => {
+  const { app, walk } = await scene();
+  nativeRunning = false;
+  const listener = jest.fn();
+  app.walkRecovery.subscribe(listener);
+  expect(app.walkRecovery.getSnapshot()).toBeNull();
+  app.afterFirstPaint();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.walkRecovery.getSnapshot()).toMatchObject({ walk });
+  expect(app.walkRecovery.getSnapshot()?.distanceM).toBe(c.points.rebuild(walk.id).snapshot().distanceM);
+  expect(listener).toHaveBeenCalledTimes(1);
+  app.dispose();
+  changeState('background');
+  changeState('active');
+  await jest.advanceTimersByTimeAsync(0);
+  expect(app.walkRecovery.getSnapshot()).toBeNull();
+  expect(listener).toHaveBeenCalledTimes(1);
+});

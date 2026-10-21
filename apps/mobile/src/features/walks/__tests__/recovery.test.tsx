@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { PermissionStatus } from 'expo';
 import * as Location from 'expo-location';
 import { AppState } from 'react-native';
 import { routeForUpload, routePreview } from '@pawlaris/shared';
@@ -186,4 +187,87 @@ test('R4.6 an already running service does not produce a recovery sheet', async 
   expect(screen.queryByRole('button', { name: strings.walks.recoveryFinish })).toBeNull();
   expect(c.walks.getLocal()).toEqual(walk);
   expect(c.outbox.count()).toBe(1);
+});
+
+test('R4.6 Q-61 finishing recovery without points saves an empty walk at started_at', async () => {
+  const walk = await orphan(false);
+  const view = await paint(recover());
+  expect(screen.getByText(strings.walks.recoveryMessage('18:02', formatDistance(0))))
+    .toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: strings.walks.recoveryFinish }));
+  expect(view.finished).toEqual([walk.id]);
+  const entries = c.driver.all<{ path: string; body: string }>('SELECT path, body FROM outbox ORDER BY seq');
+  expect(entries.map(({ path }) => path)).toEqual(['/walks', `/walks/${walk.id}/finish`]);
+  const finish = entries[1];
+  if (finish === undefined) throw new Error('Recovery did not enqueue finishWalk');
+  expect(JSON.parse(finish.body)).toMatchObject({
+    started_at: new Date(walk.startedAt).toISOString(),
+    ended_at: new Date(walk.startedAt).toISOString(),
+    paused_ms: 0, distance_m: 0, duration_s: 0, avg_pace_s_per_km: null,
+    route: [], preview: [],
+  });
+  expect(c.store.getState().walks[walk.id]).toMatchObject({ status: 'finished',
+    ended_at: new Date(walk.startedAt).toISOString(), has_route: false });
+  expect(c.walks.getRoute(walk.id)).toEqual([]);
+  expect(c.walks.getLocal()).toBeNull();
+  expect(c.points.read(walk.id)).toEqual([]);
+  expect(recovery?.getSnapshot()).toBeNull();
+});
+
+test('R4.6 a live foreground subscription does not produce recovery', async () => {
+  const tracker = recorder();
+  jest.mocked(Location.startLocationUpdatesAsync).mockRejectedValueOnce({
+    code: 'E_LOCATION_BACKGROUND_UNAUTHORIZED',
+  });
+  jest.mocked(Location.getBackgroundPermissionsAsync).mockResolvedValue({
+    granted: false, status: PermissionStatus.DENIED, canAskAgain: true, expires: 'never',
+  });
+  const remove = jest.fn();
+  jest.mocked(Location.watchPositionAsync).mockResolvedValueOnce({ remove });
+  const walk = await tracker.start(c.pet.id);
+  recovery = createWalkRecovery({ ...c, tracker, location: Location });
+  await recovery.recoverIfNeeded();
+  expect(recovery.getSnapshot()).toBeNull();
+  expect(c.walks.getLocal()).toEqual(walk);
+  expect(c.outbox.count()).toBe(1);
+  await tracker.stop();
+  expect(remove).toHaveBeenCalledTimes(1);
+});
+
+test('R4.6 a failed recovery restart retains the offer, points and outbox', async () => {
+  const walk = await orphan();
+  const points = c.points.read(walk.id);
+  const queued = c.driver.all('SELECT * FROM outbox ORDER BY seq');
+  const service = recover();
+  await service.recoverIfNeeded();
+  const snapshot = service.getSnapshot();
+  const failure = new Error('Location services are disabled');
+  jest.mocked(Location.startLocationUpdatesAsync).mockRejectedValueOnce(failure);
+  await expect(service.continue()).rejects.toBe(failure);
+  expect(service.getSnapshot()).toBe(snapshot);
+  expect(c.points.read(walk.id)).toEqual(points);
+  expect(c.walks.getLocal()).toEqual(walk);
+  expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(queued);
+});
+
+test('R4.6 recovery uses foreground mode if restarting the stopped service requires it', async () => {
+  const tracker = recorder();
+  const walk = await tracker.start(c.pet.id);
+  recovery = createWalkRecovery({ ...c, tracker, location: Location });
+  await recovery.recoverIfNeeded();
+  expect(recovery.getSnapshot()?.walk.id).toBe(walk.id);
+  jest.mocked(Location.startLocationUpdatesAsync).mockRejectedValueOnce({
+    code: 'E_LOCATION_BACKGROUND_UNAUTHORIZED',
+  });
+  jest.mocked(Location.getBackgroundPermissionsAsync).mockResolvedValue({
+    granted: false, status: PermissionStatus.DENIED, canAskAgain: true, expires: 'never',
+  });
+  const remove = jest.fn();
+  jest.mocked(Location.watchPositionAsync).mockResolvedValueOnce({ remove });
+  await recovery.continue();
+  expect(c.walks.getLocal()).toEqual({ ...walk, trackingMode: 'foreground' });
+  expect(c.outbox.count()).toBe(1);
+  expect(recovery.getSnapshot()).toBeNull();
+  await tracker.stop();
+  expect(remove).toHaveBeenCalledTimes(1);
 });

@@ -46,6 +46,7 @@ import { isLocalNotification, reconcile } from './notifications/reconcile';
 import { discardLocalWalk, finishLocalWalk, type LiveWalkServices } from './walks/live';
 import { createPointStore } from './walks/pointStore';
 import { createTracker } from './walks/tracker';
+import { createWalkRecovery, type WalkRecovery } from './walks/recover';
 import { WalkRepo } from './db/walkRepo';
 
 export interface AppDependencies {
@@ -90,6 +91,7 @@ export interface AppRuntime {
   notifications: NotificationsPort;
   notificationPermission: NotificationPermission;
   liveWalk: LiveWalkServices;
+  walkRecovery: WalkRecovery;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
   dispose(): void;
@@ -152,7 +154,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   let outboxUser: string | null = null;
   const wiring = createSyncEngine({ ...deps, store, apply, api, session, serverSelect,
     deferListeners: true, uploads: assetFiles.uploads, prefetchAvatars: assetFiles.prefetchAvatars,
-    onForeground: refreshReminders,
+    onForeground() { refreshReminders(); checkWalkRecovery(); },
     afterAppliedChanges() { refreshReminders(); checkRationale('sync'); },
     logRejectedRow: (entity, id) => { void logger.write('reseed_row_rejected', { entity, id }, 'warn'); },
     outbox: {
@@ -218,6 +220,12 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     finish: () => finishLocalWalk(liveDependencies),
     discard: () => discardLocalWalk(liveDependencies),
   };
+  const walkRecovery = createWalkRecovery({ ...liveDependencies, location: Location });
+  const checkWalkRecovery = (): void => {
+    if (disposed || !painted || sessionUser() === null) return;
+    void walkRecovery.recoverIfNeeded()
+      .catch(() => { void logger.write('walk_recovery_failed', {}, 'warn'); });
+  };
   const changeMyPassword: FamilyActions['changePassword'] = (currentPassword, newPassword) => changePassword({
     api, session, connection: engine.state,
     sessionUser: () => {
@@ -236,7 +244,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   };
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
-    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk,
+    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk, walkRecovery,
     readCompletionRange: (from, to) => replica.range('task_completions', from, to).map((record) => record.row),
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,
@@ -249,10 +257,12 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
       wiring.start();
       engine.setForeground(AppState.currentState === 'active');
       void engine.kick('start');
+      checkWalkRecovery();
     },
     dispose() {
       if (disposed) return;
       disposed = true;
+      walkRecovery.dispose();
       wiring.dispose();
     },
   };

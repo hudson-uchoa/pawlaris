@@ -24,6 +24,8 @@ export interface TrackerDependencies {
 
 export interface WalkTracker {
   start(petId: string): Promise<LocalWalk>;
+  restart(): Promise<void>;
+  isForegroundRunning(): boolean;
   pause(): void;
   resume(): void;
   stop(): Promise<void>;
@@ -40,8 +42,34 @@ export function createTracker(dependencies: TrackerDependencies): WalkTracker {
   let subscription: LocationSubscription | undefined;
   let serviceRunning = false;
   const startService = async (): Promise<void> => {
+    serviceRunning = false;
     await location.startLocationUpdatesAsync(WALK_LOCATION_TASK, serviceOptions);
     serviceRunning = true;
+  };
+  const startTracking = async (walk: LocalWalk): Promise<void> => {
+    try {
+      await startService();
+    } catch (error) {
+      if (typeof error !== 'object' || error === null || !('code' in error)
+        || error.code !== 'E_LOCATION_BACKGROUND_UNAUTHORIZED') throw error;
+      kv.set('needs_background_location', '1');
+      if ((await location.getBackgroundPermissionsAsync()).granted || await requestBackgroundLocation()) {
+        await startService();
+      } else {
+        walk.trackingMode = 'foreground';
+        walks.upsertLocal(walk);
+        subscription = await location.watchPositionAsync(sampling, (fix) => {
+          // The same disk-first path handles both native delivery modes.
+          void handleWalkTask({ driver, points }, {
+            data: { locations: [fix] }, error: null,
+            executionInfo: { taskName: WALK_LOCATION_TASK, eventId: 'foreground' },
+          });
+        });
+      }
+    }
+    if (serviceRunning && walk.trackingMode !== 'service') {
+      walks.upsertLocal({ ...walk, trackingMode: 'service' });
+    }
   };
   return {
     async start(petId) {
@@ -54,28 +82,15 @@ export function createTracker(dependencies: TrackerDependencies): WalkTracker {
         walks.upsertLocal(local);
         return local;
       });
-      try {
-        await startService();
-      } catch (error) {
-        if (typeof error !== 'object' || error === null || !('code' in error)
-          || error.code !== 'E_LOCATION_BACKGROUND_UNAUTHORIZED') throw error;
-        kv.set('needs_background_location', '1');
-        if ((await location.getBackgroundPermissionsAsync()).granted || await requestBackgroundLocation()) {
-          await startService();
-        } else {
-          walk.trackingMode = 'foreground';
-          walks.upsertLocal(walk);
-          subscription = await location.watchPositionAsync(sampling, (fix) => {
-            // The same disk-first path handles both native delivery modes.
-            void handleWalkTask({ driver, points }, {
-              data: { locations: [fix] }, error: null,
-              executionInfo: { taskName: WALK_LOCATION_TASK, eventId: 'foreground' },
-            });
-          });
-        }
-      }
+      await startTracking(walk);
       return walk;
     },
+    async restart() {
+      const walk = walks.getLocal();
+      if (walk === null) throw new Error('There is no local walk to restart');
+      await startTracking(walk);
+    },
+    isForegroundRunning: () => subscription !== undefined,
     pause() {
       driver.transaction(() => {
         const walk = walks.getLocal();
