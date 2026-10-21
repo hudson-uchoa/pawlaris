@@ -26,6 +26,7 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     'expo-notifications',
+    '@maplibre/maplibre-react-native',
     ['expo-location', { isAndroidBackgroundLocationEnabled: true,
       isAndroidForegroundServiceEnabled: true }],
     './plugins/withExactAlarms.cjs',

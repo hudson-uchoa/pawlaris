@@ -10,6 +10,10 @@ const { resolve } = jest.requireActual<{
 }>('node:path');
 
 describe('P6-1 location configuration', () => {
+  it('P6-5 includes the MapLibre Expo native configuration plugin', () => {
+    expect(config.plugins).toContain('@maplibre/maplibre-react-native');
+  });
+
   it('R4.2 declares the location permissions and foreground service permissions', () => {
     expect(config.android?.permissions).toEqual(expect.arrayContaining([
       'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION',
