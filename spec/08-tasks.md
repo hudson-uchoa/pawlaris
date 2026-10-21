@@ -1241,7 +1241,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/pets`
   **Not here:** editing care from the timeline; health events that repeat.
 
-- [~] **P5-4 — Task detail and history**
+- [x] **P5-4 — Task detail and history**
   **Depends:** P5-3 · **Read:** `09` §5.3
   **Build:** `task/[id]/index` sections 1, 2 and 4; history in a `FlashList`
   (install `@shopify/flash-list`), paging from `replicaRepo.range`.
