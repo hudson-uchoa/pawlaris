@@ -17,6 +17,7 @@ export const strings = {
     },
   },
   dashboard: {
+    completeSky: 'Céu completo',
     today: 'Hoje',
     yesterday: 'Ontem',
     tomorrow: 'Amanhã',

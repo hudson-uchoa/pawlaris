@@ -23,6 +23,7 @@ import { TaskCard } from './TaskCard';
 import { DashboardEntry } from './DashboardEntry';
 import { dashboardMotion } from './motion';
 import { DayHeader } from './DayHeader';
+import { CompleteSkyHeader } from './CompleteSkyHeader';
 import { ScopeFilter } from './ScopeFilter';
 import { UpcomingCare } from './UpcomingCare';
 import type { DashboardScope, DashboardScreenProps, DashboardServices } from './types';
@@ -199,6 +200,7 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
             <SyncIndicator connection={services.engine.state} active={focused} />
           </View>
           <DayHeader date={date} today={today} active={focused} onChange={changeDay} />
+          <CompleteSkyHeader allDone={view.allDone} date={date} today={today} />
         </View>
         {!loading && viewer !== undefined && <ScopeFilter viewer={viewer} members={familyMembers} value={scope}
           active={focused} onChange={changeScope} />}
