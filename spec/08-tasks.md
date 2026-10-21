@@ -1200,7 +1200,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   completing a task bursts. Described in words in the evidence file.
   **Not here:** the supernova (P5-9); measuring the frame budget (P7-4).
 
-- [~] **P5-12 — Pet lists and identity colour**
+- [x] **P5-12 — Pet lists and identity colour**
   **Depends:** P5-11, P4-6 · **Read:** `02` R2.1, R2.13 · `03` pet · `04` Pet,
   PetCreate · `06` §2 · `09` §4.2, §4.2.1 · `05` ADR-042
   **Build:** contract first: `identity_color` on Pet, PetCreate and PetPatch,
