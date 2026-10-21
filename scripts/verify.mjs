@@ -41,6 +41,14 @@ const GATES = [
     requires: 'scripts/guard-motion.mjs',
     cmd: 'node scripts/guard-motion.mjs' },
 
+  { id: 'colors',           group: 'lint',      task: 'P7-2', spec: '06 §2',
+    requires: 'scripts/guard-colors.mjs',
+    cmd: 'node scripts/guard-colors.mjs' },
+
+  { id: 'strings',          group: 'lint',      task: 'P7-3', spec: 'AGENTS.md §5',
+    requires: 'scripts/guard-strings.mjs',
+    cmd: 'node scripts/guard-strings.mjs' },
+
   // ---- packages/shared --------------------------------------------------
   { id: 'lint:shared',      group: 'lint',      task: 'P0-3', spec: '07 §2 / RC-2',
     requires: 'packages/shared/package.json',
