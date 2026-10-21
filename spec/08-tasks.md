@@ -1339,7 +1339,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 ## P6 — Walks
 
-- [ ] **P6-1 — Location permissions**
+- [~] **P6-1 — Location permissions**
   **Depends:** P4-9 · **Read:** `09` §8.1, §8.2 · `02` §4.1
   **Build:** install `expo-location`, `expo-task-manager`, `expo-device`,
   `expo-battery`, `expo-intent-launcher`. `walks/permissions.ts`
