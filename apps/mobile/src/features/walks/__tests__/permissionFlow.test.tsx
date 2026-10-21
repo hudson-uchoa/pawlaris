@@ -65,6 +65,21 @@ test('R4.4 approximate location stays gated until a foreground re-read sees prec
   expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
 });
 
+test('R1 R4.1 refusing notifications advances to battery and allows the ladder to finish', async () => {
+  jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue(locationResponse('granted'));
+  jest.mocked(Notifications.requestPermissionsAsync).mockResolvedValue(permissionResponse(false, false));
+  const onComplete = jest.fn();
+  await render(<LocationPermissionScreen permissions={c.permissions} active onComplete={onComplete} />);
+  await fireEvent.press(await screen.findByRole('button', { name: strings.notifications.activate }));
+  expect(await screen.findByText(strings.location.batteryRationale)).toBeOnTheScreen();
+  expect(screen.queryByText(strings.location.notificationRationale)).toBeNull();
+  expect(c.kv.get('notifications_prompt_done')).toBe('1');
+  await fireEvent.press(screen.getByRole('button', { name: strings.location.settings }));
+  await waitFor(() => { expect(onComplete).toHaveBeenCalledWith('service'); });
+  expect(Notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
+  expect(Location.requestBackgroundPermissionsAsync).not.toHaveBeenCalled();
+});
+
 test.each(['Xiaomi', 'Samsung', 'Motorola', null])(
   'R4.1 battery rationale provides two help lines for manufacturer %s', async (manufacturer) => {
     const permissions = createLocationPermissions({ kv: c.kv, clock: c.clock,

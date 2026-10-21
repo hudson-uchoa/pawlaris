@@ -94,6 +94,36 @@ test.each([32, 33, 34])('R4.1 notification step is conditional on Android 13+ (A
   expect(await permissions.readLadder()).toEqual([]);
 });
 
+test.each([false, true])('R1 R4.1 notification answer persists the prompt and advances the ladder (granted=%s)', async (granted) => {
+  jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue(locationResponse('granted'));
+  jest.mocked(Notifications.requestPermissionsAsync).mockImplementation(async () => {
+    const response = permissionResponse(granted);
+    jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue(response);
+    return response;
+  });
+  expect(await c.permissions.readLadder()).toEqual(['notifications', 'battery']);
+  expect(await c.permissions.requestNotifications()).toBe(granted);
+  expect(Notifications.requestPermissionsAsync).toHaveBeenCalledTimes(1);
+  expect(c.kv.get('notifications_prompt_done')).toBe('1');
+  expect(await c.permissions.readLadder()).toEqual(['battery']);
+});
+
+test('R1 R4.1 a persisted notification prompt stays skipped across foreground and restart', async () => {
+  jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValue(locationResponse('granted'));
+  jest.mocked(Notifications.getPermissionsAsync).mockResolvedValue(permissionResponse(false, false));
+  c.kv.set('notifications_prompt_done', '1');
+  expect(await c.permissions.readLadder()).toEqual(['battery']);
+  await c.permissions.start();
+  changeAppState('background');
+  changeAppState('active');
+  expect(await c.permissions.readLadder()).toEqual(['battery']);
+  const restarted = await permissionContext(c.driver.export());
+  try {
+    expect(await restarted.permissions.readLadder()).toEqual(['battery']);
+    expect(Notifications.requestPermissionsAsync).not.toHaveBeenCalled();
+  } finally { restarted.driver.close(); c.permissions.dispose(); }
+});
+
 // Keep each real SQLite connection open until the test that owns it ends.
 async function newContext() {
   c.driver.close();

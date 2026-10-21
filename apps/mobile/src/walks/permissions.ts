@@ -67,7 +67,8 @@ export function createLocationPermissions({ kv, platform }: LocationPermissionDe
     async readLadder() {
       const steps: LocationPermissionStep[] = [];
       if (await readLocationState(platform.location) !== 'granted') steps.push('location');
-      if (platform.androidVersion >= 33 && !(await platform.notifications.getPermissionsAsync()).granted) {
+      if (platform.androidVersion >= 33 && kv.get('notifications_prompt_done') !== '1'
+        && !(await platform.notifications.getPermissionsAsync()).granted) {
         steps.push('notifications');
       }
       if (kv.get('battery_prompt_done') !== '1') steps.push('battery');
@@ -79,7 +80,9 @@ export function createLocationPermissions({ kv, platform }: LocationPermissionDe
       return publish(locationState(await platform.location.requestForegroundPermissionsAsync()));
     },
     async requestNotifications() {
-      return (await platform.notifications.requestPermissionsAsync()).granted;
+      const response = await platform.notifications.requestPermissionsAsync();
+      kv.set('notifications_prompt_done', '1');
+      return response.granted;
     },
     async openLocationSettings() { await platform.settings.openSettings(); },
     async openBatterySettings() {
