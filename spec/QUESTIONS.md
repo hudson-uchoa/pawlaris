@@ -1865,3 +1865,21 @@ com o que temos** enqueues `finishWalk` with `ended_at` = `started_at`,
 null, and an empty `route` and `preview`. `04` §12 already accepts this:
 the limits allow zero, and an empty route gives `has_route` false.
 Recorded in `09` §8.3 and on the P6-4 Tests line. Green adds the test.
+
+## Q-62 — P7-1 — Which tokens name timings outside section 3?
+**Asked:** 2026-10-21
+**Where:** spec/06-ux-motion-spec.md sections 3, 4.1, 4.2, 4.5 and 6;
+apps/mobile/src/ui/motion/tokens.ts.
+**Problem:** The motion guard exempts only motion/tokens.ts, but numeric
+durations also live in ui/tokens/cosmos.ts. Section 3 does not name the
+700 ms meteor and burst, 420 ms shockwave, 1600 ms celebration, or 600 ms
+chart draw-on specified in later sections. Reduced celebration cuts and
+disabled map transitions use 0 ms without a named section 3 token.
+**I would assume:** Preserve those values and add duration.meteor (700),
+duration.starBurst (700), duration.shockwave (420), duration.celebration
+(1600), duration.weightChart (600), and duration.instant (0). Existing
+cosmos properties reference these tokens so their consumers retain the
+same API. Tests import the token used by the implementation. Instant
+keeps reduced celebration holds intact and map transitions disabled.
+**Blocking:** no (proceeded on the naming assumption, isolated in the
+Q-62 duration entries in apps/mobile/src/ui/motion/tokens.ts).
