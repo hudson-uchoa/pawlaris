@@ -1409,7 +1409,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] Start a walk, force-stop the app, reopen → the sheet appears
   and no point is lost.
 
-- [~] **P6-5 — Walk history, detail, map**
+- [x] **P6-5 — Walk history, detail, map**
   **Depends:** P6-4, P2-12 · **Read:** `09` §3.1 (walk banner), §6.1, §6.3 · `02` R4.15–R4.18 · `06` §4.9 · ADR-005
   **Build:** install `@maplibre/maplibre-react-native`. `(tabs)/walks`,
   `walk/[id]`, `RouteThumbnail` (SVG from the walk's `preview`), MapLibre with
