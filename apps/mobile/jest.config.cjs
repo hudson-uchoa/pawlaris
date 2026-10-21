@@ -7,6 +7,7 @@ module.exports = {
   setupFiles: [
     'react-native-gesture-handler/jestSetup.js',
     '@shopify/react-native-skia/jestSetup.js',
+    '@shopify/flash-list/jestSetup.js',
   ],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   // Lucide's React Native entry uses ESM .mjs files.

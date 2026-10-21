@@ -82,6 +82,8 @@ export const strings = {
     effectiveDate: (date: string): string => `As mudanças de agenda valem a partir de ${date}.`,
     active: 'Ativas',
     ended: 'Encerradas',
+    history: 'Histórico',
+    notDone: 'não feito',
   },
   tabs: { index: 'Hoje', pets: 'Pets', walks: 'Passeios', settings: 'Ajustes' },
   settings: {
