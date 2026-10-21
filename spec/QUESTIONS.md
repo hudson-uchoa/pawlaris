@@ -1839,3 +1839,21 @@ checks a part of the row's text. Make both substring matches,
 `toHaveTextContent(…, { exact: false })`, in the green commit, and say
 so in its body. The four rows, the button press and the no-request
 checks stay as they are.
+
+## Q-61 — P6-4 — How does recovery finish a walk with no stored points?
+**Asked:** 2026-10-21
+**Where:** spec/09-screens.md section 8.3; spec/02-spec.md R4.6;
+apps/mobile/src/walks/tracker.ts; spec/08-tasks.md P6-4.
+**Problem:** tracker.start creates local_walk and enqueues startWalk before
+starting native tracking. A native start failure can leave that durable
+walk with no points. Recovery must offer both actions, but section 8.3
+sets ended_at to the last point's time, which does not exist in this case.
+**I would assume:** Still show the recovery sheet with zero distance and
+allow Continue to restart the existing walk without another startWalk.
+For Finish with no points, use started_at as ended_at, zero duration and
+distance, and an empty route. Please confirm that timestamp policy before
+Green implements the zero-point finish path.
+**Blocking:** no for RED only. Tests pin detection and continuation of
+the failed-start orphan. The finish test has stored points and uses their
+last timestamp. No zero-point finish policy is implemented or asserted.
+No commit or task-checkbox change is authorized in this session.
