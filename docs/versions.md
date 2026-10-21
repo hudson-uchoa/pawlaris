@@ -331,3 +331,16 @@ dependency for tests without a native build or network access.
 Skia is local, open-source software without accounts or billing. The
 fallback is the pinned lockfile installation and local Expo/Android
 tooling; no hosted service is required.
+
+## P5-4 — Task detail and history (2026-10-21)
+
+The mobile manifest and workspace lockfile pin this exact version.
+The licence below comes from the installed package's `package.json`.
+
+| Dependency | Version | Purpose | Licence |
+|---|---|---|---|
+| `@shopify/flash-list` | 2.0.2 | Recycled history lists on the task detail | MIT |
+
+`expo install` chose 2.0.2 as the version bundled with Expo SDK 57. It
+is pure JavaScript on React Native's new architecture, with one runtime
+dependency, `tslib`. No account, service or billing is involved.
