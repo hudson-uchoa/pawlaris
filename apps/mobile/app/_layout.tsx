@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactElement } from 'react';
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider, useRouter } from 'expo-router';
 import { Stack } from 'expo-router/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'react-native';
@@ -12,7 +12,8 @@ import { useReplica } from '../src/replica/useReplica';
 import { duration } from '../src/ui/motion/tokens';
 import { HeroProvider } from '../src/ui/motion/hero';
 import { useReduceMotion } from '../src/ui/motion/useReduceMotion';
-import { ToastProvider } from '../src/ui/primitives/Toast';
+import { ToastProvider, useToast } from '../src/ui/primitives/Toast';
+import { installNotificationHandlers } from '../src/notifications/handlers';
 import { typography } from '../src/ui/tokens/type';
 
 void SplashScreen.preventAutoHideAsync();
@@ -42,6 +43,27 @@ function Navigation(): ReactElement {
   const templates = useReplica((state) => state.taskTemplates);
   const connection = useSyncExternalStore(app.engine.state.subscribe, app.engine.state.getState);
   const signedIn = app.sessionUser() !== null && connection.status !== 'signed_out';
+  const router = useRouter();
+  const toast = useToast();
+  const notificationOpen = useRef(0);
+  const { notifications, events } = app;
+  useEffect(() => {
+    if (!signedIn) return;
+    const unsubscribe = events.on('notification_rationale', () => { router.push('/permission/notifications'); });
+    const dispose = installNotificationHandlers({ platform: notifications,
+      showToast: ({ title, body }) => { toast.show([title, body].filter(Boolean).join('\n')); },
+      navigation: {
+        dashboard: (date) => {
+          notificationOpen.current += 1;
+          router.navigate({ pathname: '/(tabs)', params: {
+            ...(date === undefined ? {} : { date }), notificationOpen: String(notificationOpen.current),
+          } });
+        },
+        walks: () => { router.navigate('/(tabs)/walks'); },
+      },
+    });
+    return () => { unsubscribe(); dispose(); };
+  }, [signedIn, notifications, events, router, toast]);
   const reduced = useReduceMotion();
   const theme = app.theme.scheme === 'dark' ? DarkTheme : DefaultTheme;
   return <ThemeProvider value={{ ...theme, colors: { ...theme.colors,
@@ -76,6 +98,7 @@ function Navigation(): ReactElement {
         <Stack.Screen name="settings/family" options={{ headerShown: true, title: strings.settings.family }} />
         <Stack.Screen name="settings/diagnostics" options={{ headerShown: true, title: strings.settings.diagnostics }} />
         <Stack.Screen name="settings/permissions" options={{ headerShown: true, title: strings.settings.permissions }} />
+        <Stack.Screen name="permission/notifications" options={{ presentation: 'modal', headerShown: true, title: strings.diagnostics.notifications }} />
       </Stack.Protected>
     </Stack>
   </ThemeProvider>;

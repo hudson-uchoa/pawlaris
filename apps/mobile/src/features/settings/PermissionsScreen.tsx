@@ -5,9 +5,10 @@ import { strings } from '../../i18n/strings';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { spacing } from '../../ui/tokens/spacing';
+import { Button } from '../../ui/primitives/Button';
 import type { PermissionsScreenProps } from './types';
 
-export function PermissionsScreen(_props: PermissionsScreenProps): ReactElement {
+export function PermissionsScreen({ active, onNotifications }: PermissionsScreenProps): ReactElement {
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const permissions = ['notifications', 'location', 'backgroundLocation', 'battery', 'camera'] as const;
@@ -15,7 +16,10 @@ export function PermissionsScreen(_props: PermissionsScreenProps): ReactElement 
     contentContainerStyle={{ padding: spacing.md, paddingTop: spacing.md + (insets?.top ?? 0),
       paddingBottom: spacing.md + (insets?.bottom ?? 0), gap: spacing.md }}>
     {permissions.map((permission) => <View key={permission} testID={`permission-${permission}`}>
-      <Text>{strings.diagnostics[permission]}</Text>
+      {permission === 'notifications'
+        ? <Button label={strings.diagnostics.notifications} accessibilityLabel={strings.diagnostics.notifications}
+          active={active} onPress={() => { onNotifications?.(); }} />
+        : <Text>{strings.diagnostics[permission]}</Text>}
     </View>)}
   </ScrollView>;
 }

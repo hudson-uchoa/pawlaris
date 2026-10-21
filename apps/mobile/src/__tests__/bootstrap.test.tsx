@@ -1,3 +1,4 @@
+import { fakeNotifications } from '../testing/fakeNotifications';
 import { useEffect } from 'react';
 import { act, cleanup, render, screen } from '@testing-library/react-native';
 import NetInfo, { NetInfoStateType } from '@react-native-community/netinfo';
@@ -49,7 +50,10 @@ async function context() {
   const perfOutput = jest.fn();
   const fileSystem = fakeFileSystem();
   const logFiles = fakeLogFiles();
+  const notifications = fakeNotifications();
+  notifications.setPermission(true);
   const deps = {
+    notifications: notifications.platform,
     driver, clock, ids, http, secretBox, servers, perfOutput, online: true,
     random: fakeRandom(...Array.from({ length: 20 }, () => 0.5)),
     fileSystem, logFiles, documentDirectory: 'file:///fake/documents/', WebSocketImpl: socket.WebSocketImpl,

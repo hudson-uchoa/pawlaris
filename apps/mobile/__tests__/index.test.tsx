@@ -1,3 +1,4 @@
+import { fakeNotifications } from '../src/testing/fakeNotifications';
 import { cleanup, render, screen } from '@testing-library/react-native';
 import { AppState } from 'react-native';
 import { AppProvider } from '../src/appContext';
@@ -26,7 +27,7 @@ beforeEach(async () => {
   AppState.currentState = 'active';
   driver = await memoryDriver();
   runtime = createAppRuntime({ driver, clock: fakeClock(epoch), ids: sequentialIds(),
-    http: fakeHttp(), secretBox: fakeSecretBox(), servers, random: fakeRandom(0.5),
+    notifications: fakeNotifications().platform, http: fakeHttp(), secretBox: fakeSecretBox(), servers, random: fakeRandom(0.5),
     fileSystem: fakeFileSystem(), documentDirectory: 'file:///fake/documents/', logFiles: fakeLogFiles(),
     WebSocketImpl: fakeWebSocket().WebSocketImpl, online: true });
 });

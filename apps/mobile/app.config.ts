@@ -14,6 +14,7 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   android: {
     package: 'app.pawlaris',
+    permissions: ['POST_NOTIFICATIONS', 'USE_EXACT_ALARM'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-foreground.png',
       backgroundImage: './assets/adaptive-background.png',
@@ -22,6 +23,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    'expo-notifications',
+    './plugins/withExactAlarms.cjs',
     ['expo-camera', { cameraPermission: permissions.camera, microphonePermission: false,
       recordAudioAndroid: false, barcodeScannerEnabled: false }],
     ['expo-image-picker', { photosPermission: permissions.photos,

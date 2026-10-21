@@ -16,6 +16,7 @@ export function fakeNotifications(initial: readonly NotificationRequest[] = []) 
   let handler: NotificationHandler | null = null;
   let responseListener: ((response: NotificationResponse) => void) | null = null;
   const platform: NotificationsPort = {
+    getLastNotificationResponse() { return null; },
     async getAllScheduledNotificationsAsync() { return [...scheduled.values()]; },
     async scheduleNotificationAsync(request) {
       const identifier = request.identifier;

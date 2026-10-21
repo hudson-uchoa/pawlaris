@@ -10,6 +10,7 @@ export const strings = {
     rationale: 'Para lembrar dos horários e avisar quando alguém da família concluir uma tarefa.',
     activate: 'Ativar lembretes',
     later: 'Agora não',
+    permissionError: 'Não foi possível ativar os lembretes. Tente novamente.',
     channels: {
       critical: 'Lembretes críticos', routine: 'Lembretes',
       timers: 'Cronômetros', familyActivity: 'Atividade da família',

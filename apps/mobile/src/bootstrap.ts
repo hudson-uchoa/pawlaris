@@ -38,6 +38,10 @@ import { createOutbox, type Outbox } from './sync/outbox';
 import { createServerSelect } from './sync/serverSelect';
 import { createSocket, type SocketConnection } from './sync/socket';
 import { createSyncEngine } from './sync/wiring';
+import { createExpoNotifications, type NotificationsPort } from './notifications/port';
+import { createNotificationChannels } from './notifications/channels';
+import { createNotificationPermission, type NotificationPermission, type RationaleTrigger } from './notifications/permission';
+import { isLocalNotification, reconcile } from './notifications/reconcile';
 
 export interface AppDependencies {
   driver: SqlDriver;
@@ -55,6 +59,7 @@ export interface AppDependencies {
   logFiles?: LogFiles;
   camera?: CameraDevice;
   logShare?: LogShare;
+  notifications?: NotificationsPort;
 }
 
 export interface AppRuntime {
@@ -77,6 +82,8 @@ export interface AppRuntime {
   camera: CameraDevice;
   photoCapture: PhotoCapture;
   logger: Logger;
+  notifications: NotificationsPort;
+  notificationPermission: NotificationPermission;
   sessionUser(): AuthUser | null;
   afterFirstPaint(): void;
   dispose(): void;
@@ -100,6 +107,33 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const marker = createStartupMarker(deps.perfOutput ?? console.log);
   const documentDirectory = deps.documentDirectory ?? getDocumentDirectory();
   const logger = createLogger(clock, deps.logFiles ?? createExpoLogFiles(documentDirectory));
+  const notifications = deps.notifications ?? createExpoNotifications();
+  const permission = createNotificationPermission({ kv, platform: notifications });
+  let painted = false;
+  let disposed = false;
+  let reminderWork = Promise.resolve();
+  const refreshReminders = (): void => {
+    // Serialize native writes so a slower old plan cannot overwrite a newer one.
+    reminderWork = reminderWork.then(async () => {
+      if (disposed) return;
+      await reconcile({ clock, kv, store, me: () => sessionUser()?.id ?? '', platform: notifications });
+    }).catch(() => { void logger.write('notification_reconcile_failed', {}, 'warn'); });
+  };
+  const checkRationale = (trigger: RationaleTrigger): void => {
+    if (disposed || !painted || sessionUser() === null) return;
+    const timed = Object.values(store.getState().taskTemplates)
+      .some((template) => template.deleted_at === null && template.times_of_day.length > 0);
+    void permission.shouldShowRationale(trigger, timed).then((show) => {
+      if (show && !disposed) events.emit('notification_rationale', undefined);
+    }).catch(() => { void logger.write('notification_permission_failed', {}, 'warn'); });
+  };
+  const notificationPermission: NotificationPermission = { ...permission,
+    async request() {
+      const granted = await permission.request();
+      if (granted) refreshReminders();
+      return granted;
+    },
+  };
   if (sessionUser() !== null && kv.get(serverKey('signed_out', serverSelect.current())) !== '1') {
     hydrate({ driver, store, clock });
   }
@@ -112,6 +146,8 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   let outboxUser: string | null = null;
   const wiring = createSyncEngine({ ...deps, store, apply, api, session, serverSelect,
     deferListeners: true, uploads: assetFiles.uploads, prefetchAvatars: assetFiles.prefetchAvatars,
+    onForeground: refreshReminders,
+    afterAppliedChanges() { refreshReminders(); checkRationale('sync'); },
     logRejectedRow: (entity, id) => { void logger.write('reseed_row_rejected', { entity, id }, 'warn'); },
     outbox: {
       get lastFailure() { return outbox?.lastFailure ?? null; },
@@ -139,11 +175,17 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const lifecycle = createLifecycle({ ...deps, store, session, api,
     activeServer: serverSelect.current, kick: (reason) => engine.kick(reason),
     removeAssetFiles: () => deps.fileSystem.remove(`${documentDirectory.replace(/\/+$/, '')}/assets`),
-    // No reminders or location tracking exist until P5-7 and P6-2.
-    cancelNotifications: async () => {}, stopTracking: async () => {},
+    async cancelNotifications() {
+      await reminderWork;
+      for (const request of await notifications.getAllScheduledNotificationsAsync()) {
+        if (isLocalNotification(request.identifier)) {
+          await notifications.cancelScheduledNotificationAsync(request.identifier);
+        }
+      }
+    },
+    // Location tracking begins in P6-2.
+    stopTracking: async () => {},
   });
-  let painted = false;
-  let disposed = false;
   const mutations = createMutations({ ...deps, apply,
     sessionUser: {
       get id() {
@@ -153,6 +195,12 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
       },
     },
     kick: (reason) => { void engine.kick(reason); },
+    afterEnqueue(rows) {
+      if (rows.some((row) => ['task_templates', 'task_completions', 'health_events', 'task_timers', 'pets'].includes(row.entity))) {
+        refreshReminders();
+      }
+      if (rows.some((row) => row.entity === 'task_templates' && row.method === 'POST')) checkRationale('task_created');
+    },
   });
   const changeMyPassword: FamilyActions['changePassword'] = (currentPassword, newPassword) => changePassword({
     api, session, connection: engine.state,
@@ -172,13 +220,16 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   };
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
-    camera, photoCapture, familyActions, diagnostics,
+    camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission,
     readCompletionRange: (from, to) => replica.range('task_completions', from, to).map((record) => record.row),
     copyText: async (text) => { await Clipboard.setStringAsync(text); },
     changePassword: changeMyPassword,
     afterFirstPaint() {
       if (painted || disposed) return;
       painted = true;
+      reminderWork = createNotificationChannels(notifications)
+        .catch(() => { void logger.write('notification_channels_failed', {}, 'warn'); });
+      refreshReminders();
       wiring.start();
       engine.setForeground(AppState.currentState === 'active');
       void engine.kick('start');

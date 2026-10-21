@@ -1,3 +1,4 @@
+import { fakeNotifications } from '../src/testing/fakeNotifications';
 import { useRef, type ReactElement } from 'react';
 import { ExpoRoot, router } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -30,6 +31,10 @@ import TasksRoute from '../app/tasks/index';
 import NewTaskRoute from '../app/task/new';
 import EditTaskRoute from '../app/task/[id]/edit';
 import TaskDetailRoute from '../app/task/[id]/index';
+import NotificationsRoute from '../app/permission/notifications';
+import { scheduledRequest } from '../src/notifications/__tests__/support';
+import { formatDashboardDay } from '../src/i18n/format';
+import { localDate } from '@pawlaris/shared';
 import type { AppDependencies } from '../src/bootstrap';
 import { useApp, type AppContext } from '../src/appContext';
 import { wireSession, servers, epoch, response } from '../src/auth/__tests__/support';
@@ -117,13 +122,16 @@ function dependencies() {
   const socket = fakeWebSocket();
   const fileSystem = fakeFileSystem();
   const camera = fakeCamera(fileSystem);
+  const notifications = fakeNotifications();
+  notifications.setPermission(true);
   const deps = {
+    notifications: notifications.platform,
     driver, clock, ids, http, secretBox, servers,
     random: fakeRandom(...Array.from({ length: 20 }, () => 0.5)),
     fileSystem, camera: camera.device, logFiles: fakeLogFiles(), documentDirectory: 'file:///fake/documents/',
     perfOutput: jest.fn(), WebSocketImpl: socket.WebSocketImpl, online: true,
   } satisfies AppDependencies;
-  return { deps, http, secretBox, socket, kv: new Kv(driver), factory: rowFactories(clock, ids) };
+  return { deps, http, secretBox, socket, notifications, kv: new Kv(driver), factory: rowFactories(clock, ids) };
 }
 
 async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppContext) => void) {
@@ -162,6 +170,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './task/new.tsx': { default: NewTaskRoute },
     './task/[id]/edit.tsx': { default: EditTaskRoute },
     './task/[id]/index.tsx': { default: TaskDetailRoute },
+    './permission/notifications.tsx': { default: NotificationsRoute },
   };
   function requireRoute<T>(key: string): T {
     const route = routes[key];
@@ -173,6 +182,43 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
   });
   return render(<ExpoRoot context={context} location="/" />);
 }
+
+test('R3.38 a notification tap opens Hoje on the occurrence date from a nested route', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  await act(() => { router.push('./settings/permissions'); });
+  const request = scheduledRequest('rem:task:2026-10-12T08:00', 'fp');
+  request.content.data = { kind: 'reminder', date: '2026-10-12', occurrenceKey: '2026-10-12T08:00' };
+  await act(() => { c.notifications.respond({ actionIdentifier: 'default', notification: { date: c.deps.clock.now(), request } }); });
+  expect(screen.getByText(formatDashboardDay('2026-10-12', localDate(c.deps.clock.now(), 'UTC')))).toBeOnTheScreen();
+  expect(screen.getByTestId('day-today')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByTestId('day-next'));
+  expect(screen.queryByTestId('day-today')).not.toBeOnTheScreen();
+  await act(() => { c.notifications.respond({ actionIdentifier: 'default', notification: { date: c.deps.clock.now(), request } }); });
+  expect(screen.getByTestId('day-today')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
+});
+
+test('R3.37 the notification rationale remains reachable through Permissions after declining', async () => {
+  openDatabase(driver);
+  const c = dependencies();
+  const wire = wireSession('primary');
+  c.kv.set('session_user', JSON.stringify(wire.user));
+  c.kv.set('notification_rationale_seen', '1');
+  await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+  await renderShell(c.deps);
+  await act(() => { router.push('./settings/permissions'); });
+  await fireEvent.press(screen.getByRole('button', { name: strings.diagnostics.notifications }));
+  expect(screen.getByText(strings.notifications.rationale)).toBeOnTheScreen();
+  expect(c.notifications.permissionRequests).toEqual([]);
+  await fireEvent.press(screen.getByRole('button', { name: strings.notifications.later }));
+  expect(screen.getByTestId('permissions-list')).toBeOnTheScreen();
+  expect(c.http.requests).toEqual([]);
+});
 
 test('P5-4 the task list opens detail and its edit action opens the form', async () => {
   openDatabase(driver);

@@ -4,6 +4,7 @@ import type { OutboxEntry } from '../db/outboxRepo';
 export interface SyncEventPayloads {
   completion_lost: { winner: Completion };
   mutation_rejected: { entry: OutboxEntry };
+  notification_rationale: undefined;
 }
 
 export interface SyncEvents {
@@ -16,7 +17,7 @@ export interface SyncEvents {
 export function createSyncEvents(): SyncEvents {
   const listeners: {
     [E in keyof SyncEventPayloads]: Set<(payload: SyncEventPayloads[E]) => void>
-  } = { completion_lost: new Set(), mutation_rejected: new Set() };
+  } = { completion_lost: new Set(), mutation_rejected: new Set(), notification_rationale: new Set() };
   return {
     on(event, listener) {
       listeners[event].add(listener);

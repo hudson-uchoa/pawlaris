@@ -1,4 +1,4 @@
-import { addDays, localDate, upcomingCare, type DayView, type DayViewItem } from '@pawlaris/shared';
+import { addDays, isDateKey, localDate, upcomingCare, type DayView, type DayViewItem } from '@pawlaris/shared';
 import { useCallback, useContext, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react';
 import { RefreshControl, StyleSheet, View, useWindowDimensions, type LayoutChangeEvent, type ListRenderItemInfo } from 'react-native';
 import Animated, { LinearTransition, useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
@@ -68,7 +68,7 @@ function listRows(view: DayView, loading: boolean, expanded: boolean, held: Read
 function rowKey(row: Row): string { return row.key; }
 
 export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
-  onOpenTask, onPhotoRequired, onOpenPhoto }: DashboardScreenProps): ReactElement {
+  onOpenTask, onPhotoRequired, onOpenPhoto, initialDate }: DashboardScreenProps): ReactElement {
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { width } = useWindowDimensions();
@@ -94,7 +94,8 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
   const user = services.sessionUser();
   const viewer = user === null ? undefined : members[user.id];
   const today = localDate(now, family?.timezone ?? 'UTC');
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(() =>
+    initialDate !== undefined && isDateKey(initialDate) ? initialDate : null);
   const date = selectedDate === null ? today : selectedDate < addDays(today, -90) ? addDays(today, -90)
     : selectedDate > addDays(today, 30) ? addDays(today, 30) : selectedDate;
   const [storedScope, setStoredScope] = useState(() => readScope(services.preferences));

@@ -21,6 +21,7 @@ export interface PullDependencies {
   api: Api;
   arrive(server: Server): Promise<PullResult>;
   prefetchAvatars?(): Promise<void>;
+  afterAppliedChanges?(): void;
 }
 
 interface PullPage {
@@ -30,7 +31,7 @@ interface PullPage {
   epoch: string;
 }
 
-export function createPull({ driver, apply, api, arrive, prefetchAvatars }: PullDependencies): Pull {
+export function createPull({ driver, apply, api, arrive, prefetchAvatars, afterAppliedChanges }: PullDependencies): Pull {
   const kv = new Kv(driver);
   let lastFailure: ApiFailure | null = null;
   let arrivalPending: Server | null = null;
@@ -69,7 +70,11 @@ export function createPull({ driver, apply, api, arrive, prefetchAvatars }: Pull
           }
         }
       } finally {
-        if (applied) void prefetchAvatars?.();
+        if (applied) {
+          kv.remove('suppressed_reminders');
+          afterAppliedChanges?.();
+          void prefetchAvatars?.();
+        }
       }
     },
   };

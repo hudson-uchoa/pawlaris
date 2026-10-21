@@ -26,6 +26,7 @@ module.exports = {
     './src/sync/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/assets/': { statements: 90, branches: 90, functions: 90, lines: 90 },
     './src/walks/': { statements: 80, branches: 80, functions: 80, lines: 80 },
+    './src/notifications/': { statements: 80, branches: 80, functions: 80, lines: 80 },
     './src/features/': { statements: 60, branches: 60, functions: 60, lines: 60 },
   },
   transformIgnorePatterns: [

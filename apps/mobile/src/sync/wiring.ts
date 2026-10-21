@@ -7,7 +7,9 @@ import { createPull, type Pull, type PullResult } from './pull';
 import type { Server } from '../db/kv';
 
 export type EngineWiringDependencies = Omit<EngineDependencies,
-  'online' | 'foreground'> & { uploads?: Uploads; deferListeners?: boolean };
+  'online' | 'foreground'> & {
+    uploads?: Uploads; deferListeners?: boolean; onForeground?(): void;
+  };
 
 export interface EngineWiring {
   engine: Engine;
@@ -16,12 +18,18 @@ export interface EngineWiring {
 }
 
 export type SyncEngineDependencies = Omit<EngineWiringDependencies, 'arrive' | 'pull'>
-  & Omit<ArriveDependencies, 'pull'> & { prefetchAvatars?(): Promise<void> };
+  & Omit<ArriveDependencies, 'pull'> & {
+    prefetchAvatars?(): Promise<void>; afterAppliedChanges?(): void;
+  };
 
 export function createSyncEngine(deps: SyncEngineDependencies): EngineWiring {
   const arrive = async (server: Server): Promise<PullResult> => {
     const result = await arrival.arrive(server);
-    if (result === 'ok') void deps.uploads?.kick();
+    if (result === 'ok') {
+      void deps.uploads?.kick();
+      // Arrival sweeps old rows after its full pull has returned.
+      deps.afterAppliedChanges?.();
+    }
     return result;
   };
   const pull: Pull = createPull({ ...deps, arrive });
@@ -54,7 +62,10 @@ export function createWiredEngine(deps: EngineWiringDependencies): EngineWiring 
     appState = AppState.addEventListener('change', (state) => {
       if (disposed) return;
       const active = state === 'active';
-      if (active && !foreground) void deps.uploads?.kick();
+      if (active && !foreground) {
+        void deps.uploads?.kick();
+        deps.onForeground?.();
+      }
       foreground = active;
       engine.setForeground(active);
     });

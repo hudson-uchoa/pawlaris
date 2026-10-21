@@ -1,4 +1,6 @@
-type ExpoNotifications = typeof import('expo-notifications');
+import * as Notifications from 'expo-notifications';
+
+type ExpoNotifications = typeof Notifications;
 
 export type NotificationsPort = Pick<ExpoNotifications,
   | 'getAllScheduledNotificationsAsync'
@@ -7,9 +9,10 @@ export type NotificationsPort = Pick<ExpoNotifications,
   | 'setNotificationChannelAsync'
   | 'setNotificationHandler'
   | 'addNotificationResponseReceivedListener'
+  | 'getLastNotificationResponse'
   | 'getPermissionsAsync'
   | 'requestPermissionsAsync'>;
 
 export function createExpoNotifications(): NotificationsPort {
-  throw new Error('not implemented');
+  return Notifications;
 }

@@ -14,12 +14,19 @@ export interface PermissionDependencies {
   platform: Pick<NotificationsPort, 'getPermissionsAsync' | 'requestPermissionsAsync'>;
 }
 
-export function createNotificationPermission(_dependencies: PermissionDependencies): NotificationPermission {
+export function createNotificationPermission({ kv, platform }: PermissionDependencies): NotificationPermission {
+  const seenKey = 'notification_rationale_seen';
   return {
-    async shouldShowRationale(_trigger, _hasTimedTemplate) {
-      throw new Error('not implemented');
+    async shouldShowRationale(trigger, hasTimedTemplate) {
+      if (kv.get(seenKey) === '1' || (trigger === 'sync' && !hasTimedTemplate)) return false;
+      if ((await platform.getPermissionsAsync()).granted || kv.get(seenKey) === '1') return false;
+      kv.set(seenKey, '1');
+      return true;
     },
-    decline() { throw new Error('not implemented'); },
-    async request() { throw new Error('not implemented'); },
+    decline() { kv.set(seenKey, '1'); },
+    async request() {
+      kv.set(seenKey, '1');
+      return (await platform.requestPermissionsAsync()).granted;
+    },
   };
 }

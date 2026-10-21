@@ -28,6 +28,7 @@ export interface DashboardServices {
 export interface DashboardScreenProps {
   services: DashboardServices;
   active: boolean;
+  initialDate?: string;
   onAdd(): void;
   onManage(): void;
   onOpenPet(id: string): void;

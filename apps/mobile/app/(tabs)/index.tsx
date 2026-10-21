@@ -1,5 +1,5 @@
 import { useCallback, type ReactElement } from 'react';
-import { useIsFocused, useRouter } from 'expo-router';
+import { useIsFocused, useRouter, useLocalSearchParams } from 'expo-router';
 import { useApp } from '../../src/appContext';
 import { DashboardScreen } from '../../src/features/dashboard/DashboardScreen';
 import type { PhotoProofTarget } from '../../src/features/dashboard/types';
@@ -8,6 +8,7 @@ export default function Dashboard(): ReactElement {
   const app = useApp();
   const router = useRouter();
   const active = useIsFocused();
+  const { date, notificationOpen } = useLocalSearchParams<{ date?: string; notificationOpen?: string }>();
   const add = useCallback(() => { router.push('../task/new'); }, [router]);
   const manage = useCallback(() => { router.push('../tasks'); }, [router]);
   const openPet = useCallback((id: string) => {
@@ -23,6 +24,7 @@ export default function Dashboard(): ReactElement {
   const openPhoto = useCallback((id: string) => {
     router.push({ pathname: '../photo/[id]', params: { id } });
   }, [router]);
-  return <DashboardScreen services={app} active={active} onAdd={add} onManage={manage} onOpenPet={openPet}
+  return <DashboardScreen key={notificationOpen} services={app} active={active} {...(date === undefined ? {} : { initialDate: date })}
+    onAdd={add} onManage={manage} onOpenPet={openPet}
     onOpenTask={openTask} onPhotoRequired={takeProof} onOpenPhoto={openPhoto} />;
 }

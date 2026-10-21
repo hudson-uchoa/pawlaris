@@ -85,16 +85,23 @@ export interface MutationDependencies {
   ids: IdGen;
   sessionUser: Pick<AuthUser, 'id'>;
   kick(reason: 'mutation'): void;
+  afterEnqueue?(mutations: readonly Mutation[]): void;
 }
 
-export function createMutations({ driver, apply, clock, ids, sessionUser, kick }: MutationDependencies): Mutations {
+export function createMutations({ driver, apply, clock, ids, sessionUser, kick, afterEnqueue }: MutationDependencies): Mutations {
   const replica = new ReplicaRepo(driver);
   const outbox = new OutboxRepo(driver);
   let needsKick = false;
+  let pendingMutations: Mutation[] = [];
   driver.onTransactionEnd((committed) => {
     const pending = needsKick;
     needsKick = false;
-    if (committed && pending) kick('mutation');
+    const mutations = pendingMutations;
+    pendingMutations = [];
+    if (committed && pending) {
+      kick('mutation');
+      afterEnqueue?.(mutations);
+    }
   });
 
   const now = () => new Date(clock.now()).toISOString();
@@ -111,6 +118,7 @@ export function createMutations({ driver, apply, clock, ids, sessionUser, kick }
         if (mutation.localRow === null) apply.removeRow(mutation.entity, mutation.entityId);
         else apply.applyLocalRow(mutation.entity, mutation.localRow);
         outbox.insert({ ...mutation, userId: sessionUser.id, createdAt: clock.now() });
+        pendingMutations.push(mutation);
       }
       needsKick = true;
     });

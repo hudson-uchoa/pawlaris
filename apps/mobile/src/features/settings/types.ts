@@ -42,4 +42,5 @@ export interface DiagnosticsScreenProps {
 
 export interface PermissionsScreenProps {
   active: boolean;
+  onNotifications?(): void;
 }
