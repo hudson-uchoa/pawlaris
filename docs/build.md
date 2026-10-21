@@ -221,7 +221,9 @@ Uninstalling deletes that phone's local data.
 | App still uses an old URL or native dependency | Restart Metro for JavaScript/env changes; regenerate and rebuild for native changes. |
 | `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | The installed app has another signing key. Drain the outbox before the owner uninstalls it and installs the desired APK. |
 
-Device results and screenshots belong in [evidence/P0-6.md](evidence/P0-6.md).
+Record device results and describe captures in
+[evidence/P0-6.md](evidence/P0-6.md). Screenshots and recordings stay local
+in the git-ignored `docs/evidence/media/`; never add them to the repository.
 The clean release build and standalone phone check are recorded in
 [evidence/P0-10.md](evidence/P0-10.md).
 
