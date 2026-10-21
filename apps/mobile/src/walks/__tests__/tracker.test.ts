@@ -112,6 +112,19 @@ test('R4.3 falls back to foreground and persists the background-location ladder 
   expect(removed).toBe(true);
 });
 
+test('R4.3 rejects other service errors without the background-location fallback', async () => {
+  const error = Object.assign(new Error('Location services are disabled'), {
+    code: 'E_LOCATION_SERVICES_DISABLED',
+  });
+  jest.mocked(Location.startLocationUpdatesAsync).mockRejectedValue(error);
+
+  await expect(tracker().start(c.pet.id)).rejects.toBe(error);
+
+  expect(c.kv.get('needs_background_location')).toBeNull();
+  expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+  expect(backgroundChoices).toBe(0);
+});
+
 test.each(['active', 'paused'] as const)(
     'R4.7 rejects a second start when the walk is %s even from a fresh tracker', async (state) => {
     const running = tracker();
