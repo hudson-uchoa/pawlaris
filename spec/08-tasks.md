@@ -1357,7 +1357,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] Walk the ladder on the Android 14+ phone, once choosing
   *Precisa* and once *Aproximada*. Evidence: the state shown after each step.
 
-- [~] **P6-2 — Tracking and the point store**
+- [x] **P6-2 — Tracking and the point store**
   **Depends:** P6-1, P1-6 · **Read:** `02` §4.2, §4.3 · `03` §7, §10 · `09` §8.1 (tracking mode) · `05` §3 (entry file)
   **Build:** `walks/task.ts` — the `expo-task-manager` task defined at module
   scope and imported by `index.ts`, writing each fix to `walk_point` **before
