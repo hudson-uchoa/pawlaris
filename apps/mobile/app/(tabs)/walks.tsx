@@ -26,7 +26,7 @@ export default function Walks(): ReactElement {
     return () => { mounted = false; unsubscribe(); };
   }, [permissions, active]);
   const openPermission = (): void => { router.push('/permission/location'); };
-  return <View testID="walks-placeholder" style={{ flex: 1 }}>
+  return <View testID="walks-screen" style={{ flex: 1 }}>
     {failed && <Text accessibilityRole="alert">{strings.settings.operationFailed}</Text>}
     <WalksScreen services={{ clock: app.clock, sessionUser: app.sessionUser,
       readLocalWalk: app.liveWalk.readLocalWalk, mutations: app.mutations }}
