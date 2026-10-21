@@ -1749,3 +1749,25 @@ full parallel suite it times out every run. It is fixed as a P5-14 R2
 follow-up: the test reaches the window quickly and keeps its three
 checks (hidden before, visible during, hidden after). P5-13's gates
 resume after that commit, on an idle machine.
+
+## Q-58 — P5-4 — Which calendar dates bound the history pages?
+**Asked:** 2026-10-21
+**Where:** spec/09-screens.md section 5.3; spec/08-tasks.md P5-4;
+spec/02-spec.md R3.15.
+**Problem:** Detail has a separate Today section and a history of the
+last 30 days, paging 30 days at a time down to 90. The text does not
+say whether history includes today, or whether the oldest date is
+today minus 89 (90 dates including today) or today minus 90 (the
+inclusive past-day limit in R3.15).
+**I would assume:** Include today in history. Use inclusive calendar-date
+pages [today - 29, today], [today - 59, today - 30], and
+[today - 89, today - 60], in the family timezone. Stop after those
+90 dates. R3.15's dashboard navigation can still reach today minus 90.
+Keep timed slots on each page's final date through 23:59, and clamp
+history to this template's own starts_on. The Red tests isolate the
+page-size and total-date assumption in historyWindowAssumption in
+apps/mobile/src/features/tasks/__tests__/taskDetail.test.tsx.
+**Blocking:** no. Proceed with Red only under this boundary assumption;
+the screen and route remain empty stubs. No commit or task-checkbox
+change is authorized in this session. Please confirm these boundaries
+before Green implements them.
