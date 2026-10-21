@@ -1381,7 +1381,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   point count and the gaps between points. Record whether fixes kept arriving
   and which tracking mode was used. This is the measurement R4.3 rests on.
 
-- [ ] **P6-3 — Live walk screen**
+- [~] **P6-3 — Live walk screen**
   **Depends:** P6-2 · **Read:** `09` §6.2 · `06` §4.9 · `02` §4.3
   **Build:** `walk/live` — metrics from the accumulator (rebuilt from disk on
   mount), rolling digits, current speed, signal state, pause/resume, finish
