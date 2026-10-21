@@ -4,6 +4,7 @@ import permissions from './permissions.json';
 export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
+  walks: { ongoingNotificationTitle: 'Passeio em andamento' },
   location: {
     preciseRequired: 'Para medir o passeio, o Pawlaris precisa da localização precisa.',
     allow: 'Permitir localização',
