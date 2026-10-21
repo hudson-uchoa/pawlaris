@@ -64,7 +64,8 @@ function celebrationNodes(view: RenderedView, type: string) {
 }
 
 function meteors(view: RenderedView) {
-  return celebrationNodes(view, 'skGroup').filter((node) => node.props.transform !== undefined);
+  return celebrationNodes(view, 'skGroup').filter((node) => node.props.transform !== undefined
+    && node.queryAll((child) => child.type === 'skLine').length === 1);
 }
 
 beforeEach(() => {
@@ -87,7 +88,7 @@ test.each(['light', 'dark'] as const)('Q-38 five meteors share one canvas and us
   const view = await render(<Scene />);
   expect(view.container.queryAll((node) => node.type === 'View')).toHaveLength(1);
   expect(view.container.queryAll((node) => node.type === 'skAtlas')).toHaveLength(1);
-  const heads = celebrationNodes(view, 'skCircle');
+  const heads = meteors(view).flatMap((node) => node.queryAll((child) => child.type === 'skCircle'));
   expect(heads).toHaveLength(5);
   for (const head of heads) {
     expect(head.props.color).toBe(color.star);
@@ -129,6 +130,47 @@ test('Q-38 one 1600 ms timeline staggers five 960 ms diagonal crossings by 160 m
   expect(visible()).toEqual([0, 1, 1, 1, 1]);
   await act(async () => { await jest.advanceTimersByTimeAsync(660); });
   expect(visible()).toEqual([0, 0, 0, 0, 0]);
+});
+
+test.each(['light', 'dark'] as const)('06 §4.5 the %s supernova bursts at the brightest star with two rings 120 ms apart', async (scheme) => {
+  jest.mocked(useColorScheme).mockReturnValue(scheme);
+  const view = await render(<Scene />);
+  const shockwaves = celebrationNodes(view, 'skCircle').filter((node) => node.props.style === 'stroke');
+  expect(shockwaves).toHaveLength(2);
+  const brightest = [...generateSky(42, { width: 360, height: 240, density: 'band' }).stars]
+    .sort((first, second) => first.magnitude - second.magnitude)[0];
+  if (brightest === undefined) throw new Error('Missing brightest star');
+  for (const ring of shockwaves) {
+    expect(ring.props.cx).toBe(brightest.x);
+    expect(ring.props.cy).toBe(brightest.y);
+    expect(ring.props.color).toBe((scheme === 'light' ? light : dark).star);
+    expect(ring.props.strokeWidth).toBe(1.5);
+  }
+  const sparks = celebrationNodes(view, 'skGroup').filter((node) => node.props.transform !== undefined
+    && node.children.some((child) => typeof child !== 'string'
+      && (child.type === 'skPath' || child.type === 'skCircle'))
+    && node.queryAll((child) => child.type === 'skLine').length === 0);
+  expect(sparks).toHaveLength(40);
+  const opacity = (node: typeof shockwaves[number] | undefined) => {
+    if (node === undefined) throw new Error('Missing supernova node');
+    return (node.props.opacity as SharedValue<number>).get();
+  };
+  await act(async () => { await jest.advanceTimersByTimeAsync(100); });
+  expect(opacity(shockwaves[0])).toBeGreaterThan(0);
+  expect(opacity(shockwaves[1])).toBe(0);
+  for (const spark of sparks) {
+    const elapsed = (1 - opacity(spark)) * 0.7;
+    const [x, y] = (spark.props.transform as SharedValue<[{ translateX: number }, { translateY: number }]>).get();
+    const distance = Math.hypot(x.translateX, y.translateY - 30 * elapsed * elapsed);
+    const drag = (1 - Math.exp(-2 * elapsed)) / 2;
+    expect(distance).toBeGreaterThanOrEqual(80 * drag - 0.000001);
+    expect(distance).toBeLessThanOrEqual(220 * drag + 0.000001);
+  }
+  await act(async () => { await jest.advanceTimersByTimeAsync(40); });
+  expect(opacity(shockwaves[1])).toBeGreaterThan(0);
+  await act(async () => { await jest.advanceTimersByTimeAsync(600); });
+  expect(shockwaves.map(opacity)).toEqual([0, 0]);
+  expect(sparks.map(opacity)).toEqual(Array.from({ length: 40 }, () => 0));
 });
 
 test.each(['light', 'dark'] as const)('Q-38 the %s sky rises to full, holds, and settles to its ordinary opacity', async (scheme) => {

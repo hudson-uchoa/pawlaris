@@ -24,6 +24,7 @@ import { DashboardEntry } from './DashboardEntry';
 import { dashboardMotion } from './motion';
 import { DayHeader } from './DayHeader';
 import { CompleteSkyHeader } from './CompleteSkyHeader';
+import { CompleteSkyCelebration } from './CompleteSkyCelebration';
 import { ScopeFilter } from './ScopeFilter';
 import { UpcomingCare } from './UpcomingCare';
 import type { DashboardScope, DashboardScreenProps, DashboardServices } from './types';
@@ -181,7 +182,11 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
   return <View testID="dashboard" style={{ flex: 1, backgroundColor: color.bg }} onLayout={painted}>
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: headerHeight + (insets?.top ?? 0), overflow: 'hidden' }]}>
       <Starfield seed={dashboardMotion.skySeed} width={width} height={headerHeight + (insets?.top ?? 0)}
-        active={focused} {...(motionEnabled ? { scrollY } : {})} />
+        active={focused} {...(motionEnabled ? { scrollY } : {})}>
+        {!loading && view.allDone && date === today && <CompleteSkyCelebration key={today}
+          today={today} preferences={services.preferences} width={width}
+          height={headerHeight + (insets?.top ?? 0)} active={focused} />}
+      </Starfield>
     </View>
     <Animated.FlatList testID="dashboard-list" data={rows} keyExtractor={rowKey} renderItem={renderRow}
       {...(motionEnabled ? { itemLayoutAnimation: LinearTransition, onScroll: scroll } : {})}
@@ -200,7 +205,7 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
             <SyncIndicator connection={services.engine.state} active={focused} />
           </View>
           <DayHeader date={date} today={today} active={focused} onChange={changeDay} />
-          <CompleteSkyHeader allDone={view.allDone} date={date} today={today} />
+          <CompleteSkyHeader allDone={!loading && view.allDone} date={date} today={today} />
         </View>
         {!loading && viewer !== undefined && <ScopeFilter viewer={viewer} members={familyMembers} value={scope}
           active={focused} onChange={changeScope} />}

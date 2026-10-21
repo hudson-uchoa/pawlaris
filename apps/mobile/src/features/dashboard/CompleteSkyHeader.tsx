@@ -1,5 +1,7 @@
 import type { DateKey } from '@pawlaris/shared';
 import type { ReactElement } from 'react';
+import { strings } from '../../i18n/strings';
+import { Text } from '../../ui/primitives/Text';
 
 export interface CompleteSkyHeaderProps {
   allDone: boolean;
@@ -7,7 +9,7 @@ export interface CompleteSkyHeaderProps {
   today: DateKey;
 }
 
-// P5-9 red scaffold: the completed-day header has no output yet.
-export function CompleteSkyHeader(_props: CompleteSkyHeaderProps): ReactElement | null {
-  return null;
+export function CompleteSkyHeader({ allDone, date, today }: CompleteSkyHeaderProps): ReactElement | null {
+  if (!allDone || date !== today) return null;
+  return <Text variant="heading" color="starText" accessibilityRole="header">{strings.dashboard.completeSky}</Text>;
 }

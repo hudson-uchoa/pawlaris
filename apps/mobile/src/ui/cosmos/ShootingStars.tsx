@@ -6,6 +6,8 @@ import { useReduceMotion } from '../motion/useReduceMotion';
 import { useTheme } from '../theme';
 import { shootingStars } from '../tokens/cosmos';
 import { CelebrationContext } from './celebration';
+import { Supernova } from './Supernova';
+import { starDepth } from './sky';
 
 // Draw nodes are composed inside Starfield's canvas.
 export type ShootingStarsProps = {
@@ -22,7 +24,7 @@ const Meteor = memo(function Meteor({ time, index, width, height, color, startY 
   const dx = width + 2 * shootingStars.tailLength;
   const dy = height * shootingStars.verticalTravel;
   const distance = Math.hypot(dx, dy);
-  const tail = vec(-shootingStars.tailLength * dx / distance, -shootingStars.tailLength * dy / distance);
+  const tail = { x: -shootingStars.tailLength * dx / distance, y: -shootingStars.tailLength * dy / distance };
   const opacity = useDerivedValue(() => {
     const elapsed = time.get() - index * shootingStars.stagger;
     return elapsed >= 0 && elapsed < shootingStars.crossing ? 1 : 0;
@@ -53,6 +55,9 @@ export function ShootingStars({ width, height, play, active }: ShootingStarsProp
   const reduced = useReduceMotion();
   const animationActive = useAnimationActive(active && sky.active);
   const consumed = useRef(false);
+  const supernovaTransform = useDerivedValue(() => [
+    { translateY: sky.origin === undefined ? 0 : -sky.scroll.get() * starDepth(sky.origin.magnitude) },
+  ]);
   useEffect(() => () => { time.set(shootingStars.duration); }, [time]);
   useEffect(() => {
     const elapsed = time.get();
@@ -80,6 +85,9 @@ export function ShootingStars({ width, height, play, active }: ShootingStarsProp
   }, [time, play, animationActive, reduced]);
   if (!play || !animationActive || reduced) return null;
   return <Group>
+    {sky.origin !== undefined && <Group transform={supernovaTransform}>
+      <Supernova time={time} x={sky.origin.x} y={sky.origin.y} seed={sky.seed} />
+    </Group>}
     {shootingStars.startY.map((startY, index) => <Meteor key={index} time={time} index={index}
       width={width} height={height} color={color.star} startY={startY} />)}
   </Group>;

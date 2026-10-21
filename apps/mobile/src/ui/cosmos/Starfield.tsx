@@ -26,11 +26,15 @@ export type StarfieldProps = {
   testID?: string;
 };
 
-const BrightStar = memo(function BrightStar({ star, time, scroll, tint, dawn }: {
-  star: SkyStar; time: SharedValue<number>; scroll: SharedValue<number>; tint: string; dawn: boolean;
+const BrightStar = memo(function BrightStar({ star, time, scroll, celebrationTime, tint, dawn }: {
+  star: SkyStar; time: SharedValue<number>; scroll: SharedValue<number>;
+  celebrationTime: SharedValue<number>; tint: string; dawn: boolean;
 }): ReactElement {
   const radius = starRadius(star.magnitude);
-  const opacity = useDerivedValue(() => starAlpha(star, time.get()) * (dawn ? starfield.lightOpacity : 1));
+  const opacity = useDerivedValue(() => {
+    const alpha = starAlpha(star, time.get()) * (dawn ? starfield.lightOpacity : 1);
+    return alpha + (1 - alpha) * celebrationBrightness(celebrationTime.get());
+  });
   const halo = useDerivedValue(() => opacity.get() * starfield.halo.alpha);
   const y = useDerivedValue(() => star.y - scroll.get() * starDepth(star.magnitude));
   const transform = useDerivedValue(() => [{ translateY: -scroll.get() * starDepth(star.magnitude) }]);
@@ -58,10 +62,12 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
     return () => { cancelAnimation(time); };
   }, [enabled, time, height, scroll, scrollY]);
   const celebrationTime = useSharedValue<number>(shootingStars.duration);
-  const celebration = useMemo(() => ({ time: celebrationTime, active: animationActive }),
-    [celebrationTime, animationActive]);
   const sky = useMemo(() => generateSky(seed, { width, height, density: density === 'full' ? 'full' : 'band' }),
     [seed, width, height, density]);
+  const origin = useMemo(() => sky.stars.reduce<SkyStar | undefined>((brightest, star) =>
+    brightest === undefined || star.magnitude < brightest.magnitude ? star : brightest, undefined), [sky]);
+  const celebration = useMemo(() => ({ time: celebrationTime, active: animationActive, seed, origin, scroll }),
+    [celebrationTime, animationActive, seed, origin, scroll]);
   const picture = useMemo(() => recordSky(sky, width, height, color, !dawn && density === 'full'),
     [sky, width, height, color, dawn, density]);
   const image = useMemo(() => renderGlowSprite(), []);
@@ -101,7 +107,8 @@ export function Starfield({ seed, width, height, active, density = 'header', neb
         })}
         <Atlas image={image} sprites={sprites} transforms={transforms} colors={colors} colorBlendMode="modulate" />
         {stars.filter((star) => star.magnitude <= 2).map((star, index) => <BrightStar key={index}
-          star={star} time={time} scroll={scroll} tint={dawn ? color.starfield : star.tint} dawn={dawn} />)}
+          star={star} time={time} scroll={scroll} celebrationTime={celebrationTime}
+          tint={dawn ? color.starfield : star.tint} dawn={dawn} />)}
         {!fadeEdges && (dawn
           ? <Circle cx={width * starfield.morning.x} cy={height * starfield.morning.y}
               r={starfield.morning.radius} color={morningStarTint} opacity={starfield.morning.alpha} />

@@ -2,11 +2,15 @@ import { createContext } from 'react';
 import type { SharedValue } from 'react-native-reanimated';
 import { duration } from '../motion/tokens';
 import { shootingStars } from '../tokens/cosmos';
+import type { SkyStar } from './sky';
 
 // The provider belongs inside Canvas: Skia has a separate React root.
 export const CelebrationContext = createContext<{
   time: SharedValue<number>;
   active: boolean;
+  seed: number;
+  origin: SkyStar | undefined;
+  scroll: SharedValue<number>;
 } | null>(null);
 
 export function celebrationBrightness(time: number): number {

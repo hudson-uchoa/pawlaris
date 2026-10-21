@@ -86,6 +86,14 @@ export const shootingStars = {
   verticalTravel: 0.5,
 } as const;
 
+// Spec 06 section 4.5: the checkbox burst, twice as far and fast.
+export const supernova = {
+  count: 40,
+  sparkles: Math.round(40 * burst.sparkles / burst.count),
+  travelScale: 2,
+  ringStagger: 120,
+} as const;
+
 // Spec 06 section 4.10. Authored scene layout, delegated for P4-2 review.
 // Coordinates and strokes share this box and scale uniformly to fit.
 export const illustrations = {
