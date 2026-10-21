@@ -1678,3 +1678,31 @@ JSON column per entity (`03` §10), so a new pet field needs no SQLite
 column: the shared `Pet` type carries `identity_color`, local writes
 default it to null, and one replica migration backfills null into pet
 rows written before it. `08` P5-12 now says so.
+
+## Q-56 — P5-13 — Should the care row text assertion allow its title and date?
+**Asked:** 2026-10-20
+**Where:** apps/mobile/src/features/pets/__tests__/healthCareProfile.test.tsx:124;
+spec/02-spec.md R2.12 and R2.14; spec/09-screens.md section 4.3.
+**Problem:** The red interleaving case asserts that the entire care row
+`toHaveTextContent('Duda · 22:30')`. The installed React Native Testing
+Library 14.0.1 forwards this string to `matches` with `exact = true`.
+A row containing its required stored title, local date and attribution
+therefore fails: expected `Duda · 22:30`, received
+`Original treatment30/09/2026Duda · 22:30`. Section 4.3 requires the stored
+title on together care as well as per-pet care, and the neighboring red
+cases also require the title and date within this same row test id.
+Removing those fields to satisfy exact row text would contradict the
+spec. The owner explicitly prohibited changing red assertions and
+instructed the implementer to stop if an assertion conflicts with it.
+**I would assume:** The orchestrator narrows this assertion to the
+attribution text node, or explicitly requests a substring match, keeping
+the existing expected attribution, row ordering, title and date checks.
+The implementation keeps the complete row. May the orchestrator correct
+this red assertion before the green step resumes?
+**Blocking:** yes. The pets gate reports 3 failed and 111 passed tests:
+this exact-text assertion and two duplicate category accessibility-label
+lookups in the new implementation. Those two markup failures still need
+an implementation fix after this blocker is resolved. No red assertion
+or existing test was changed. Later gates and verify have not run.
+All implementation and this question remain uncommitted; the task's
+checkbox is unchanged, as directed by the owner.
