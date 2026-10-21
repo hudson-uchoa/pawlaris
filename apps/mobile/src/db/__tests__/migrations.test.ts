@@ -1,6 +1,8 @@
 import { migrations } from '../migrations';
 import { openDatabase } from '../open';
 import { memoryDriver, type MemoryDriver } from '../../testing/memoryDriver';
+import { rowFactories } from '../../testing/rowFactories';
+import { sequentialIds } from '../../testing/sequentialIds';
 
 const columns: Record<string, string[]> = {
   replica: ['entity', 'id', 'revision', 'pending', 'deleted', 'pull_gen', 'sort_key', 'json'],
@@ -32,6 +34,28 @@ test.each(Array.from({ length: migrations.length + 1 }, (_, version) => version)
     }
   },
 );
+
+test('Q-55 migrating legacy pets backfills a missing identity as null and preserves a chosen key', () => {
+  const previousVersion = 1;
+  migrations.slice(0, previousVersion).forEach((sql) => driver.run(sql));
+  driver.run(`PRAGMA user_version = ${previousVersion}`);
+  const factory = rowFactories({ now: () => 0 }, sequentialIds());
+  const { identity_color: omittedIdentity, ...legacy } = factory.pets();
+  expect(omittedIdentity).toBeNull();
+  expect(legacy).not.toHaveProperty('identity_color');
+  const chosen = factory.pets({ identity_color: '#B15B6B' });
+  for (const pet of [legacy, chosen]) {
+    driver.run('INSERT INTO replica (entity, id, json) VALUES (?, ?, ?)', ['pets', pet.id, JSON.stringify(pet)]);
+  }
+
+  openDatabase(driver);
+
+  const rows = driver.all<{ id: string; json: string }>('SELECT id, json FROM replica ORDER BY id');
+  expect(rows.map(({ json }) => JSON.parse(json) as unknown)).toEqual([
+    { ...legacy, identity_color: null }, chosen,
+  ]);
+  expect(driver.all('PRAGMA user_version')).toEqual([{ user_version: migrations.length }]);
+});
 
 test('opening the latest schema again preserves existing rows', () => {
   openDatabase(driver);
