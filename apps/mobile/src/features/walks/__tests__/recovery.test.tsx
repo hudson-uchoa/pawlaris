@@ -1,11 +1,24 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { useSyncExternalStore } from 'react';
+import NetInfo from '@react-native-community/netinfo';
 import { PermissionStatus } from 'expo';
 import * as Location from 'expo-location';
-import { AppState } from 'react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import { routeForUpload, routePreview } from '@pawlaris/shared';
+import { servers, wireSession } from '../../../auth/__tests__/support';
+import { createAppRuntime, type AppRuntime } from '../../../bootstrap';
 import { formatDistance } from '../../../i18n/format';
 import { strings } from '../../../i18n/strings';
 import { hydrate } from '../../../replica/hydrate';
+import { fakeFileSystem } from '../../../testing/fakeFileSystem';
+import { fakeHttp } from '../../../testing/fakeHttp';
+import { fakeLogFiles } from '../../../testing/fakeLogFiles';
+import { fakeNotifications } from '../../../testing/fakeNotifications';
+import { fakeRandom } from '../../../testing/fakeRandom';
+import { fakeSecretBox } from '../../../testing/fakeSecretBox';
+import { fakeWebSocket } from '../../../testing/fakeWebSocket';
+import { sequentialIds } from '../../../testing/sequentialIds';
+import { duration } from '../../../ui/motion/tokens';
 import { createWalkRecovery, type WalkRecovery } from '../../../walks/recover';
 import { createTracker } from '../../../walks/tracker';
 import { WALK_LOCATION_TASK } from '../../../walks/task';
@@ -20,6 +33,7 @@ jest.mock('expo-location', () => ({
 
 let c: Awaited<ReturnType<typeof trackingStorage>>;
 let recovery: WalkRecovery | undefined;
+let runtime: AppRuntime | undefined;
 const initialState = AppState.currentState;
 
 beforeEach(async () => {
@@ -35,10 +49,13 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await cleanup();
+  runtime?.dispose();
+  runtime = undefined;
   recovery?.dispose();
   recovery = undefined;
   c.driver.close();
   AppState.currentState = initialState;
+  jest.restoreAllMocks();
   jest.clearAllTimers();
   jest.useRealTimers();
 });
@@ -99,6 +116,60 @@ test('R4.6 an orphaned local_walk produces the sheet with the stored distance', 
   expect(c.walks.getLocal()).toEqual(walk);
   expect(c.outbox.count()).toBe(1);
   expect(Location.startLocationUpdatesAsync).not.toHaveBeenCalled();
+});
+
+test('R4.6 R1 dismissing recovery offers the same walk again on foreground', async () => {
+  const walk = await orphan();
+  const points = c.points.read(walk.id);
+  const queued = c.driver.all('SELECT * FROM outbox ORDER BY seq');
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest.spyOn(NetInfo, 'addEventListener').mockImplementation(() => () => {});
+  jest.spyOn(AppState, 'addEventListener').mockImplementation((_event, listener) => {
+    listeners.add(listener);
+    return { remove() { listeners.delete(listener); } };
+  });
+  c.kv.set('session_user', JSON.stringify(wireSession('primary').user));
+  const app = createAppRuntime({ driver: c.driver, clock: c.clock,
+    ids: sequentialIds(), servers, online: false, http: fakeHttp(), secretBox: fakeSecretBox(),
+    random: fakeRandom(0.5), fileSystem: fakeFileSystem(), logFiles: fakeLogFiles(),
+    documentDirectory: 'file:///fake/documents/', WebSocketImpl: fakeWebSocket().WebSocketImpl,
+    notifications: fakeNotifications().platform,
+  });
+  runtime = app;
+  function Recovery() {
+    const offer = useSyncExternalStore(app.walkRecovery.subscribe, app.walkRecovery.getSnapshot);
+    return <WalkRecoverySheet recovery={offer} timezone="America/Sao_Paulo" active
+      onContinue={() => app.walkRecovery.continue()}
+      onFinish={async () => { await app.walkRecovery.finish(); }} />;
+  }
+  await render(<Recovery />);
+  await act(async () => {
+    app.afterFirstPaint();
+    await jest.advanceTimersByTimeAsync(0);
+  });
+  const firstOffer = app.walkRecovery.getSnapshot();
+  expect(firstOffer).toMatchObject({ walk });
+  expect(screen.getByTestId('walk-recovery')).toBeOnTheScreen();
+  await fireEvent.press(screen.getByRole('button', { name: strings.dismiss }));
+  await act(async () => { await jest.advanceTimersByTimeAsync(duration.quick + duration.reducedFade); });
+  expect(screen.queryByTestId('walk-recovery')).toBeNull();
+  expect(app.walkRecovery.getSnapshot()).toBe(firstOffer);
+  jest.mocked(Location.hasStartedLocationUpdatesAsync).mockClear();
+  await act(async () => {
+    for (const state of ['background', 'active'] as const) {
+      AppState.currentState = state;
+      for (const listener of [...listeners]) listener(state);
+    }
+    await jest.advanceTimersByTimeAsync(0);
+  });
+  expect(Location.hasStartedLocationUpdatesAsync).toHaveBeenCalledWith(WALK_LOCATION_TASK);
+  expect(app.walkRecovery.getSnapshot()).toMatchObject({ walk });
+  expect(screen.getByTestId('walk-recovery')).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: strings.walks.resume })).toBeOnTheScreen();
+  expect(screen.getByRole('button', { name: strings.walks.recoveryFinish })).toBeOnTheScreen();
+  expect(c.walks.getLocal()).toEqual(walk);
+  expect(c.points.read(walk.id)).toEqual(points);
+  expect(c.driver.all('SELECT * FROM outbox ORDER BY seq')).toEqual(queued);
 });
 
 test('09 section 8.3 the recovery sheet uses the stored start time and distance verbatim', async () => {
