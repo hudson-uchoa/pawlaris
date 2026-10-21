@@ -543,16 +543,21 @@ screen, each with a short reason and a single primary button:
 
 1. **Localização** — "Para medir a distância e desenhar a rota do passeio.
    Escolha *Precisa*." → system dialog.
-2. **Notificações** (Android 13+, if not granted) — "O Android exige uma
-   notificação visível enquanto o passeio é gravado."
+2. **Notificações** (Android 13+, if not granted; once,
+   `kv.notifications_prompt_done`) — "O Android exige uma notificação visível
+   enquanto o passeio é gravado." → system dialog. Whatever the answer, the
+   ladder moves on and never shows this step again: the walk still records,
+   and Android only hides the service notification. Permissões keeps the way
+   to grant it later.
 3. **Bateria** (once, `kv.battery_prompt_done`) — "Alguns celulares encerram
    apps em segundo plano. Desative a otimização de bateria para o Pawlaris." →
    battery-optimization settings, plus two lines of manufacturer-specific help
    chosen by `Device.manufacturer` (Xiaomi, Samsung, Motorola, other).
 
 Step **3b — O tempo todo** is shown only when `kv.needs_background_location`
-is set: "Neste celular, gravar com a tela bloqueada exige *Permitir o tempo
-todo*." → system Settings. **Agora não** records in mode `foreground`.
+is set and background location is not granted: "Neste celular, gravar com a
+tela bloqueada exige *Permitir o tempo todo*." → system Settings. **Agora
+não** records in mode `foreground`.
 
 ### 8.3 Walk recovery *(R4.6)*
 

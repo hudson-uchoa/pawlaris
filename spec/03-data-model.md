@@ -816,8 +816,8 @@ CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 `sync_epoch.<server>`, `reseeded_epoch.<server>`, `signed_out.<server>` and
 `push_token_sent.<server>` — then `active_server` and `pull_gen` *(all of
 these: `11` §4)*, `session_user` (JSON of `/me`), `scope_filter`,
-`celebrated_on`, `battery_prompt_done`, `device_id`,
-`notif_rationale_dismissed`, `suppressed_reminders` (JSON array of
+`celebrated_on`, `battery_prompt_done`, `notifications_prompt_done`,
+`device_id`, `notif_rationale_dismissed`, `suppressed_reminders` (JSON array of
 notification ids cancelled by a push, `09` §9.4),
 `needs_background_location`.
 
