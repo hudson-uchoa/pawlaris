@@ -92,8 +92,10 @@ export function CameraScreen({ mode, device, capture, active, onUse, onCancel }:
       </> : <>
         <Button testID="camera-use" label={strings.camera.use} accessibilityLabel={strings.camera.use}
           disabled={busy} active={active} onPress={() => { void run(async () => {
-            const id = await capture.save(photo, mode, canRegister);
-            if (id !== null && canRegister()) { finished.current = true; onUse(id); }
+            await capture.save(photo, mode, canRegister, (id) => {
+              finished.current = true;
+              onUse(id);
+            });
           }); }} />
         <Button label={strings.camera.retake} accessibilityLabel={strings.camera.retake} disabled={busy}
           active={active} onPress={() => { takePhoto.current = null; setReady(false); setPhoto(null); }} />

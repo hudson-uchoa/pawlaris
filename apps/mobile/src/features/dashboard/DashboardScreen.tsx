@@ -67,7 +67,8 @@ function listRows(view: DayView, loading: boolean, expanded: boolean, held: Read
 
 function rowKey(row: Row): string { return row.key; }
 
-export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }: DashboardScreenProps): ReactElement {
+export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet,
+  onOpenTask, onPhotoRequired, onOpenPhoto }: DashboardScreenProps): ReactElement {
   const { color } = useTheme();
   const insets = useContext(SafeAreaInsetsContext);
   const { width } = useWindowDimensions();
@@ -160,6 +161,9 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
     if (row.kind === 'task') return <DashboardEntry id={row.key} index={row.index} enabled={motionEnabled} entered={entered}>
       <TaskCard item={row.item} members={members} active={focused} services={services}
         viewerId={user?.id ?? ''} date={date} timezone={family?.timezone ?? 'UTC'}
+        {...(onOpenTask === undefined ? {} : { onOpenTask })}
+        {...(onPhotoRequired === undefined ? {} : { onPhotoRequired })}
+        {...(onOpenPhoto === undefined ? {} : { onOpenPhoto })}
         onHoldInGroup={holdInGroup} onMoveToDone={moveToDone} />
     </DashboardEntry>;
     const label = row.group === 'overdue' ? strings.dashboard.overdue(row.count)
@@ -170,7 +174,7 @@ export function DashboardScreen({ services, active, onAdd, onManage, onOpenPet }
     </PressableScale> : <Text testID={`section-${row.group}`} variant="heading" accessibilityRole="header"
       color={row.group === 'overdue' ? 'danger' : 'text'}>{label}</Text>;
   }, [width, onAdd, members, user?.id, date, family?.timezone, expanded, toggleDone, focused, motionEnabled, entered,
-    services, holdInGroup, moveToDone]);
+    services, holdInGroup, moveToDone, onOpenTask, onPhotoRequired, onOpenPhoto]);
 
   return <View testID="dashboard" style={{ flex: 1, backgroundColor: color.bg }} onLayout={painted}>
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: headerHeight + (insets?.top ?? 0), overflow: 'hidden' }]}>

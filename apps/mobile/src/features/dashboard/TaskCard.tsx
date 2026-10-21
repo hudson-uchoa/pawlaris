@@ -21,6 +21,7 @@ import { spacing } from '../../ui/tokens/spacing';
 import { CompletionAttribution } from './CompletionAttribution';
 import { PetAvatar } from './PetAvatar';
 import { PetToggle, type PetToggleProps } from './PetToggle';
+import { PhotoProofThumbnail } from './PhotoProofThumbnail';
 import { UndoCompletionSheet } from './UndoCompletionSheet';
 import type { PhotoProofTarget } from './types';
 
@@ -50,7 +51,7 @@ const PetControl = memo(function PetControl({ pet, onToggle, ...props }: Omit<Pe
 });
 
 export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, timezone, active, services,
-  onOpenTask, onHoldInGroup, onMoveToDone }: TaskCardProps): ReactElement {
+  onOpenTask, onPhotoRequired, onOpenPhoto, onHoldInGroup, onMoveToDone }: TaskCardProps): ReactElement {
   const template = useReplica((state) => state.taskTemplates[item.taskId]);
   const animationActive = useAnimationActive(active);
   const complete = item.progress.total > 0 && item.progress.done >= item.progress.total;
@@ -95,9 +96,11 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
       setUndoId(completion.id);
       return;
     }
-    // Photo capture is wired by P5-5; never create a photo-required record
-    // without its proof in the meantime.
-    if (template === undefined || template.requires_photo || item.orphan || pressed.current.has(petId)) return;
+    if (template === undefined || item.orphan || pressed.current.has(petId)) return;
+    if (template.requires_photo) {
+      onPhotoRequired?.({ taskId: item.taskId, occurrenceKey: item.occurrenceKey, petId });
+      return;
+    }
     pressed.current.add(petId);
     if (item.progress.done + pressed.current.size === item.progress.total) {
       waiting.current = true;
@@ -105,7 +108,7 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
     }
     services.mutations.createCompletion({ task_id: item.taskId, occurrence_key: item.occurrenceKey,
       pet_id: petId, completed_at: new Date(services.clock.now()).toISOString(), photo_asset_id: null, note: null });
-  }, [readOnly, item, template, services.mutations, services.clock, onHoldInGroup]);
+  }, [readOnly, item, template, services.mutations, services.clock, onHoldInGroup, onPhotoRequired]);
   const together = useCallback(() => { toggle(null); }, [toggle]);
   const dismissUndo = useCallback(() => { setUndoId(null); }, []);
   const confirmUndo = useCallback(() => {
@@ -166,6 +169,9 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
       {onOpenTask === undefined ? body : <PressableScale accessibilityLabel={item.title}
         onPress={openTask} active={active} style={{ flex: 1, minWidth: 0 }}>{body}</PressableScale>}
+      {item.mode === 'together' && done?.photo_asset_id !== undefined && done.photo_asset_id !== null
+        && <PhotoProofThumbnail assetId={done.photo_asset_id} active={active}
+          {...(onOpenPhoto === undefined ? {} : { onOpen: onOpenPhoto })} />}
       {item.mode === 'together' && <StarCheck checked={complete} accessibilityLabel={item.title}
         occurrenceKey={item.occurrenceKey}
         testID={`task-check-${item.taskId}-${item.occurrenceKey}`} active={active} disabled={readOnly}
@@ -178,11 +184,18 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
           <ConstellationLine points={points} width={bounds.width} height={bounds.height} complete={complete} active={active}
             testID={`task-constellation-${item.taskId}-${item.occurrenceKey}`} />
         </View>
-        {item.pets.map((pet) => <PetControl key={pet.id} pet={pet} width={petWidth}
+        {item.pets.map((pet) => {
+          const completion = item.completions.find((row) => row.pet_id === pet.id) ?? null;
+          return <PetControl key={pet.id} pet={pet} width={petWidth}
           occurrenceKey={item.occurrenceKey}
-          completion={item.completions.find((row) => row.pet_id === pet.id) ?? null} members={members}
+          completion={completion} members={members}
           timezone={timezone} active={active} disabled={readOnly} onToggle={toggle} onAvatarLayout={measureAvatar}
-          testID={`task-pet-${item.taskId}-${item.occurrenceKey}-${pet.id}`} />)}
+          testID={`task-pet-${item.taskId}-${item.occurrenceKey}-${pet.id}`}>
+            {completion?.photo_asset_id !== undefined && completion.photo_asset_id !== null
+              && <PhotoProofThumbnail assetId={completion.photo_asset_id} active={active}
+                {...(onOpenPhoto === undefined ? {} : { onOpen: onOpenPhoto })} />}
+          </PetControl>;
+        })}
       </View>
     </> : null}
     <UndoCompletionSheet completion={undo} member={undo === null ? undefined : members[undo.completed_by]}

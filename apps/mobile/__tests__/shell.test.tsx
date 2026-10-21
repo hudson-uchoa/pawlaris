@@ -21,6 +21,7 @@ import PetWeight from '../app/pet/[id]/weight';
 import NewHealthEvent from '../app/pet/[id]/health/new';
 import HealthDetail from '../app/health/[id]';
 import CameraRoute from '../app/camera';
+import PhotoRoute from '../app/photo/[id]';
 import FamilyRoute from '../app/settings/family';
 import DiagnosticsRoute from '../app/settings/diagnostics';
 import PermissionsRoute from '../app/settings/permissions';
@@ -152,6 +153,7 @@ async function renderShell(deps: AppDependencies, observeDashboard?: (app: AppCo
     './pet/[id]/health/new.tsx': { default: NewHealthEvent },
     './health/[id].tsx': { default: HealthDetail },
     './camera.tsx': { default: CameraRoute },
+    './photo/[id].tsx': { default: PhotoRoute },
     './settings/family.tsx': { default: FamilyRoute },
     './settings/diagnostics.tsx': { default: DiagnosticsRoute },
     './settings/permissions.tsx': { default: PermissionsRoute },
@@ -262,6 +264,62 @@ test('P5-2 the dashboard tab reads the replica and wires task and care navigatio
   expect(screen.getByRole('radio', { name: strings.tasks.active })).toBeChecked();
   expect(c.http.requests).toEqual([]);
 });
+
+test.each([['dashboard', 'together'], ['detail', 'per_pet']] as const)(
+  'P5-5 AF-1 / R3.44-R3.46 %s routes cancel, complete %s and open the saved proof', async (source, mode) => {
+    openDatabase(driver);
+    const c = dependencies();
+    const wire = wireSession('primary');
+    c.kv.set('session_user', JSON.stringify(wire.user));
+    await c.secretBox.set('session_tokens.primary', JSON.stringify(wire));
+    const replica = new ReplicaRepo(driver);
+    const pet = c.factory.pets();
+    const second = c.factory.pets({ name: 'Second pet' });
+    const task = c.factory.task_templates({ pet_ids: [pet.id, second.id], times_of_day: [],
+      requires_photo: true, completion_mode: mode, created_by: wire.user.id });
+    replica.upsert('family', c.factory.family({ id: wire.user.family_id }), { pending: false, deleted: false, pullGen: 0 });
+    replica.upsert('members', c.factory.members({ id: wire.user.id }), { pending: false, deleted: false, pullGen: 0 });
+    for (const row of [pet, second]) replica.upsert('pets', row, { pending: false, deleted: false, pullGen: 0 });
+    replica.upsert('task_templates', task, { pending: false, deleted: false, pullGen: 0 });
+    await renderShell(c.deps);
+    if (source === 'detail') {
+      await fireEvent.press(screen.getByRole('button', { name: task.title }));
+      expect(screen.getByTestId('task-today')).toBeOnTheScreen();
+    }
+    const check = mode === 'together' ? `task-check-${task.id}-2026-10-13`
+      : `task-pet-${task.id}-2026-10-13-${pet.id}`;
+    await fireEvent.press(screen.getByTestId(check));
+    await fireEvent.press(screen.getByTestId('camera-cancel'));
+    expect(screen.getByTestId(check)).not.toBeChecked();
+    expect(new OutboxRepo(driver).count()).toBe(0);
+    let atUpload: unknown;
+    c.deps.fileSystem.enqueue(() => {
+      atUpload = { rows: replica.range('task_completions', '2026-10-13', '2026-10-13'),
+        outbox: new OutboxRepo(driver).head(wire.user.id) };
+      return new Promise(() => {});
+    });
+    await fireEvent.press(screen.getByTestId(check));
+    expect(screen.queryByRole('button', { name: strings.camera.gallery })).toBeNull();
+    await fireEvent.press(screen.getByTestId('camera-shutter'));
+    await fireEvent.press(screen.getByTestId('camera-use'));
+    expect(screen.queryByTestId('camera-shutter')).toBeNull();
+    if (source === 'dashboard') await fireEvent.press(screen.getByTestId('section-done'));
+    expect(screen.getByTestId(check)).toBeChecked();
+    const completion = replica.range('task_completions', '2026-10-13', '2026-10-13')[0]?.row;
+    if (completion === undefined) throw new Error('The photo completion is missing');
+    expect(completion).toMatchObject({ task_id: task.id, occurrence_key: '2026-10-13',
+      pet_id: mode === 'together' ? null : pet.id, photo_asset_id: expect.any(String) });
+    expect(atUpload).toMatchObject({ rows: [{ row: completion }], outbox: { entityId: completion.id } });
+    expect(screen.getByText(strings.health.photoUploading)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('image', { name: strings.pets.photo }));
+    expect(screen.getByRole('image', { name: strings.pets.photo })).toHaveProp('contentFit', 'contain');
+    await fireEvent.press(screen.getByRole('button', { name: strings.dismiss }));
+    expect(screen.getByTestId(check)).toBeChecked();
+    expect(new OutboxRepo(driver).count()).toBe(1);
+    expect(c.deps.fileSystem.requests).toHaveLength(1);
+    expect(c.http.requests).toEqual([]);
+  },
+);
 
 test('P4-9 Settings routes open family, password, permissions and the wired diagnostics', async () => {
   openDatabase(driver);

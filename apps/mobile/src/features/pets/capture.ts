@@ -11,12 +11,13 @@ const modes: Record<CameraMode, Compression & { kind: Asset['kind'] }> = {
 };
 
 export interface PhotoCapture {
-  save(photo: CameraPhoto, mode: CameraMode, canRegister?: () => boolean): Promise<string | null>;
+  save(photo: CameraPhoto, mode: CameraMode, canRegister?: () => boolean,
+    onRegistered?: (id: string) => void): Promise<string | null>;
 }
 
 export function createPhotoCapture(device: CameraDevice, files: AssetFiles, ids: IdGen): PhotoCapture {
   return {
-    async save(photo, mode, canRegister = () => true) {
+    async save(photo, mode, canRegister = () => true, onRegistered) {
       const id = ids.uuid();
       const { kind, longestEdge, quality } = modes[mode];
       const compressed = await device.compress(photo, { longestEdge, quality });
@@ -27,6 +28,8 @@ export function createPhotoCapture(device: CameraDevice, files: AssetFiles, ids:
         if (!canRegister()) return null;
         files.registerCapture({ id, kind, localUri: uri, sha256 });
         registered = true;
+        // Commit the referencing mutation before the upload loop can run.
+        onRegistered?.(id);
         return id;
       } finally {
         if (!registered) await device.removeFile(uri);

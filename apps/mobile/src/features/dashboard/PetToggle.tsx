@@ -1,5 +1,5 @@
 import type { Completion, Member, Pet } from '@pawlaris/shared';
-import { memo, useCallback, type ReactElement } from 'react';
+import { memo, useCallback, type ReactElement, type ReactNode } from 'react';
 import { View, type LayoutChangeEvent, type LayoutRectangle } from 'react-native';
 import { StarCheck } from '../../ui/cosmos/StarCheck';
 import { Text } from '../../ui/primitives/Text';
@@ -19,10 +19,11 @@ export interface PetToggleProps {
   occurrenceKey?: string;
   onPress(): void;
   onAvatarLayout?: (petId: string, layout: LayoutRectangle) => void;
+  children?: ReactNode;
 }
 
 export const PetToggle = memo(function PetToggle({ pet, completion, members, timezone, active, disabled,
-  testID, width, occurrenceKey, onPress, onAvatarLayout }: PetToggleProps): ReactElement {
+  testID, width, occurrenceKey, onPress, onAvatarLayout, children }: PetToggleProps): ReactElement {
   const measured = useCallback((event: LayoutChangeEvent) => {
     onAvatarLayout?.(pet.id, event.nativeEvent.layout);
   }, [pet.id, onAvatarLayout]);
@@ -37,5 +38,6 @@ export const PetToggle = memo(function PetToggle({ pet, completion, members, tim
           member={members[completion.completed_by]} timezone={timezone} active={active} />}
       </View>
     </StarCheck>
+    {children}
   </View>;
 });

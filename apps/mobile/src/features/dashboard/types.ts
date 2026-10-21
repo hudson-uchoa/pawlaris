@@ -31,4 +31,7 @@ export interface DashboardScreenProps {
   onAdd(): void;
   onManage(): void;
   onOpenPet(id: string): void;
+  onOpenTask?: (taskId: string) => void;
+  onPhotoRequired?: (target: PhotoProofTarget) => void;
+  onOpenPhoto?: (assetId: string) => void;
 }

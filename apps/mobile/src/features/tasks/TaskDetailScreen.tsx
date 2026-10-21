@@ -3,7 +3,6 @@ import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { memo, useCallback, useContext, useMemo, useState, type ReactElement } from 'react';
 import { View } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { AssetImage } from '../../assets/AssetImage';
 import { formatFullDate, formatScheduleSummary } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import type { Clock } from '../../platform/clock';
@@ -15,10 +14,11 @@ import { Card } from '../../ui/primitives/Card';
 import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
-import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
 import { CompletionAttribution } from '../dashboard/CompletionAttribution';
 import { TaskCard } from '../dashboard/TaskCard';
+import { PhotoProofThumbnail } from '../dashboard/PhotoProofThumbnail';
+import type { PhotoProofTarget } from '../dashboard/types';
 import { useNow } from '../dashboard/useNow';
 import { buildTaskHistory, type TaskHistoryRow } from './taskHistory';
 
@@ -34,6 +34,8 @@ export interface TaskDetailScreenProps {
   services: TaskDetailServices;
   active: boolean;
   onEdit(taskId: string): void;
+  onPhotoRequired?: (target: PhotoProofTarget) => void;
+  onOpenPhoto?: (assetId: string) => void;
 }
 
 // Q-58: inclusive family dates, excluding today, down to today minus 90.
@@ -60,7 +62,8 @@ function historyKey(row: TaskHistoryRow): string {
   return `${row.occurrenceKey}:${row.petId ?? ''}`;
 }
 
-function TaskDetailContent({ task, today, now, timezone, services, active, onEdit }: TaskDetailScreenProps & {
+function TaskDetailContent({ task, today, now, timezone, services, active, onEdit,
+  onPhotoRequired, onOpenPhoto }: TaskDetailScreenProps & {
   task: TaskTemplate; today: string; now: number; timezone: string;
 }): ReactElement {
   const { color } = useTheme();
@@ -97,8 +100,9 @@ function TaskDetailContent({ task, today, now, timezone, services, active, onEdi
   }, [today, task.starts_on]);
   const edit = useCallback(() => { onEdit(task.id); }, [onEdit, task.id]);
   const renderHistory = useCallback(({ item }: ListRenderItemInfo<TaskHistoryRow>) => <HistoryRow
-    row={item} taskId={task.id} members={members} pets={pets} timezone={timezone} active={active} />,
-  [task.id, members, pets, timezone, active]);
+    row={item} taskId={task.id} members={members} pets={pets} timezone={timezone} active={active}
+    {...(onOpenPhoto === undefined ? {} : { onOpenPhoto })} />,
+  [task.id, members, pets, timezone, active, onOpenPhoto]);
 
   return <View style={{ flex: 1, backgroundColor: color.bg }}>
     <FlashList testID="task-history" data={history.rows} keyExtractor={historyKey} renderItem={renderHistory}
@@ -117,16 +121,19 @@ function TaskDetailContent({ task, today, now, timezone, services, active, onEdi
         <View testID="task-today" style={{ gap: spacing.sm }}>
           <Text variant="heading" accessibilityRole="header">{strings.dashboard.today}</Text>
           {todayCards.map((item) => <TaskCard key={item.occurrenceKey} item={item} members={members}
-            viewerId={viewerId} date={today} timezone={timezone} services={services} active={active} />)}
+            viewerId={viewerId} date={today} timezone={timezone} services={services} active={active}
+            {...(onPhotoRequired === undefined ? {} : { onPhotoRequired })}
+            {...(onOpenPhoto === undefined ? {} : { onOpenPhoto })} />)}
         </View>
         <Text variant="heading" accessibilityRole="header">{strings.tasks.history}</Text>
       </View>} />
   </View>;
 }
 
-const HistoryRow = memo(function HistoryRow({ row, taskId, members, pets, timezone, active }: {
+const HistoryRow = memo(function HistoryRow({ row, taskId, members, pets, timezone, active, onOpenPhoto }: {
   row: TaskHistoryRow; taskId: string; members: Readonly<Record<string, Member>>;
   pets: Readonly<Record<string, Pet>>; timezone: string; active: boolean;
+  onOpenPhoto?: (assetId: string) => void;
 }): ReactElement {
   const { date, time } = splitKey(row.occurrenceKey);
   const completion = row.completion;
@@ -140,11 +147,8 @@ const HistoryRow = memo(function HistoryRow({ row, taskId, members, pets, timezo
         <Text variant="label">{completion.title_snapshot}</Text>
         <CompletionAttribution key={completion.id} completion={completion} member={members[completion.completed_by]}
           timezone={timezone} active={active} />
-        {completion.photo_asset_id !== null && <View style={{ width: spacing.xxl, height: spacing.xxl,
-          borderRadius: radius.chip, overflow: 'hidden' }}>
-          <AssetImage assetId={completion.photo_asset_id} accessibilityLabel={strings.pets.photo}
-            placeholder={<Skeleton width={spacing.xxl} height={spacing.xxl} active={active} />} />
-        </View>}
+        {completion.photo_asset_id !== null && <PhotoProofThumbnail assetId={completion.photo_asset_id}
+          active={active} {...(onOpenPhoto === undefined ? {} : { onOpen: onOpenPhoto })} />}
       </>}
   </View>;
 });

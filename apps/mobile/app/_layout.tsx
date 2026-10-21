@@ -71,6 +71,7 @@ function Navigation(): ReactElement {
         <Stack.Screen name="task/[id]/edit" options={{ presentation: 'modal', headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="tasks/index" options={{ headerShown: true, title: strings.tasks.heading }} />
         <Stack.Screen name="camera" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="photo/[id]" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="settings/password" options={{ headerShown: true, title: strings.settings.password }} />
         <Stack.Screen name="settings/family" options={{ headerShown: true, title: strings.settings.family }} />
         <Stack.Screen name="settings/diagnostics" options={{ headerShown: true, title: strings.settings.diagnostics }} />
