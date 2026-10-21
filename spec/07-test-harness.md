@@ -48,6 +48,8 @@ A **release** (P8-7) needs the strict `pnpm verify` to exit 0, every task
 |---|---|---|
 | `vectors` | `node scripts/validate-vectors.mjs` | orchestrator (exists) |
 | `spec-refs` | `node scripts/check-spec.mjs` — every cited requirement, ADR, task and invariant exists; no task depends on a later one | orchestrator (exists) |
+| `content` | `node scripts/guard-content.mjs --all` — §13 | P5-10 |
+| `motion` | `node scripts/guard-motion.mjs` — no motion number outside `ui/motion/tokens.ts` (`06` §3) | orchestrator (P7-1) |
 | `lint:shared` | `pnpm -C packages/shared run lint` | P0-3 |
 | `typecheck:shared` | `pnpm -C packages/shared exec tsc --noEmit` | P0-3 |
 | `test:shared` | `pnpm -C packages/shared run test` (= `vitest run --coverage`) | P0-3 |
