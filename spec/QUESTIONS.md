@@ -1741,3 +1741,11 @@ or supplies an environment in which the unchanged test passes, then the
 remaining P5-13 gates resume. Is that the intended boundary?
 **Blocking:** yes. The owner prohibited commits and checkbox changes in
 this session; this question is appended without a commit as instructed.
+**Answer (2026-10-20, orchestrator):** the boundary is right, and the
+defect is the P5-14 R2 test, not P5-13. On an idle machine the
+satellite case takes 34 s of its 60 s budget, because it steps the
+frame clock 16 ms at a time to the first scheduled satellite. In the
+full parallel suite it times out every run. It is fixed as a P5-14 R2
+follow-up: the test reaches the window quickly and keeps its three
+checks (hidden before, visible during, hidden after). P5-13's gates
+resume after that commit, on an idle machine.
