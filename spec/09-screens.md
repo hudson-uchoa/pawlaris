@@ -238,8 +238,10 @@ creation), sexo, raça `pet-breed`, pelagem `pet-coat`, cor no app
   of §4.2.1 for the chosen species; **Outra…** turns the field into free
   text. Until a species is chosen they are disabled.
 - **Cor no app** is a row of the eight identity swatches (`06` §2), each a
-  44 dp target labelled with the body's name; none selected means the
-  derived identity, shown as the preview *(R2.13)*.
+  44 dp target labelled with the body's name from `strings.ts`: Polaris,
+  Antares, Aurora, Sol, Nebulosa, Netuno, Marte, Andrômeda, in palette
+  order; none selected means the derived identity, shown as the preview
+  *(R2.13)*.
 **Salvar** `pet-save` → `createPet` / `patchPet` → close. Validation is local
 and inline: "Informe o nome."
 
