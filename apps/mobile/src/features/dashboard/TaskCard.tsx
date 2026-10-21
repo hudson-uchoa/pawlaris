@@ -22,6 +22,7 @@ import { CompletionAttribution } from './CompletionAttribution';
 import { PetAvatar } from './PetAvatar';
 import { PetToggle, type PetToggleProps } from './PetToggle';
 import { UndoCompletionSheet } from './UndoCompletionSheet';
+import type { PhotoProofTarget } from './types';
 
 export interface TaskCardProps {
   item: DayViewItem;
@@ -35,6 +36,8 @@ export interface TaskCardProps {
     mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion'>;
   };
   onOpenTask?: (taskId: string) => void;
+  onPhotoRequired?: (target: PhotoProofTarget) => void;
+  onOpenPhoto?: (assetId: string) => void;
   onHoldInGroup?: (taskId: string, occurrenceKey: string) => void;
   onMoveToDone?: (taskId: string, occurrenceKey: string) => void;
 }

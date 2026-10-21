@@ -6,6 +6,12 @@ import type { Mutations } from '../../sync/mutations';
 
 export type DashboardScope = DayViewInput['scope'];
 
+export interface PhotoProofTarget {
+  taskId: string;
+  occurrenceKey: string;
+  petId: string | null;
+}
+
 export interface DashboardServices {
   clock: Clock;
   mutations: Pick<Mutations, 'createCompletion' | 'undoCompletion'>;
