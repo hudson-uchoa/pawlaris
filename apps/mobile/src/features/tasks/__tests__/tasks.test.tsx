@@ -1,4 +1,4 @@
-import { classifyTaskEdit, validateTask, type TaskTemplate } from '@pawlaris/shared';
+import { classifyTaskEdit, identityIndexForId, validateTask, type TaskTemplate } from '@pawlaris/shared';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import { AssetFilesProvider } from '../../../assets/useAssetFile';
@@ -7,6 +7,8 @@ import { strings } from '../../../i18n/strings';
 import { ReplicaProvider } from '../../../replica/useReplica';
 import { queued } from '../../../sync/__tests__/support';
 import * as ReduceMotion from '../../../ui/motion/useReduceMotion';
+import * as Theme from '../../../ui/theme';
+import { dark, identity, light } from '../../../ui/tokens/color';
 import { TaskFormScreen } from '../TaskFormScreen';
 import { TasksListScreen } from '../TasksListScreen';
 import { taskContext, type TaskContext } from './support';
@@ -71,6 +73,20 @@ function expectNoWrites(c: TaskContext) {
   expect(c.outbox.count()).toBe(0);
   expect(c.onClose).not.toHaveBeenCalled();
 }
+
+test.each(['light', 'dark'] as const)('R2.13 task pet chip uses the chosen identity in %s', async (scheme) => {
+  jest.spyOn(Theme, 'useTheme').mockReturnValue({ scheme, color: scheme === 'dark' ? dark : light });
+  const c = await scene();
+  const petId = c.ids.uuid();
+  const derived = identity[identityIndexForId(petId)] ?? identity[0];
+  const chosen = identity[(identityIndexForId(petId) + 1) % identity.length] ?? identity[0];
+  expect(chosen[scheme]).not.toBe(derived[scheme]);
+  const pet = c.seedPet({ id: petId, identity_color: chosen.key });
+  await paint(c, form(c));
+  const chip = within(screen.getByTestId('task-pets')).getByRole('button', { name: pet.name });
+  expect(within(chip).getByRole('image', { name: pet.name, includeHiddenElements: true }))
+    .toHaveStyle({ backgroundColor: chosen[scheme] });
+});
 
 test('R3.5 medication presets per-pet and critical and creates locally', async () => {
   const c = await scene();
