@@ -1322,7 +1322,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   another day's view; the still fallback under reduce motion.
   **Gate:** `pnpm -C apps/mobile exec jest src/features/dashboard`
 
-- [~] **P5-10 — Repository content audit**
+- [x] **P5-10 — Repository content audit**
   **Depends:** P5-9 · **Read:** `07` §13 · `05` ADR-041
   **Build:** `docs/audits/P5.md`, from reading every tracked file (this first audit covers P0
   to P5)
