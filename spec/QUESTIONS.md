@@ -1779,3 +1779,24 @@ then [today − 90, today − 61]. The oldest is today − 90, the same limit
 as R3.15. Each page still stops at the template's own `starts_on`.
 `09` §5.3 now says so. Adjust the red tests' window before the red
 commit.
+
+## Q-59 — P5-6 — Which occurrence and pet do the timer controls target?
+**Asked:** 2026-10-21
+**Where:** spec/09-screens.md sections 3.3 and 5.3;
+spec/08-tasks.md P5-6; spec/03-data-model.md section 6.
+**Problem:** The detail screen has one timer section with Start and Cancel,
+but a template may have several occurrences today and use per-pet mode.
+A timer stores an occurrence_key and an optional pet_id. Neither the detail
+controls nor the card's long-press specify how to choose among these targets,
+or what detail should target when there is no occurrence today.
+**I would assume:** For a together template with exactly one occurrence
+today, both entry points target that occurrence with pet_id null. Keep
+the RED integration cases within that unambiguous situation, isolated in
+the scene helper in apps/mobile/src/features/tasks/__tests__/timer.test.tsx.
+For multiple slots or pets, I would expect an explicit target choice rather
+than silently choosing one; please specify that interaction and the empty
+day state before GREEN implements those cases.
+**Blocking:** no for RED only. The tests cover the single-occurrence
+together case, including both date-only and timed occurrence keys. No
+selection policy is implemented, no task checkbox changes, and no commit
+is made, as directed by the owner.
