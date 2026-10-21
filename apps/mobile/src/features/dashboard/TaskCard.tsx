@@ -180,7 +180,7 @@ export const TaskCard = memo(function TaskCard({ item, members, viewerId, date, 
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
       {onOpenTask === undefined && !canStartTimer ? body : <PressableScale accessibilityLabel={item.title}
         onPress={openTask} onLongPress={canStartTimer ? startTimer : undefined}
-        active={active} style={{ flex: 1, minWidth: 0 }}>{body}</PressableScale>}
+        active={active} style={{ flex: 1 }}>{body}</PressableScale>}
       {item.mode === 'together' && done?.photo_asset_id !== undefined && done.photo_asset_id !== null
         && <PhotoProofThumbnail assetId={done.photo_asset_id} active={active}
           {...(onOpenPhoto === undefined ? {} : { onOpen: onOpenPhoto })} />}
