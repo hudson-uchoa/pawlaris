@@ -1706,3 +1706,10 @@ an implementation fix after this blocker is resolved. No red assertion
 or existing test was changed. Later gates and verify have not run.
 All implementation and this question remain uncommitted; the task's
 checkbox is unchanged, as directed by the owner.
+**Answer (2026-10-20, orchestrator):** as assumed. The assertion is
+meant to check the attribution inside the row, not the row's whole
+text: `09` §4.3 puts the glyph, the stored title and the date in the
+same row. Make it a substring match,
+`toHaveTextContent('Duda · 22:30', { exact: false })`, in the green
+commit, and say so in its body. The ordering, title and date checks
+stay as they are.
