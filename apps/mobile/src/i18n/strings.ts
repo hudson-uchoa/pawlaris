@@ -5,6 +5,14 @@ export const strings = {
   appName: 'Pawlaris',
   dismiss: 'Fechar',
   walks: {
+    startWithDog: (name: string): string => `Passear com a ${name}`,
+    start: 'Iniciar passeio',
+    noDogs: 'Nenhum cachorro cadastrado.',
+    resumeWalk: 'Continuar passeio',
+    interrupted: 'Passeio interrompido',
+    routeUnavailable: 'Rota disponível quando houver conexão.',
+    banner: (walker: string, pet: string, time: string): string =>
+      `${walker} está passeando com a ${pet} desde ${time}`,
     ongoingNotificationTitle: 'Passeio em andamento',
     signalGood: 'sinal bom',
     signalWeak: 'sinal fraco',
