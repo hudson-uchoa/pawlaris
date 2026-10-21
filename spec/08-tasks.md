@@ -1456,7 +1456,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   that hosts a `Starfield`.
   **Gate:** `node scripts/guard-motion.mjs` · `pnpm -C apps/mobile exec jest src/ui`
 
-- [~] **P7-2 — Both themes and accessibility audit**
+- [x] **P7-2 — Both themes and accessibility audit**
   **Depends:** P7-1 · **Read:** `06` §2 · `00` P9
   **Build:** fix every screen for the light and the dark theme, 130% font scale,
   44 dp targets, labels and roles. `scripts/guard-colors.mjs` fails on a hex or
