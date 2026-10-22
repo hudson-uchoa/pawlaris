@@ -51,6 +51,15 @@ test('R5.8 missing, stale, duplicate, wrong-name and invalid-clock observations 
   assert.throws(() => measurement.observe('Tester A · 08:02'), /observation/);
 });
 
+test('R5.8 rejects the right name when the completion time is missing or malformed', () => {
+  for (const label of ['Tester A · ', 'Tester A · 8:5', 'Tester A · 08:12 extra']) {
+    const measurement = createMeasurement('Tester A', () => 100);
+    measurement.start();
+    assert.throws(() => measurement.observe(label), /time/);
+    assert.throws(() => measurement.result(), /observation/);
+  }
+});
+
 function fake({ elapsed = 1000, fail, missing = false } = {}) {
   const commands = [], lines = [];
   let closed = false;
