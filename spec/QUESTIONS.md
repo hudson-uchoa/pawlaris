@@ -1889,3 +1889,22 @@ named `duration.meteor`, `starBurst`, `shockwave`, `celebration`,
 `ui/tokens/cosmos.ts` keeps its geometry and takes its timings from
 there. `06` §3 now lists every duration and hold the app uses, and
 says that the guard scans all of `apps/mobile`, tests included.
+
+## Q-63 — P7-4 — How should a retained activity's warm start be measured?
+**Asked:** 2026-10-22
+**Where:** spec/06-ux-motion-spec.md sections 1.1 and 1.2;
+spec/07-test-harness.md section 9; apps/mobile/src/perf/marker.ts.
+**Problem:** The warm-start budget is median < 500 ms, but the scripted
+startup method force-stops the process and its ready marker fires only once
+per launch. Returning from Home to the retained dashboard emits no marker.
+Android's am start -W duration alone does not prove dashboard readiness.
+**I would assume:** Keep the specified five-run logcat method for cold
+startup. Measure five retained-activity returns manually from real-phone
+capture frame timestamps, from launcher press to the ready dashboard,
+demonstrating responsiveness immediately afterward. Record timing
+uncertainty and require a finer capture if it crosses the budget. Confine
+this warm-start procedure to docs/evidence/P7-4.md; do not claim am start
+timing as dashboard readiness or change the once-per-launch marker.
+**Blocking:** no. Cold startup, frame, memory and artifact gates are
+implemented independently. All phone evidence remains OWNER. No warm
+measurement or dated performance-results file is produced in the sandbox.
