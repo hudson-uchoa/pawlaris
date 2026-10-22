@@ -1484,8 +1484,8 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 
 - [~] **P7-4 — Performance gates**
   **Depends:** P7-3, H7 · **Read:** `06` §1 · `07` §9 · ADR-028
-  **Build:** `scripts/perf.mjs` with `startup`, `frames <flow>`, `memory`,
-  `bundle` and `apk`; Maestro flows `08-hero-loop.yaml` and
+  **Build:** `scripts/perf.mjs` with `startup`, `startup --warm`,
+  `frames <flow>`, `memory`, `bundle` and `apk`; Maestro flows `08-hero-loop.yaml` and
   `09-dashboard-fling.yaml`; a seed action in Diagnostics, compiled in only when
   `EXPO_PUBLIC_PERF_SEED=1` (so it exists in a release build made for this
   measurement and in no other), that fills the replica with 90 occurrences.

@@ -554,7 +554,8 @@ the pipeline.
 
 ## 9. Performance and latency *(ADR-028, ADR-032)*
 
-`scripts/perf.mjs startup | frames <flow> | memory | bundle | apk`, budgets and
+`scripts/perf.mjs startup [--warm] | frames <flow> | memory | bundle | apk`,
+budgets and
 method in `06` §1. Results are written to `docs/evidence/perf-<date>.md`.
 
 Server latency *(R5.9)* is measured against the box by `scripts/latency.mjs`: it

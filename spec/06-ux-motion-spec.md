@@ -35,6 +35,9 @@ and emulators are not evidence. Method: `scripts/perf.mjs` (§1.2).
 | Light | Memory, dashboard idle for 30 s (total PSS) | ≤ 300 MB |
 | Light | JS thread while nothing is touched | idle — no per-frame JavaScript, ever |
 
+Sizes are binary: 1 MB is 2^20 bytes, the unit `dumpsys meminfo` reports
+memory in, so the bundle, APK and memory budgets use one unit.
+
 ### 1.2 The measuring script
 
 `scripts/perf.mjs` (Node built-ins + `adb`, written in task P7-4):
@@ -45,6 +48,13 @@ and emulators are not evidence. Method: `scripts/perf.mjs` (§1.2).
   Report `t1 − t0`. Five runs; the median must be under budget. The app emits
   the marker once per launch, from the dashboard's first `onLayout` that has
   data (or the empty state), via `console.log`.
+- **startup --warm** *(Q-63)*: launch, wait for the marker, then five times:
+  `adb shell input keyevent KEYCODE_HOME`, wait 2 s, `adb shell am start -W -n
+  <activity>`, and read `LaunchState` and `TotalTime`. A run whose
+  `LaunchState` is `COLD` is invalid and fails the measurement. The activity
+  is retained with its React tree mounted, so the first frame `TotalTime`
+  ends on is the dashboard as it was left. The median of the five must be
+  under budget.
 - **frames `<flow>`:** `adb shell dumpsys gfxinfo <pkg> reset`; run a Maestro
   flow; `adb shell dumpsys gfxinfo <pkg>`; parse `Janky frames: N (P%)` and the
   percentile lines.

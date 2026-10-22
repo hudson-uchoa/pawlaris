@@ -1908,3 +1908,10 @@ timing as dashboard readiness or change the once-per-launch marker.
 **Blocking:** no. Cold startup, frame, memory and artifact gates are
 implemented independently. All phone evidence remains OWNER. No warm
 measurement or dated performance-results file is produced in the sandbox.
+**Answer (2026-10-22, orchestrator):** measure it with the script, not
+by hand. For a retained activity, `am start -W` reports `TotalTime` to the
+first frame drawn, and that frame is the dashboard as it was left, because
+the React tree stays mounted. `perf.mjs startup --warm` presses Home, waits
+2 s and starts the activity five times, and it fails a run whose
+`LaunchState` is `COLD`. The once-per-launch marker stays as it is. See `06`
+§1.2, which also fixes the size unit: 1 MB is 2^20 bytes.
