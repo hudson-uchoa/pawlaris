@@ -49,6 +49,10 @@ const GATES = [
     requires: 'scripts/guard-strings.mjs',
     cmd: 'node scripts/guard-strings.mjs' },
 
+  { id: 'test:harness',     group: 'test',      task: 'P7-5', spec: '07 §1.2, §8',
+    requires: 'scripts/maestro-selectors.test.mjs',
+    cmd: 'node --test "scripts/*.test.mjs"' },
+
   // ---- packages/shared --------------------------------------------------
   { id: 'lint:shared',      group: 'lint',      task: 'P0-3', spec: '07 §2 / RC-2',
     requires: 'packages/shared/package.json',
