@@ -34,6 +34,7 @@ export interface DiagnosticsServices {
   checkHealth(): Promise<boolean>;
   selfTest(): SelfTestResult;
   rebuild(): Promise<void>;
+  seedPerformance?: () => void;
 }
 
 export interface DiagnosticsScreenProps {
