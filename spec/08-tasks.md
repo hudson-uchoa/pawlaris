@@ -1495,7 +1495,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   met; results in `docs/evidence/perf-<date>.md`. A missed budget is a failure:
   fix it or raise it in `QUESTIONS.md`; do not adjust the number.
 
-- [ ] **P7-5 — E2E flows**
+- [~] **P7-5 — E2E flows**
   **Depends:** P7-3, H7 · **Read:** `07` §8
   **Build:** flows 01–07 and the two-device pair; `scripts/e2e-two-device.mjs`;
   `docs/e2e.md` (how to seed a test family on the dev API and run everything).
