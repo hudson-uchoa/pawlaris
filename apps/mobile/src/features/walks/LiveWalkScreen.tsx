@@ -129,7 +129,7 @@ export function LiveWalkScreen({ services, active: focused, onFinished, onDiscar
       </ScrollView>
     </>}
     <Sheet visible={sheet} active={active} testID="walk-finish-sheet"
-      accessibilityLabel={strings.walks.finishTitle} dismissLabel={strings.dashboard.cancel}
+      accessibilityLabel={strings.walks.finishTitle} dismissLabel={strings.dismiss}
       onDismiss={() => { if (!action.current) setSheet(false); }}>
       <Text variant="heading">{strings.walks.finishTitle}</Text>
       {trivial && <Button testID="walk-discard" label={strings.walks.discard}

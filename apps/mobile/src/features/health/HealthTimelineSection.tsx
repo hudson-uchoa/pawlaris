@@ -3,9 +3,12 @@ import { View } from 'react-native';
 import { formatMonth } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { useReplica } from '../../replica/useReplica';
+import { EmptyHealth } from '../../ui/cosmos/illustrations/EmptyHealth';
 import { Button } from '../../ui/primitives/Button';
+import { EmptyState } from '../../ui/primitives/EmptyState';
 import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
+import { illustrations } from '../../ui/tokens/cosmos';
 import { spacing } from '../../ui/tokens/spacing';
 import { HealthCareTimelineItem } from './HealthCareTimelineItem';
 import { HealthTimelineItem } from './HealthTimelineItem';
@@ -28,7 +31,10 @@ export function HealthTimelineSection({ petId, active, onAdd, onOpen, onOpenTask
   if (family === null) return <Skeleton width={spacing.xxl * 4} height={spacing.xxl * 2} active={active} />;
   return <View testID="pet-health" style={{ gap: spacing.sm }}>
     <Text variant="heading" accessibilityRole="header">{strings.health.heading}</Text>
-    {months.map(({ month, entries }) => <View key={month} testID={`health-month-${month}`} style={{ gap: spacing.sm }}>
+    {months.length === 0 ? <EmptyState title={strings.health.emptyTitle} active={active}
+      illustration={<EmptyHealth width={illustrations.width} height={illustrations.height} active={false} />}
+      action={{ testID: 'health-add', label: strings.health.add, accessibilityLabel: strings.health.add, onPress: onAdd }} />
+      : <>{months.map(({ month, entries }) => <View key={month} testID={`health-month-${month}`} style={{ gap: spacing.sm }}>
       <Text variant="label" accessibilityRole="header">{formatMonth(month)}</Text>
       {entries.map((entry) => entry.kind === 'event'
         ? <HealthTimelineItem key={`event:${entry.event.id}`} event={entry.event}
@@ -38,6 +44,7 @@ export function HealthTimelineSection({ petId, active, onAdd, onOpen, onOpenTask
     </View>)}
     <Button testID="health-add" label={strings.health.add} accessibilityLabel={strings.health.add}
       active={active} onPress={onAdd} />
+    </>}
     <Button testID="health-schedule" label={strings.health.scheduleTreatment} accessibilityLabel={strings.health.scheduleTreatment}
       active={active} onPress={() => { onSchedule?.(); }} />
   </View>;

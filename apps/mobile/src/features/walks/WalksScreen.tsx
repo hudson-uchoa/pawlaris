@@ -4,13 +4,16 @@ import { FlatList, View } from 'react-native';
 import { formatFullDate, formatWalkSummary } from '../../i18n/format';
 import { strings } from '../../i18n/strings';
 import { useReplica } from '../../replica/useReplica';
+import { EmptyWalks } from '../../ui/cosmos/illustrations/EmptyWalks';
 import { useAnimationActive } from '../../ui/motion/useAnimationActive';
 import { Button } from '../../ui/primitives/Button';
+import { EmptyState, type EmptyStateProps } from '../../ui/primitives/EmptyState';
 import { PressableScale } from '../../ui/primitives/PressableScale';
 import { Sheet } from '../../ui/primitives/Sheet';
 import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
+import { illustrations } from '../../ui/tokens/cosmos';
 import { spacing } from '../../ui/tokens/spacing';
 import { useNow } from '../dashboard/useNow';
 import type { LocationState } from '../../walks/permissions';
@@ -52,20 +55,24 @@ export function WalksScreen({ services, active: focused, locationState, onStart,
     && (walk.status === 'finished' || (walk.status === 'active' && walk.user_id !== user?.id
       && now - Date.parse(walk.started_at) > 12 * 3_600_000)))
     .sort((a, b) => b.started_at.localeCompare(a.started_at));
+  const walkAction: EmptyStateProps['action'] = resumable
+    ? { testID: 'walk-resume', label: strings.walks.resumeWalk,
+      accessibilityLabel: strings.walks.resumeWalk, disabled: !active, onPress: onResume }
+    : dogs.length === 0 ? undefined : { testID: 'walk-start', label: startLabel,
+      accessibilityLabel: startLabel, disabled: !active || locationState !== 'granted', onPress: () => {
+        const dog = dogs[0];
+        if (dogs.length === 1 && dog !== undefined) onStart(dog.id);
+        else setPicker(true);
+      } };
   return <View style={{ flex: 1, backgroundColor: color.bg }}>
     <FlatList testID="walk-history" data={history} keyExtractor={(walk) => walk.id}
       contentContainerStyle={{ padding: spacing.md, gap: spacing.md }}
       ListHeaderComponent={<View style={{ gap: spacing.md }}>
-        {resumable ? <Button testID="walk-resume" label={strings.walks.resumeWalk}
-          accessibilityLabel={strings.walks.resumeWalk} active={active} disabled={!active} onPress={onResume} />
-          : dogs.length === 0 ? <Text>{strings.walks.noDogs}</Text>
-            : <Button testID="walk-start" label={startLabel}
-            accessibilityLabel={startLabel} active={active} disabled={!active || locationState !== 'granted'}
-            onPress={() => {
-              const dog = dogs[0];
-              if (dogs.length === 1 && dog !== undefined) onStart(dog.id);
-              else setPicker(true);
-            }} />}
+        {history.length === 0 ? <EmptyState title={strings.walks.emptyTitle} active={active}
+          illustration={<EmptyWalks width={illustrations.width} height={illustrations.height} active={active} />}
+          {...(walkAction === undefined ? {} : { action: walkAction })} />
+          : walkAction !== undefined && <Button {...walkAction} active={active} />}
+        {!resumable && dogs.length === 0 && <Text>{strings.walks.noDogs}</Text>}
         {locationState === null
           ? <Skeleton testID="walk-permission-loading" width={spacing.xxl * 5} height={spacing.xxl} active={active} />
           : <PermissionGate state={locationState} active={active} onRequest={onRequestLocation}
@@ -91,7 +98,7 @@ export function WalksScreen({ services, active: focused, locationState, onStart,
         </>}
       </View>} />
     <Sheet testID="walk-dog-picker" visible={picker} active={active}
-      accessibilityLabel={strings.walks.start} dismissLabel={strings.dashboard.cancel}
+      accessibilityLabel={strings.walks.start} dismissLabel={strings.dismiss}
       onDismiss={() => { setPicker(false); }}>
       {dogs.map((dog) => <Button key={dog.id} label={dog.name} accessibilityLabel={dog.name}
         active={active} disabled={!active || locationState !== 'granted'} onPress={() => {
