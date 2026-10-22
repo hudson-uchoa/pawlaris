@@ -56,7 +56,7 @@ function near(actual: number[], expected: number[], tolerance = 4) {
     .toBeLessThanOrEqual(tolerance));
 }
 
-function rgb(hex: string) {
+function channels(hex: string) {
   return [1, 3, 5].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
 }
 
@@ -79,14 +79,14 @@ test.each([
     for (const [dx, dy] of [[0, 0], [0, -0.7], [0.7, 0], [0, 0.7], [-0.7, 0]]) {
       const x = toe.x + toe.radius * ((dx ?? 0) * Math.cos(angle) - (dy ?? 0) * Math.sin(angle));
       const y = toe.y + toe.radius * ((dx ?? 0) * Math.sin(angle) + (dy ?? 0) * Math.cos(angle));
-      near(at(x, y), mono ? [255, 255, 255, 255] : [...rgb(dark.star), 255]);
+      near(at(x, y), mono ? [255, 255, 255, 255] : [...channels(dark.star), 255]);
     }
   }
   // Interior pad samples pin its vertical gradient and exclude a gold pad.
   for (const y of [280, 340, 400]) {
     const fraction = (y - 262) / (430 - 262);
-    const bottom = rgb(dark.padBottom);
-    const expected = rgb(dark.padTop).map((top, index) => top + fraction * ((bottom[index] ?? 0) - top));
+    const bottom = channels(dark.padBottom);
+    const expected = channels(dark.padTop).map((top, index) => top + fraction * ((bottom[index] ?? 0) - top));
     near(at(256, y), mono ? [255, 255, 255, 255] : [...expected, 255]);
   }
 });
