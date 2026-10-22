@@ -10,6 +10,7 @@ export const strings = {
     startWithDog: (name: string): string => `Passear com a ${name}`,
     start: 'Iniciar passeio',
     noDogs: 'Nenhum cachorro cadastrado.',
+    emptyTitle: 'Nenhum passeio registrado.',
     resumeWalk: 'Continuar passeio',
     interrupted: 'Passeio interrompido',
     routeUnavailable: 'Rota disponível quando houver conexão.',
@@ -312,6 +313,7 @@ export const strings = {
   },
   health: {
     heading: 'Saúde',
+    emptyTitle: 'Nada registrado ainda.',
     add: 'Adicionar',
     scheduleTreatment: 'Agendar tratamento',
     title: 'Título',
