@@ -1915,3 +1915,24 @@ the React tree stays mounted. `perf.mjs startup --warm` presses Home, waits
 2 s and starts the activity five times, and it fails a run whose
 `LaunchState` is `COLD`. The once-per-launch marker stays as it is. See `06`
 §1.2, which also fixes the size unit: 1 MB is 2^20 bytes.
+
+## Q-64 — P7-5 — Which missing selectors may the E2E flows use?
+**Asked:** 2026-10-22
+**Where:** spec/09-screens.md sections 3.3, 4.2, 5.1 and 5.4;
+spec/07-test-harness.md section 8.
+**Problem:** The flows must select by testID, but the dog species option,
+interval increment, current completion attribution, upload state and sync
+state have no selectable IDs. Tab icons are hidden from accessibility;
+the tab buttons themselves need IDs. Their parent IDs do not distinguish choices
+or states. The task form's selected-pet chip also has no ID.
+**I would assume:** Add only selector attributes and optional testID
+plumbing. Confine their proposed names to
+apps/mobile/src/features/shell/e2eIDs.ts. Keep every existing spec ID.
+Use task detail on both phones so collapsed dashboard sections cannot hide
+the observation. A local Node HTTP coordinator releases A immediately
+before its tap only after B is ready. Measure until B copies the current
+attribution and reports the expected name. This conservative upper bound
+includes interaction overhead, excludes CLI startup, and passes at 3000 ms
+but fails above it. Both Maestro processes must also succeed.
+**Blocking:** no. Proceed on this assumption; all real-phone runs remain
+OWNER. No screen behaviour, copy or data writes are changed.
