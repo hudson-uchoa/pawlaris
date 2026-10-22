@@ -1,0 +1,22 @@
+appId: app.pawlaris
+name: Login and hydrate the test family
+---
+# Start signed out. EMAIL and PASSWORD are supplied locally, never in this file.
+- launchApp
+- tapOn:
+    id: login-email
+- inputText: ${EMAIL}
+- tapOn:
+    id: login-password
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: login-submit
+- extendedWaitUntil:
+    visible:
+      id: dashboard
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: sync-state-synced-0
+    timeout: 15000

@@ -13,6 +13,7 @@ import { useTheme } from '../../ui/theme';
 import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
 import { shell } from './tokens';
+import { e2eIDs } from './e2eIDs';
 
 export type SyncIndicatorProps = {
   connection: ConnectionObservable;
@@ -43,7 +44,8 @@ export function SyncIndicator({ connection, active }: SyncIndicatorProps): React
     + (status === 'syncing' && outboxCount > 0 ? ` (${outboxCount})` : '')
     + (status !== 'offline' && server === 'reserve' ? strings.sync.reserveSuffix : '');
   const ink = status === 'offline' ? color.textMuted : status === 'synced' ? color.success : color.star;
-  return <View testID="sync-indicator" accessible accessibilityLabel={label}
+  return <View testID={e2eIDs.syncState(status, outboxCount)} collapsable={false}>
+    <View testID="sync-indicator" accessible accessibilityLabel={label}
     style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
     <View accessible={false} importantForAccessibility="no-hide-descendants"
       style={{ width: shell.syncSize, height: shell.syncSize }}>
@@ -58,5 +60,5 @@ export function SyncIndicator({ connection, active }: SyncIndicatorProps): React
       }, dotStyle]} />}
     </View>
     <Text variant="caption" color={status === 'offline' ? 'textMuted' : 'text'}>{label}</Text>
-  </View>;
+  </View></View>;
 }

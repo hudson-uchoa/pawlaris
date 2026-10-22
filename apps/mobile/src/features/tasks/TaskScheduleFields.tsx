@@ -8,6 +8,7 @@ import { Chip } from '../../ui/primitives/Chip';
 import { SegmentedControl } from '../../ui/primitives/SegmentedControl';
 import { Text } from '../../ui/primitives/Text';
 import { spacing } from '../../ui/tokens/spacing';
+import { e2eIDs } from '../shell/e2eIDs';
 import { TaskDateField } from './TaskDateTimePicker';
 
 const weekdays = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'] as const;
@@ -49,7 +50,7 @@ export function TaskScheduleFields({ recurrence, startsOn, timezone, active, dis
           disabled={disabled || recurrence.interval <= 1} onPress={() => {
             if (!disabled && recurrence.interval > 1) onChange({ ...recurrence, interval: recurrence.interval - 1 });
           }} />
-        <Button label={strings.tasks.increase} accessibilityLabel={strings.tasks.increaseInterval} active={active}
+        <Button testID={e2eIDs.intervalIncrease} label={strings.tasks.increase} accessibilityLabel={strings.tasks.increaseInterval} active={active}
           disabled={disabled || recurrence.interval >= 365} onPress={() => {
             if (!disabled && recurrence.interval < 365) onChange({ ...recurrence, interval: recurrence.interval + 1 });
           }} />

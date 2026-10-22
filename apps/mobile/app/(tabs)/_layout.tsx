@@ -6,6 +6,7 @@ import { useApp } from '../../src/appContext';
 import { SyncIndicator } from '../../src/features/shell/SyncIndicator';
 import { SyncToastHost } from '../../src/features/shell/SyncToastHost';
 import { TabBar } from '../../src/features/shell/TabBar';
+import { e2eIDs } from '../../src/features/shell/e2eIDs';
 import { TabIcon, type TabName } from '../../src/features/shell/TabIcon';
 import { strings } from '../../src/i18n/strings';
 import { duration } from '../../src/ui/motion/tokens';
@@ -29,6 +30,7 @@ export default function TabsLayout(): ReactElement {
   }}>
     {(Object.keys(strings.tabs) as TabName[]).map((name) => <Tabs.Screen key={name} name={name} options={{
       title: strings.tabs[name], tabBarAccessibilityLabel: strings.tabs[name],
+      tabBarButtonTestID: e2eIDs.tab(name),
       headerShown: name !== 'index',
       tabBarLabel: ({ focused: selected }) => <Text variant="caption" color={selected ? 'star' : 'textMuted'}>{strings.tabs[name]}</Text>,
       tabBarIcon: ({ focused: selected }) => <TabIcon name={name} focused={selected} active={active} />,

@@ -1,0 +1,49 @@
+appId: app.pawlaris
+name: Keep five offline changes through restart and drain the queue
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# Hoje; exactly five incomplete, all-day, together-mode tasks without photos.
+# Supply the five exact task IDs and today's all-day key from docs/e2e.md.
+- evalScript: ${output.queue = [QUEUE_TASK_1, QUEUE_TASK_2, QUEUE_TASK_3, QUEUE_TASK_4, QUEUE_TASK_5]; output.index = 0}
+- stopApp
+- launchApp
+- assertVisible:
+    id: sync-state-synced-0
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      id: sync-state-offline-0
+    timeout: 15000
+- repeat:
+    times: 5
+    commands:
+      - tapOn:
+          id: 'task-check-${output.queue[output.index]}-${OCCURRENCE_KEY}'
+      - evalScript: ${output.index = output.index + 1}
+- assertVisible:
+    id: sync-state-offline-5
+- stopApp
+- launchApp
+- assertVisible:
+    id: sync-state-offline-5
+- tapOn:
+    id: section-done
+- evalScript: ${output.index = 0}
+- repeat:
+    times: 5
+    commands:
+      - scrollUntilVisible:
+          element:
+            id: 'task-attribution-${output.queue[output.index]}-${OCCURRENCE_KEY}'
+          direction: DOWN
+      - evalScript: ${output.index = output.index + 1}
+- scrollUntilVisible:
+    element:
+      id: sync-state-offline-5
+    direction: UP
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible:
+      id: sync-state-synced-0
+    timeout: 30000

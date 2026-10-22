@@ -1,0 +1,20 @@
+appId: app.pawlaris
+name: Phone B observes the fresh completion with the right author
+---
+- evalScript: ${output.test = json(http.get(COORDINATOR + '/config').body)}
+- assertVisible:
+    id: 'task-check-${output.test.taskId}-${output.test.occurrenceKey}'
+- assertNotVisible:
+    id: 'task-attribution-${output.test.taskId}-${output.test.occurrenceKey}'
+- evalScript: ${output.ready = http.get(COORDINATOR + '/ready').ok}
+- assertTrue: ${output.ready}
+- extendedWaitUntil:
+    visible:
+      id: 'task-attribution-${output.test.taskId}-${output.test.occurrenceKey}'
+    timeout: 3000
+- copyTextFrom:
+    id: 'task-attribution-${output.test.taskId}-${output.test.occurrenceKey}'
+- evalScript: >-
+    ${output.observed = http.post(COORDINATOR + '/observed', {body: JSON.stringify({label: maestro.copiedText})}).ok}
+- assertTrue: ${output.observed}
+- assertTrue: ${maestro.copiedText.indexOf(output.test.completerName + ' ' + String.fromCharCode(183) + ' ') === 0}

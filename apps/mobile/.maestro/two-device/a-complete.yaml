@@ -1,0 +1,17 @@
+appId: app.pawlaris
+name: Phone A completes the prepared occurrence
+---
+# Start on task detail, incomplete on both phones. Never reset the app here.
+- evalScript: ${output.test = json(http.get(COORDINATOR + '/config').body)}
+- assertVisible:
+    id: 'task-check-${output.test.taskId}-${output.test.occurrenceKey}'
+- assertNotVisible:
+    id: 'task-attribution-${output.test.taskId}-${output.test.occurrenceKey}'
+# Blocks until B is also ready; the Node monotonic timer starts on release.
+- evalScript: ${output.started = http.get(COORDINATOR + '/start').ok}
+- assertTrue: ${output.started}
+- tapOn:
+    id: 'task-check-${output.test.taskId}-${output.test.occurrenceKey}'
+    waitToSettleTimeoutMs: 0
+- assertVisible:
+    id: 'task-attribution-${output.test.taskId}-${output.test.occurrenceKey}'

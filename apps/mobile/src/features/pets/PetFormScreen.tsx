@@ -18,6 +18,7 @@ import { Skeleton } from '../../ui/primitives/Skeleton';
 import { Text } from '../../ui/primitives/Text';
 import { TextField } from '../../ui/primitives/TextField';
 import { useTheme } from '../../ui/theme';
+import { e2eIDs } from '../shell/e2eIDs';
 import { identity } from '../../ui/tokens/color';
 import { borderWidth } from '../../ui/tokens/elevation';
 import { radius } from '../../ui/tokens/radius';
@@ -120,7 +121,7 @@ function PetForm({ services, active, onClose, onAvatar, avatarAssetId, pet, lead
     <View testID="pet-species" style={{ gap: spacing.xs }}>
       <Text variant="label">{strings.pets.species}</Text>
       <SegmentedControl accessibilityLabel={strings.pets.species} value={draft.species} disabled={pet !== null} active={active}
-        options={[{ value: 'cat', label: strings.pets.cat }, { value: 'dog', label: strings.pets.dog }]}
+        options={[{ value: 'cat', label: strings.pets.cat }, { value: 'dog', label: strings.pets.dog, testID: e2eIDs.speciesDog }]}
         onValueChange={(value) => {
           if (pet !== null || (value !== 'cat' && value !== 'dog') || value === draft.species) return;
           setDraft((current) => ({ ...current, species: value, breed: '', color: '' }));

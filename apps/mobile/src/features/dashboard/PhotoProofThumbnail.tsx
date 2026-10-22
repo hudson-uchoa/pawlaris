@@ -10,6 +10,7 @@ import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
+import { e2eIDs } from '../shell/e2eIDs';
 
 export function PhotoProofThumbnail({ assetId, active, onOpen }: {
   assetId: string; active: boolean; onOpen?: (assetId: string) => void;
@@ -24,7 +25,8 @@ export function PhotoProofThumbnail({ assetId, active, onOpen }: {
   const { color } = useTheme();
   const label = state === 'to_upload' ? strings.health.photoUploading
     : state === 'failed' ? strings.health.photoFailed : file.status !== 'ready' ? strings.health.photoPending : null;
-  return <View style={{ gap: spacing.xxs, alignItems: 'flex-end', maxWidth: spacing.xxl * 3 }}>
+  return <View testID={e2eIDs.photoState(state)} collapsable={false}
+    style={{ gap: spacing.xxs, alignItems: 'flex-end', maxWidth: spacing.xxl * 3 }}>
     <PressableScale accessibilityLabel={strings.pets.photo} active={active}
       onPress={() => { onOpen?.(assetId); }}
       style={{ width: spacing.xxl + spacing.md, height: spacing.xxl + spacing.md,

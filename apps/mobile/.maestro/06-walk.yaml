@@ -1,0 +1,51 @@
+appId: app.pawlaris
+name: Record a mock-location walk, pause, resume and finish
+---
+# Exactly one dog. Configure real-phone mock location and permissions first.
+# Coordinates are synthetic, near zero, and never the family's route.
+- tapOn:
+    id: tab-walks
+- setLocation:
+    latitude: 0
+    longitude: 0
+- tapOn:
+    id: walk-start
+- assertVisible:
+    id: walk-metrics
+- travel:
+    points:
+      - '0, 0'
+      - '0, 0.0004'
+    speed: 1
+- assertVisible:
+    id: walk-position
+- tapOn:
+    id: walk-pause
+- assertVisible:
+    id: walk-resume-live
+- setLocation:
+    latitude: 0
+    longitude: 0.0005
+- tapOn:
+    id: walk-resume-live
+- travel:
+    points:
+      - '0, 0.0005'
+      - '0, 0.0007'
+    speed: 1
+- assertVisible:
+    id: walk-position
+- tapOn:
+    id: walk-finish
+- tapOn:
+    id: walk-finish-confirm
+- assertVisible:
+    id: walk-map
+- assertNotVisible:
+    id: walk-pause
+- back
+- assertVisible:
+    id: 'walk-row-.*'
+    index: 0
+- tapOn:
+    id: tab-index

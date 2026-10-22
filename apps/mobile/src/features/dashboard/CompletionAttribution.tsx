@@ -10,6 +10,7 @@ import { useReduceMotion } from '../../ui/motion/useReduceMotion';
 import { Text } from '../../ui/primitives/Text';
 import { useTheme } from '../../ui/theme';
 import { identity } from '../../ui/tokens/color';
+import { e2eIDs } from '../shell/e2eIDs';
 
 export const CompletionAttribution = memo(function CompletionAttribution({ completion, member, timezone, active }: {
   completion: Completion;
@@ -52,7 +53,7 @@ export const CompletionAttribution = memo(function CompletionAttribution({ compl
       <Text variant="caption" style={{ color: outgoing.current.color }}>{outgoing.current.label}</Text>
     </Animated.View>}
     <Animated.View style={incomingStyle}>
-      <Text variant="caption" style={{ color: entry[scheme] }}>{label}</Text>
+      <Text testID={e2eIDs.attribution(completion.task_id, completion.occurrence_key)} variant="caption" style={{ color: entry[scheme] }}>{label}</Text>
     </Animated.View>
   </View>;
 });

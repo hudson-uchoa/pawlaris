@@ -25,6 +25,7 @@ import { useTheme } from '../../ui/theme';
 import { borderWidth } from '../../ui/tokens/elevation';
 import { radius } from '../../ui/tokens/radius';
 import { spacing } from '../../ui/tokens/spacing';
+import { e2eIDs } from '../shell/e2eIDs';
 import { TaskDateField, TaskDateTimePicker } from './TaskDateTimePicker';
 import { TaskScheduleFields } from './TaskScheduleFields';
 import type { TaskScreenProps } from './types';
@@ -156,7 +157,7 @@ function TaskForm({ services, active, task, timezone, onClose, initialPetId, ini
         {pets.filter((pet) => pet.archived_at === null).map((pet) => {
           const selected = draft.pet_ids.includes(pet.id);
           const avatar = <Avatar petId={pet.id} identityColor={pet.identity_color} species={pet.species} accessibilityLabel={pet.name} />;
-          return <PressableScale key={pet.id} accessibilityLabel={pet.name} active={active} disabled={!canEdit}
+          return <PressableScale key={pet.id} testID={e2eIDs.taskPet(pet.id)} accessibilityLabel={pet.name} active={active} disabled={!canEdit}
             accessibilityState={{ selected }} onPress={() => {
               if (!canEdit || finished.current) return;
               const petIds = selected ? draft.pet_ids.filter((id) => id !== pet.id) : [...draft.pet_ids, pet.id];

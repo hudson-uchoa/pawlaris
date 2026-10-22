@@ -1,0 +1,59 @@
+appId: app.pawlaris
+name: Create a daily task and fork its schedule
+---
+# Fresh family after flow 04; no templates yet. PET_ID is the new dog's UUID.
+- tapOn:
+    id: task-add
+- tapOn:
+    id: task-title
+- inputText: E2E Care
+- hideKeyboard
+- tapOn:
+    id: 'task-form-pet-${PET_ID}'
+- scrollUntilVisible:
+    element:
+      id: task-save
+    direction: DOWN
+- tapOn:
+    id: task-save
+- assertVisible:
+    id: 'task-card-.*'
+    index: 0
+- tapOn:
+    id: 'task-card-.*'
+    index: 0
+- tapOn:
+    id: task-edit
+- scrollUntilVisible:
+    element:
+      id: task-interval-increase
+    direction: DOWN
+- tapOn:
+    id: task-interval-increase
+- scrollUntilVisible:
+    element:
+      id: task-save
+    direction: DOWN
+- tapOn:
+    id: task-save
+# The old template ends yesterday; its detail has no occurrence for today.
+- assertVisible:
+    id: task-today
+- assertNotVisible:
+    id: 'task-check-.*'
+- back
+# The replacement starts today and has an incomplete occurrence.
+- assertVisible:
+    id: 'task-check-.*'
+    index: 0
+- tapOn:
+    id: day-next
+- assertNotVisible:
+    id: 'task-card-.*'
+- tapOn:
+    id: day-next
+- assertVisible:
+    id: 'task-card-.*'
+    index: 0
+- tapOn:
+    id: day-today

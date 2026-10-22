@@ -1,0 +1,22 @@
+appId: app.pawlaris
+name: Complete an occurrence and undo without losing its identity
+---
+# Hoje, today; TASK_ID is an incomplete together-mode task without photo proof.
+- tapOn:
+    id: 'task-card-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertNotVisible:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- tapOn:
+    id: 'task-check-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertVisible:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- copyTextFrom:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertTrue: ${maestro.copiedText.indexOf(COMPLETER_NAME + ' ' + String.fromCharCode(183) + ' ') === 0}
+- tapOn:
+    id: 'task-check-${TASK_ID}-${OCCURRENCE_KEY}'
+- tapOn:
+    id: undo-confirm
+- assertNotVisible:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- back

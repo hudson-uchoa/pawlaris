@@ -1,0 +1,44 @@
+appId: app.pawlaris
+name: Persist photo proof offline and finish the upload after reconnect
+onFlowComplete:
+  - setAirplaneMode: disabled
+---
+# Hoje, today; TASK_ID requires photo proof. Grant camera permission beforehand.
+- tapOn:
+    id: 'task-card-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertNotVisible:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- setAirplaneMode: enabled
+- extendedWaitUntil:
+    visible:
+      id: sync-state-offline-0
+    timeout: 15000
+- tapOn:
+    id: 'task-check-${TASK_ID}-${OCCURRENCE_KEY}'
+- tapOn:
+    id: camera-shutter
+- tapOn:
+    id: camera-use
+- assertVisible:
+    id: 'task-attribution-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertVisible:
+    id: photo-state-to_upload
+# Restart offline: proof and the queued write must survive process death.
+- stopApp
+- launchApp
+- tapOn:
+    id: section-done
+- tapOn:
+    id: 'task-card-${TASK_ID}-${OCCURRENCE_KEY}'
+- assertVisible:
+    id: photo-state-to_upload
+- setAirplaneMode: disabled
+- extendedWaitUntil:
+    visible:
+      id: photo-state-uploaded
+    timeout: 30000
+- assertNotVisible:
+    id: photo-state-to_upload
+- assertNotVisible:
+    id: photo-retry
+- back

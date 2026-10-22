@@ -6,7 +6,7 @@ import { spacing } from '../tokens/spacing';
 import { PressableScale } from './PressableScale';
 import { Text } from './Text';
 
-export type SegmentOption = { value: string; label: string; disabled?: boolean };
+export type SegmentOption = { value: string; label: string; disabled?: boolean; testID?: string };
 export type SegmentedControlProps = {
   options: readonly SegmentOption[];
   value: string;
@@ -23,7 +23,7 @@ export function SegmentedControl({ options, value, onValueChange, accessibilityL
     {options.map((option) => {
       const checked = option.value === value;
       const unavailable = disabled || option.disabled === true;
-      return <PressableScale key={option.value} accessibilityLabel={option.label} accessibilityRole="radio" active={active}
+      return <PressableScale key={option.value} testID={option.testID} accessibilityLabel={option.label} accessibilityRole="radio" active={active}
         accessibilityState={{ checked, disabled: unavailable }} disabled={unavailable}
         onPress={() => onValueChange(option.value)}
         style={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.sm,

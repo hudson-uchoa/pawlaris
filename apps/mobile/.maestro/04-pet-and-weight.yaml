@@ -1,0 +1,42 @@
+appId: app.pawlaris
+name: Create a dog and record a weight
+---
+# Fresh test family with no pets; this flow creates its only dog.
+- tapOn:
+    id: tab-pets
+- tapOn:
+    id: pet-add
+- tapOn:
+    id: pet-name
+- inputText: E2E Dog
+- hideKeyboard
+- tapOn:
+    id: pet-species-dog
+- scrollUntilVisible:
+    element:
+      id: pet-save
+    direction: DOWN
+- tapOn:
+    id: pet-save
+- tapOn:
+    id: 'pet-card-.*'
+    index: 0
+- tapOn:
+    id: weight-add
+- tapOn:
+    id: weight-value
+- inputText: '12.50'
+- hideKeyboard
+- tapOn:
+    id: weight-save
+- assertVisible:
+    id: weight-latest
+- copyTextFrom:
+    id: weight-latest
+- assertTrue: ${parseFloat(maestro.copiedText.replace(',', '.')) === 12.5}
+- assertVisible:
+    id: 'weight-entry-.*'
+    index: 0
+- back
+- tapOn:
+    id: tab-index
