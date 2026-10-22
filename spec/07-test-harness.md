@@ -52,6 +52,7 @@ A **release** (P8-7) needs the strict `pnpm verify` to exit 0, every task
 | `motion` | `node scripts/guard-motion.mjs` — no motion number outside `ui/motion/tokens.ts` (`06` §3) | orchestrator (P7-1) |
 | `colors` | `node scripts/guard-colors.mjs` — no colour literal outside `ui/tokens/` and `app.config.ts` (`06` §2) | orchestrator (P7-2) |
 | `strings` | `node scripts/guard-strings.mjs` — no JSX text with letters outside `i18n/` (`AGENTS.md` §5) | orchestrator (P7-3) |
+| `test:harness` | `node --test "scripts/*.test.mjs"` — the harness scripts' own tests, including the flow selector check (§8) | orchestrator (P7-5) |
 | `lint:shared` | `pnpm -C packages/shared run lint` | P0-3 |
 | `typecheck:shared` | `pnpm -C packages/shared exec tsc --noEmit` | P0-3 |
 | `test:shared` | `pnpm -C packages/shared run test` (= `vitest run --coverage`) | P0-3 |
@@ -551,6 +552,12 @@ script is what coordinates two.
 Flows select by `testID` only. E2E runs on demand before a release — there is
 no free hosted Android device farm, and pretending otherwise would put a lie in
 the pipeline.
+
+A selector that `09` does not name — a tab button, a choice inside a
+control, an ID that encodes a state such as `sync-state-offline-5` — is
+built in `apps/mobile/src/features/shell/e2eIDs.ts` and nowhere else
+*(Q-64)*. `scripts/maestro-selectors.test.mjs`, run by the `test:harness`
+gate, fails on a flow that selects by text.
 
 ## 9. Performance and latency *(ADR-028, ADR-032)*
 

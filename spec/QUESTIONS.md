@@ -1936,3 +1936,11 @@ includes interaction overhead, excludes CLI startup, and passes at 3000 ms
 but fails above it. Both Maestro processes must also succeed.
 **Blocking:** no. Proceed on this assumption; all real-phone runs remain
 OWNER. No screen behaviour, copy or data writes are changed.
+**Answer (2026-10-22, orchestrator):** as assumed. The flows may use the
+selectors in `apps/mobile/src/features/shell/e2eIDs.ts`, and a selector
+that `09` does not name is added there and nowhere else. They carry no
+copy and change no behaviour. The two-phone timing is the conservative
+upper bound described: the coordinator's clock starts just before A's tap
+and stops when B has read the attribution, so the result can only be
+slower than the sync. `07` §8 records the registry, and `verify` now runs
+the harness tests, including the selector check, as `test:harness`.
