@@ -118,6 +118,8 @@ test('09 section 6.1 CTA with 2 dogs opens a picker before starting the chosen d
   expect(screen.getByTestId('walk-start')).toHaveTextContent(strings.walks.start);
   await fireEvent.press(screen.getByTestId('walk-start'));
   expect(c.onStart).not.toHaveBeenCalled();
+  const dismiss = within(screen.getByTestId('walk-dog-picker')).getByRole('button', { name: strings.dismiss });
+  expect(dismiss).toHaveTextContent(strings.dismiss);
   expect(screen.getByText(first.name)).toBeOnTheScreen();
   expect(screen.getByText(second.name)).toBeOnTheScreen();
   expect(screen.queryByText(archived.name)).toBeNull();

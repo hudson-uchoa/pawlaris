@@ -230,6 +230,7 @@ test('R4.14 09 section 6.2 finish requires confirmation and repeated taps queue 
   expect(s.walks.getLocal()?.id).toBe(s.walk.id);
   const sheet = screen.getByTestId('walk-finish-sheet');
   expect(within(sheet).getByText(strings.walks.finishTitle)).toBeOnTheScreen();
+  expect(within(sheet).getByRole('button', { name: strings.dismiss })).toHaveTextContent(strings.dismiss);
   const confirm = within(sheet).getByTestId('walk-finish-confirm');
   await fireEvent.press(confirm);
   await fireEvent.press(confirm);
