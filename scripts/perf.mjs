@@ -39,7 +39,7 @@ export function parseArguments(args) {
     || (options.serial !== undefined && !/^[\w.:-]+$/.test(options.serial))) {
     throw new Error('Invalid device option');
   }
-  return { mode, flow, serial: options.serial, package: pkg, activity, apk: options.apk };
+  return { mode, flow, serial: options.serial, package: pkg, activity, apk: options.apk, warm: false };
 }
 
 /** @param {string} log @param {string} pkg */
@@ -57,6 +57,11 @@ export function startupMilliseconds(log, pkg) {
     }
   }
   throw new Error('Missing startup START or dashboard marker');
+}
+
+/** @param {string} dump */
+export function activityStartMetrics(dump) {
+  throw new Error('Activity start parser not implemented');
 }
 
 /** @param {string} dump */
