@@ -1,5 +1,8 @@
 import { useEffect, useRef, type ReactElement } from 'react';
-import { CalendarDays, PawPrint, Route, Settings } from 'lucide-react-native';
+import CalendarDays from 'lucide-react-native/icons/calendar-days';
+import PawPrint from 'lucide-react-native/icons/paw-print';
+import Route from 'lucide-react-native/icons/route';
+import Settings from 'lucide-react-native/icons/settings';
 import { View } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';

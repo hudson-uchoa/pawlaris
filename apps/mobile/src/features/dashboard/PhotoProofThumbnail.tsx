@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Image as ImageGlyph } from 'lucide-react-native';
+import ImageGlyph from 'lucide-react-native/icons/image';
 import { useCallback, useContext, useSyncExternalStore, type ReactElement } from 'react';
 import { View } from 'react-native';
 import { AssetFilesContext, useAssetFile } from '../../assets/useAssetFile';

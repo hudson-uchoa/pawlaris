@@ -1,5 +1,6 @@
 import { localDate, splitKey, type DayViewItem, type Member, type Pet, type Completion } from '@pawlaris/shared';
-import { Camera, Clock as ClockIcon } from 'lucide-react-native';
+import Camera from 'lucide-react-native/icons/camera';
+import ClockIcon from 'lucide-react-native/icons/clock';
 import { memo, useCallback, useLayoutEffect, useRef, useState, type ReactElement } from 'react';
 import { View, type LayoutChangeEvent, type LayoutRectangle, useWindowDimensions } from 'react-native';
 import { cancelAnimation, ReduceMotion, useSharedValue, withTiming } from 'react-native-reanimated';

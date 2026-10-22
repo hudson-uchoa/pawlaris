@@ -1,5 +1,5 @@
 import { validateHealthEvent, type FormValidationError, type HealthEvent } from '@pawlaris/shared';
-import { Camera } from 'lucide-react-native';
+import Camera from 'lucide-react-native/icons/camera';
 import { useCallback, useContext, useRef, useState, type ReactElement } from 'react';
 import { View, type TextInput } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';

@@ -1,5 +1,6 @@
 import { localDate } from '@pawlaris/shared';
-import { Pill, Stethoscope } from 'lucide-react-native';
+import Pill from 'lucide-react-native/icons/pill';
+import Stethoscope from 'lucide-react-native/icons/stethoscope';
 import { memo, useCallback, type ReactElement } from 'react';
 import { View } from 'react-native';
 import { formatFullDate } from '../../i18n/format';

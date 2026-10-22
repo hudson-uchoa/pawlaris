@@ -1,5 +1,12 @@
 import { localDate, type HealthEvent } from '@pawlaris/shared';
-import { Activity, FileText, Image as ImageGlyph, Pill, Scissors, Stethoscope, Syringe, type LucideIcon } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import Activity from 'lucide-react-native/icons/activity';
+import FileText from 'lucide-react-native/icons/file-text';
+import ImageGlyph from 'lucide-react-native/icons/image';
+import Pill from 'lucide-react-native/icons/pill';
+import Scissors from 'lucide-react-native/icons/scissors';
+import Stethoscope from 'lucide-react-native/icons/stethoscope';
+import Syringe from 'lucide-react-native/icons/syringe';
 import { memo, useCallback, useContext, useSyncExternalStore, type ReactElement } from 'react';
 import { View } from 'react-native';
 import { AssetImage } from '../../assets/AssetImage';

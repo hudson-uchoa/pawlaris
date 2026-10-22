@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react';
-import { LoaderCircle } from 'lucide-react-native';
+import LoaderCircle from 'lucide-react-native/icons/loader-circle';
 import { useTheme } from '../theme';
 import { radius } from '../tokens/radius';
 import { spacing } from '../tokens/spacing';

@@ -1,5 +1,6 @@
 import { addDays, type DateKey } from '@pawlaris/shared';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import ChevronLeft from 'lucide-react-native/icons/chevron-left';
+import ChevronRight from 'lucide-react-native/icons/chevron-right';
 import { useCallback, type ReactElement } from 'react';
 import { View } from 'react-native';
 import { formatDashboardDay } from '../../i18n/format';

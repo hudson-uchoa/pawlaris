@@ -1,5 +1,6 @@
 import { identityIndexForId, identityIndexForKey } from '@pawlaris/shared';
-import { Cat, Dog } from 'lucide-react-native';
+import Cat from 'lucide-react-native/icons/cat';
+import Dog from 'lucide-react-native/icons/dog';
 import type { ReactElement } from 'react';
 import { Image, View } from 'react-native';
 import { useTheme } from '../theme';
