@@ -1503,7 +1503,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] All flows green on one phone; the two-device script green.
   Evidence: Maestro's output.
 
-- [~] **P7-6 — Repository content audit**
+- [x] **P7-6 — Repository content audit**
   **Depends:** P7-5 · **Read:** `07` §13 · `05` ADR-041
   **Build:** `docs/audits/P7.md`, from reading every file this phase added or changed
   (`git diff --name-only` from P6-6's audit commit)
