@@ -1482,7 +1482,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   outside `i18n/`.
   **Gate:** `node scripts/guard-strings.mjs` · `pnpm verify --only test:mobile`
 
-- [ ] **P7-4 — Performance gates**
+- [~] **P7-4 — Performance gates**
   **Depends:** P7-3, H7 · **Read:** `06` §1 · `07` §9 · ADR-028
   **Build:** `scripts/perf.mjs` with `startup`, `frames <flow>`, `memory`,
   `bundle` and `apk`; Maestro flows `08-hero-loop.yaml` and
