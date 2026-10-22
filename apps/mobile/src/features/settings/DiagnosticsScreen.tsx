@@ -12,7 +12,7 @@ import { exportLogs } from './exportLogs';
 import type { SelfTestResult } from './selfTest';
 import type { DiagnosticsScreenProps } from './types';
 
-type Action = 'sync' | 'selftest' | 'rebuild' | 'export';
+type Action = 'sync' | 'selftest' | 'rebuild' | 'export' | 'perf-seed';
 
 export function DiagnosticsScreen({ services, active }: DiagnosticsScreenProps): ReactElement {
   const connection = services.engine.state;
@@ -114,6 +114,10 @@ export function DiagnosticsScreen({ services, active }: DiagnosticsScreenProps):
     {actions.map(({ action, label, disabled, operation }) => <Button key={action} testID={`diag-${action}`}
       label={label} accessibilityLabel={label} active={active} disabled={disabled || busy !== null}
       loading={busy === action} onPress={() => { run(action, operation); }} />)}
+    {process.env.EXPO_PUBLIC_PERF_SEED === '1' && services.seedPerformance !== undefined &&
+      <Button testID="diag-perf-seed" label={strings.diagnostics.perfSeed}
+        accessibilityLabel={strings.diagnostics.perfSeed} active={active} disabled={busy !== null}
+        onPress={() => { run('perf-seed', async () => { services.seedPerformance?.(); }); }} />}
     {selfTest !== null && <View testID="diag-selftest-result" accessibilityLiveRegion="polite">
       <Text>{strings.settings.selfTestResult(selfTest.passed, selfTest.total)}</Text>
       {selfTest.failures.map((name, index) => <Text key={`${index}:${name}`} color="danger">{name}</Text>)}

@@ -1,0 +1,21 @@
+appId: app.pawlaris
+name: Ten pet hero round trips
+---
+# Start on the Pets grid with at least one visible non-archived pet.
+# perf.mjs resets gfxinfo before this flow; do not launch or reset the app.
+- assertVisible:
+    id: 'pet-card-.*'
+    index: 0
+- repeat:
+    times: 10
+    commands:
+      - tapOn:
+          id: 'pet-card-.*'
+          index: 0
+          waitToSettleTimeoutMs: 500
+      - assertVisible:
+          id: pet-profile
+      - back
+      - assertVisible:
+          id: 'pet-card-.*'
+          index: 0

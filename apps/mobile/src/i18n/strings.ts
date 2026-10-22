@@ -195,6 +195,9 @@ export const strings = {
     forbidden: 'Só uma pessoa líder pode fazer isso.',
   },
   diagnostics: {
+    perfSeed: 'Preparar 90 tarefas de teste',
+    perfPet: 'Pet de teste',
+    perfTask: (index: number): string => `Tarefa de teste ${index}`,
     connection: 'Conexão',
     revision: 'Última revisão sincronizada',
     outbox: 'Alterações pendentes',

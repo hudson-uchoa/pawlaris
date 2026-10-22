@@ -1,0 +1,25 @@
+appId: app.pawlaris
+name: Fling ninety dashboard cards with the sky active
+---
+# Start on Hoje, today, with 90 incomplete occurrences in scope.
+# Keep system animations enabled and Reduce Motion off for this measurement.
+- assertVisible:
+    id: dashboard
+- assertVisible:
+    id: 'task-card-.*'
+    index: 0
+- repeat:
+    times: 10
+    commands:
+      - swipe:
+          start: '50%, 80%'
+          end: '50%, 25%'
+          duration: 200
+          waitToSettleTimeoutMs: 500
+      - swipe:
+          start: '50%, 25%'
+          end: '50%, 80%'
+          duration: 200
+          waitToSettleTimeoutMs: 500
+- assertVisible:
+    id: dashboard

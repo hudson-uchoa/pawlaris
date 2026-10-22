@@ -245,6 +245,12 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
     checkHealth: () => checkDiagnosticsHealth(deps.http, deps.servers, engine.state),
     rebuild: () => rebuildLocalData({ driver, store, clock, engine }),
   };
+  if (process.env.EXPO_PUBLIC_PERF_SEED === '1') {
+    // Expo inlines this flag; Metro removes the require from ordinary builds.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- Keep the seed module behind the compile-time flag.
+    const { seedPerformance } = require('./perf/seed') as typeof import('./perf/seed');
+    diagnostics.seedPerformance = () => { seedPerformance({ driver, clock, store, mutations }); };
+  }
   return {
     db: driver, preferences: kv, store, engine, session, lifecycle, events, clock, marker, assetFiles, logger, sessionUser, mutations,
     camera, photoCapture, familyActions, diagnostics, notifications, notificationPermission, liveWalk, walkRecovery, walkRoutes,
