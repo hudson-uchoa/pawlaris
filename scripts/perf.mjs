@@ -11,7 +11,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const MOBILE = resolve(ROOT, 'apps/mobile');
 const FLOWS = ['08-hero-loop.yaml', '09-dashboard-fling.yaml'];
 const MB = 1024 ** 2;
-const USAGE = 'Usage: perf.mjs startup | frames <flow> | memory | bundle | apk [--apk <file>] '
+const USAGE = 'Usage: perf.mjs startup [--warm] | frames <flow> | memory | bundle | apk [--apk <file>] '
   + '[--serial <serial>] [--package <pkg>] [--activity <pkg/activity>]';
 
 /** @param {string[]} args */
@@ -22,6 +22,11 @@ export function parseArguments(args) {
   for (let index = 0; index < rest.length; index += 1) {
     const arg = rest[index];
     if (!arg.startsWith('--')) { positional.push(arg); continue; }
+    if (arg === '--warm') {
+      if (mode !== 'startup' || options.warm) throw new Error(`Invalid option. ${USAGE}`);
+      options.warm = true;
+      continue;
+    }
     const key = arg.slice(2), value = rest[++index];
     if (!['serial', 'package', 'activity', 'apk'].includes(key) || key in options
       || !value || value.startsWith('--')) throw new Error(`Invalid option. ${USAGE}`);
@@ -39,7 +44,7 @@ export function parseArguments(args) {
     || (options.serial !== undefined && !/^[\w.:-]+$/.test(options.serial))) {
     throw new Error('Invalid device option');
   }
-  return { mode, flow, serial: options.serial, package: pkg, activity, apk: options.apk, warm: false };
+  return { mode, flow, serial: options.serial, package: pkg, activity, apk: options.apk, warm: options.warm ?? false };
 }
 
 /** @param {string} log @param {string} pkg */
@@ -61,7 +66,12 @@ export function startupMilliseconds(log, pkg) {
 
 /** @param {string} dump */
 export function activityStartMetrics(dump) {
-  throw new Error('Activity start parser not implemented');
+  const state = /^LaunchState:[ \t]*(COLD|WARM|HOT)[ \t]*\r?$/m.exec(dump);
+  const time = /^TotalTime:[ \t]*(\d+)[ \t]*\r?$/m.exec(dump);
+  if (!state || !time || !Number.isSafeInteger(Number(time[1]))) {
+    throw new Error('Missing or invalid LaunchState or TotalTime');
+  }
+  return { launchState: state[1], totalTime: Number(time[1]) };
 }
 
 /** @param {string} dump */
@@ -99,7 +109,9 @@ export async function runPerformance(args, sources = productionSources()) {
   };
   if (options.mode === 'startup') {
     const samples = [];
-    for (let run = 0; run < 5; run += 1) {
+    // A warm measurement starts with one fresh launch so its ready marker
+    // cannot be left over from an earlier session.
+    for (let run = 0; run < (options.warm ? 1 : 5); run += 1) {
       await adb('shell', 'am', 'force-stop', options.package);
       await adb('logcat', '-c');
       await adb('shell', 'am', 'start', '-W', '-n', options.activity);
@@ -113,11 +125,26 @@ export async function runPerformance(args, sources = productionSources()) {
         await sources.wait(100);
       }
       if (elapsed === undefined) throw new Error('Timed out waiting for startup dashboard marker');
-      samples.push(elapsed);
-      sources.output(`cold run ${run + 1}: ${elapsed} ms`);
+      if (!options.warm) {
+        samples.push(elapsed);
+        sources.output(`cold run ${run + 1}: ${elapsed} ms`);
+      }
+    }
+    if (options.warm) {
+      for (let run = 0; run < 5; run += 1) {
+        await adb('shell', 'input', 'keyevent', 'KEYCODE_HOME');
+        await sources.wait(2000);
+        const { launchState, totalTime } = activityStartMetrics(
+          await adb('shell', 'am', 'start', '-W', '-n', options.activity));
+        if (launchState === 'COLD') throw new Error(`Warm startup run ${run + 1} has LaunchState COLD`);
+        samples.push(totalTime);
+        sources.output(`warm run ${run + 1}: ${totalTime} ms (${launchState})`);
+      }
     }
     const median = [...samples].sort((a, b) => a - b)[2];
-    return report('cold startup median of 5', `${median} ms`, '< 1500 ms', median < 1500);
+    const budget = options.warm ? 500 : 1500;
+    return report(`${options.warm ? 'warm' : 'cold'} startup median of 5`, `${median} ms`,
+      `< ${budget} ms`, median < budget);
   }
   if (options.mode === 'frames') {
     await adb('shell', 'dumpsys', 'gfxinfo', options.package, 'reset');
