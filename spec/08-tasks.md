@@ -1472,7 +1472,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   **Device:** [ ] Screenshots of every screen in the light theme and in the dark
   theme at 130% font scale.
 
-- [~] **P7-3 — Copy, empty states, icon and splash**
+- [x] **P7-3 — Copy, empty states, icon and splash**
   **Depends:** P7-2 · **Read:** `09` §10 · `06` §4.10, §4.11, §4.12
   **Build:** a full pass of `strings.ts` against `09`; every empty state of `09`
   with its scene; the app icon and the splash, built in P0-9, checked against
