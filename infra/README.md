@@ -38,3 +38,18 @@ P8-2. Do not enable one until its profile is configured and reviewed.
 The API is reachable on the box's loopback at `127.0.0.1:8000` until an ingress
 profile is configured. PostgreSQL is never published to the host. The configured Docker
 log rotation is `json-file`, 10 MB per file and three files per service.
+
+## Deploy
+
+From the box, run the deployment by tag. The image is pulled from GHCR; it is
+never built on the box:
+
+```sh
+sudo ./deploy.sh <tag>
+```
+
+The script records the running tag in `/opt/pawlaris/.env`, runs migrations in a
+one-off API container, starts the stack, and checks
+`http://localhost:8000/api/v1/health` for up to 60 seconds. Set `HEALTH_URL`
+for a different health endpoint. A failed health check restores the previous
+tag and starts it again.
