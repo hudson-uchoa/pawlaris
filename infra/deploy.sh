@@ -36,25 +36,24 @@ set_version() {
 }
 
 compose() {
-  (cd "$INFRA_ROOT" && PAWLARIS_IMAGE="${IMAGE_REPOSITORY}:$1" \
-    docker compose --env-file ../.env "${@:2}")
+  (cd "$INFRA_ROOT" && docker compose --env-file ../.env "$@")
 }
 
 rollback() {
   set_version "$previous_tag"
-  compose "$previous_tag" up -d
+  compose up -d
 }
 
 set_version "$tag"
-if ! compose "$tag" pull; then
+if ! compose pull; then
   set_version "$previous_tag"
   exit 1
 fi
-if ! compose "$tag" run --rm api alembic upgrade head; then
+if ! compose run --rm api alembic upgrade head; then
   set_version "$previous_tag"
   exit 1
 fi
-if ! compose "$tag" up -d; then
+if ! compose up -d; then
   rollback
   exit 1
 fi
