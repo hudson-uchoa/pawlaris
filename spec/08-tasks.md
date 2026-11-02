@@ -1556,7 +1556,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   version answering `/health`; `node scripts/latency.mjs` against the box with
   p95 under 100 ms. Then the owner creates the real family (H10).
 
-- [~] **P8-4 — Backup, verification, pull**
+- [x] **P8-4 — Backup, verification, pull**
   **Depends:** P8-3 · **Read:** `05` §4.6, §6 · `03` §1.3
   **Build:** `infra/backup.sh`, `infra/nightly.sh`, `infra/restore.sh` (ending
   with the new `sync_epoch`), the systemd unit and timer,
