@@ -43,7 +43,7 @@ import { createExpoNotifications, type NotificationsPort } from './notifications
 import { createNotificationChannels } from './notifications/channels';
 import { createNotificationPermission, type NotificationPermission, type RationaleTrigger } from './notifications/permission';
 import { isLocalNotification, reconcile } from './notifications/reconcile';
-import { registerPushToken } from './notifications/backgroundTask';
+import { registerPushToken } from './notifications/pushToken';
 import { discardLocalWalk, finishLocalWalk, type LiveWalkServices } from './walks/live';
 import { createPointStore } from './walks/pointStore';
 import { createTracker } from './walks/tracker';

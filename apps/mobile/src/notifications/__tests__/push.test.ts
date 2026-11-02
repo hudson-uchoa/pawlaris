@@ -4,13 +4,25 @@ import { Kv, serverKey } from '../../db/kv';
 import { ReplicaRepo } from '../../db/replicaRepo';
 import { rowFactories } from '../../testing/rowFactories';
 import { sequentialIds } from '../../testing/sequentialIds';
-import { handlePushTask, registerPushToken } from '../backgroundTask';
+import { handlePushTask } from '../backgroundTask';
+import { registerPushToken } from '../pushToken';
 import { notificationStorage } from './support';
 
 function pushBody(data: NotificationTaskPayload): TaskManagerTaskBody<NotificationTaskPayload> {
   return { data, error: null,
     executionInfo: { eventId: 'event', taskName: 'pawlaris.push' } };
 }
+
+test('P5-8 push task registration ignores a synchronous native failure', () => {
+  jest.isolateModules(() => {
+    jest.doMock('expo-task-manager', () => ({ defineTask: jest.fn() }));
+    jest.doMock('expo-notifications', () => ({
+      registerTaskAsync: jest.fn(() => { throw new Error('Native module unavailable'); }),
+    }));
+
+    expect(() => jest.requireActual('../backgroundTask')).not.toThrow();
+  });
+});
 
 test('P5-8 token registration sends only changed tokens and once to each server', async () => {
   const storage = await notificationStorage();
