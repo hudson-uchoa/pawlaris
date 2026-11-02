@@ -1546,7 +1546,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   → 200, and the socket connects and receives `ready`; from outside, only the
   expected ports are open.
 
-- [ ] **P8-3 — Deploy script and latency**
+- [~] **P8-3 — Deploy script and latency**
   **Depends:** P8-2 · **Read:** `05` §4.5 · `07` §9 · `02` R5.9
   **Build:** `infra/deploy.sh <tag>` exactly as described, honouring `HEALTH_URL`;
   `scripts/latency.mjs` as described in `07` §9.
