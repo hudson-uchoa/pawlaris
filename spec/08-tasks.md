@@ -1523,7 +1523,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
 Scripts under `infra/` are bash and run on the box. Their code gate on the dev
 machine is a syntax check with Git Bash; the real proof is the Device line.
 
-- [~] **P8-1 — Box bootstrap and compose**
+- [x] **P8-1 — Box bootstrap and compose**
   **Depends:** P2-15, P0-7, H8 · **Read:** `05` §4.1–§4.3, §4.5, §5
   **Build:** `infra/docker-compose.yml` (services, limits, the three ingress
   profiles as stubs, volumes, json-file log limits, healthchecks),
