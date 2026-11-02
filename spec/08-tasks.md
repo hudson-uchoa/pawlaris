@@ -1294,7 +1294,7 @@ await *(R5.1)*, in both themes, with a Reduce Motion path for every effect.
   it fires within the minute. Evidence: an `adb shell dumpsys alarm` excerpt
   showing it as exact, and the notification's time.
 
-- [ ] **P5-8 — Push on the device**
+- [~] **P5-8 — Push on the device**
   **Depends:** P5-7, P2-15, H6 · **Read:** `09` §9.4 · `04` §15 · `05` §3 (entry file)
   **Build:** `notifications/backgroundTask.ts` — `TaskManager.defineTask` at
   module scope, imported by `index.ts`; token registration (sent to the
