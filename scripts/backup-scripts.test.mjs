@@ -35,6 +35,13 @@ test('backup verifies before encryption and always drops verify database', () =>
   assert.match(backup, /trap finish EXIT/);
 });
 
+test('checksum names the published archive', () => {
+  assert.match(
+    backup,
+    /archive_date="\$\(date -u \+%Y-%m-%d\)"[\s\S]*encrypted_file="\$\{tmp_dir\}\/\$\{archive_date\}\.tar\.age"[\s\S]*checksum_file="\$\{tmp_dir\}\/\$\{archive_date\}\.tar\.age\.sha256"[\s\S]*archive_path="\$\{BACKUP_ROOT\}\/\$\{archive_date\}\.tar\.age"/,
+  );
+});
+
 test('retention and failure rules are present', () => {
   assert.match(backup, /tail -n \+15/);
   assert.match(pull, /Select-Object -Skip 8/);
