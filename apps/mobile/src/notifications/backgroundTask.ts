@@ -81,3 +81,7 @@ defineTask<PushMessageData>(PUSH_TASK, async (body) => {
   openDatabase(driver);
   await handlePushTask({ driver, notifications: createExpoNotifications() }, body);
 });
+
+void createExpoNotifications().registerTaskAsync(PUSH_TASK).catch(() => {
+  // Native notification support may be unavailable during local development.
+});

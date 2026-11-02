@@ -16,6 +16,7 @@ export function fakeNotifications(initial: readonly NotificationRequest[] = []) 
   let handler: NotificationHandler | null = null;
   let responseListener: ((response: NotificationResponse) => void) | null = null;
   const platform: NotificationsPort = {
+    async registerTaskAsync() { return null; },
     async getExpoPushTokenAsync() { throw new Error('No Expo project id configured'); },
     getLastNotificationResponse() { return null; },
     async getAllScheduledNotificationsAsync() { return [...scheduled.values()]; },
