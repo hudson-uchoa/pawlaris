@@ -73,9 +73,13 @@ The timer runs at 03:30 in `America/Sao_Paulo`. To run it by hand from
 ends by printing the new `sync_epoch`.
 
 On the Windows computer, set `PAWLARIS_BOX_HOST`, `PAWLARIS_BOX_USER`, and
-`PAWLARIS_SSH_KEY_PATH`, then register the pull at logon and every six hours:
+`PAWLARIS_SSH_KEY_PATH` as User environment variables, then register the pull
+at logon and every six hours:
 
 ```powershell
+[Environment]::SetEnvironmentVariable('PAWLARIS_BOX_HOST', '<box-host>', 'User')
+[Environment]::SetEnvironmentVariable('PAWLARIS_BOX_USER', '<box-user>', 'User')
+[Environment]::SetEnvironmentVariable('PAWLARIS_SSH_KEY_PATH', '<private-key-path>', 'User')
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -ExecutionPolicy Bypass -File "C:\path\to\Pawlaris\scripts\pull-backup.ps1"'
 $triggers = @((New-ScheduledTaskTrigger -AtLogOn), (New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours 6)))
 Register-ScheduledTask -TaskName 'Pawlaris backup pull' -Action $action -Trigger $triggers -Description 'Pull and verify Pawlaris backups'

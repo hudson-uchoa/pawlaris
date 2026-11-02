@@ -17,20 +17,20 @@ try {
     New-Item -ItemType Directory -Force -Path $LocalRoot | Out-Null
     $target = "$BoxUser@$BoxHost"
     $lastPath = Join-Path $tempRoot 'last_backup.json'
-    & scp -q -i $SshKeyPath "$target`:$remoteRoot/last_backup.json" $lastPath
+    & scp -q -o BatchMode=yes -i $SshKeyPath "$target`:$remoteRoot/last_backup.json" $lastPath
     $metadata = Get-Content -Raw -Path $lastPath | ConvertFrom-Json
     if ($metadata.verified -ne $true) { throw 'The latest backup is not verified.' }
     $finished = [DateTimeOffset]::Parse($metadata.finished_at).ToUniversalTime()
     if (([DateTimeOffset]::UtcNow - $finished).TotalHours -gt 48) { throw 'The latest backup is older than 48 hours.' }
 
-    $remoteArchive = (& ssh -q -i $SshKeyPath $target "find $remoteRoot -maxdepth 1 -type f -name '*.tar.age' -printf '%T@ %p\n' | sort -nr | head -n 1").Trim()
+    $remoteArchive = (& ssh -q -o BatchMode=yes -i $SshKeyPath $target "find $remoteRoot -maxdepth 1 -type f -name '*.tar.age' -printf '%T@ %p\n' | sort -nr | head -n 1").Trim()
     if ($remoteArchive -notmatch '^[0-9.]+ (/opt/pawlaris/backups/[A-Za-z0-9._-]+\.tar\.age)$') { throw 'No valid remote backup archive was found.' }
     $archivePath = $Matches[1]
     $archiveName = Split-Path -Leaf $archivePath
     $tempArchive = Join-Path $tempRoot $archiveName
     $tempChecksum = Join-Path $tempRoot ($archiveName + '.sha256')
-    & scp -q -i $SshKeyPath "$target`:$archivePath" $tempArchive
-    & scp -q -i $SshKeyPath "$target`:$archivePath.sha256" $tempChecksum
+    & scp -q -o BatchMode=yes -i $SshKeyPath "$target`:$archivePath" $tempArchive
+    & scp -q -o BatchMode=yes -i $SshKeyPath "$target`:$archivePath.sha256" $tempChecksum
     $expected = ((Get-Content -Raw -Path $tempChecksum) -split '\s+')[0].ToLowerInvariant()
     $actual = (Get-FileHash -Algorithm SHA256 -Path $tempArchive).Hash.ToLowerInvariant()
     if ($expected -ne $actual) { throw 'Backup checksum verification failed.' }
