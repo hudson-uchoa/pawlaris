@@ -269,7 +269,9 @@ sysctl -w vm.swappiness=10 && echo 'vm.swappiness=10' > /etc/sysctl.d/99-swap.co
 | Pick when | the family already owns a domain | the box has a real public address and there is no domain | no domain and no public address — the usual case for a machine at home |
 
 All three terminate TLS before the API; the API itself speaks plain HTTP on the
-Docker network only. None exposes Postgres. All cap the request body at 10 MB
+Docker network and on the box's loopback (`127.0.0.1:8000`), where `deploy.sh`
+polls it and `tailscale serve` reaches it. It is published on no other
+interface. None exposes Postgres. All cap the request body at 10 MB
 where the proxy allows it (Caddy: `request_body { max_size 10MB }`); the API's
 own 8 MiB check is authoritative.
 
