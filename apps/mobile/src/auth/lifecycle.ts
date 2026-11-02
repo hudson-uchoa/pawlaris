@@ -29,6 +29,7 @@ export interface LifecycleDependencies {
   removeAssetFiles(): Promise<void>;
   cancelNotifications(): Promise<void>;
   stopTracking(): Promise<void>;
+  registerPush?(): void;
 }
 
 export function createLifecycle(deps: LifecycleDependencies): Lifecycle {
@@ -64,6 +65,7 @@ export function createLifecycle(deps: LifecycleDependencies): Lifecycle {
         await wipe();
       }
       await deps.session.adopt(session, server);
+      deps.registerPush?.();
       if (!deps.store.getState().ready) hydrateReplica(deps);
       void deps.kick('login');
       return true;

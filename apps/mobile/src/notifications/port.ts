@@ -11,7 +11,8 @@ export type NotificationsPort = Pick<ExpoNotifications,
   | 'addNotificationResponseReceivedListener'
   | 'getLastNotificationResponse'
   | 'getPermissionsAsync'
-  | 'requestPermissionsAsync'>;
+  | 'requestPermissionsAsync'
+  | 'getExpoPushTokenAsync'>;
 
 export function createExpoNotifications(): NotificationsPort {
   return Notifications;

@@ -43,6 +43,7 @@ import { createExpoNotifications, type NotificationsPort } from './notifications
 import { createNotificationChannels } from './notifications/channels';
 import { createNotificationPermission, type NotificationPermission, type RationaleTrigger } from './notifications/permission';
 import { isLocalNotification, reconcile } from './notifications/reconcile';
+import { registerPushToken } from './notifications/backgroundTask';
 import { discardLocalWalk, finishLocalWalk, type LiveWalkServices } from './walks/live';
 import { createPointStore } from './walks/pointStore';
 import { createTracker } from './walks/tracker';
@@ -118,6 +119,10 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   const documentDirectory = deps.documentDirectory ?? getDocumentDirectory();
   const logger = createLogger(clock, deps.logFiles ?? createExpoLogFiles(documentDirectory));
   const notifications = deps.notifications ?? createExpoNotifications();
+  const registerPush = (): void => {
+    if (sessionUser() === null) return;
+    void registerPushToken({ notifications, api, kv, activeServer: serverSelect.current });
+  };
   const permission = createNotificationPermission({ kv, platform: notifications });
   let painted = false;
   let disposed = false;
@@ -156,7 +161,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
   let outboxUser: string | null = null;
   const wiring = createSyncEngine({ ...deps, store, apply, api, session, serverSelect,
     deferListeners: true, uploads: assetFiles.uploads, prefetchAvatars: assetFiles.prefetchAvatars,
-    onForeground() { refreshReminders(); checkWalkRecovery(); },
+    onForeground() { refreshReminders(); checkWalkRecovery(); registerPush(); },
     afterAppliedChanges() { refreshReminders(); checkRationale('sync'); },
     logRejectedRow: (entity, id) => { void logger.write('reseed_row_rejected', { entity, id }, 'warn'); },
     outbox: {
@@ -194,6 +199,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
       }
     },
     stopTracking: () => liveWalk.tracker.stop(),
+    registerPush,
   });
   const mutations = createMutations({ ...deps, apply,
     sessionUser: {
@@ -263,6 +269,7 @@ export function createAppRuntime(deps: AppDependencies): AppRuntime {
       reminderWork = createNotificationChannels(notifications)
         .catch(() => { void logger.write('notification_channels_failed', {}, 'warn'); });
       refreshReminders();
+      registerPush();
       wiring.start();
       engine.setForeground(AppState.currentState === 'active');
       void engine.kick('start');
