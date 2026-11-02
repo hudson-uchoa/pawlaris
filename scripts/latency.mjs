@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
 
 const COUNT = 200;
 const USAGE = 'Usage: latency.mjs [--url <url>] [--email <email>] [--password <password>] '
@@ -103,7 +104,7 @@ function productionSource() {
   return { request: globalThis.fetch, now: () => new Date().toISOString(), output: (line) => console.log(line) };
 }
 
-if (process.argv[1] && new URL(import.meta.url).pathname.endsWith(process.argv[1].replaceAll('\\', '/'))) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try { process.exitCode = await runLatency(process.argv.slice(2)); }
   catch (error) { console.error(`latency: ${error instanceof Error ? error.message : String(error)}`); process.exitCode = 1; }
 }
