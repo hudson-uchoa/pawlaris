@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Pawlaris nightly backup at 03:30 family time
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 America/Sao_Paulo
+Persistent=true
+Unit=pawlaris-nightly.service
+
+[Install]
+WantedBy=timers.target

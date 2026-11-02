@@ -1,0 +1,8 @@
+[Unit]
+Description=Pawlaris nightly backup and maintenance
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/pawlaris/infra/nightly.sh
