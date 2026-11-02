@@ -12,6 +12,7 @@ tmp_dir=""
 published_archive=""
 verify_exists=false
 failure_recorded=false
+db_user=""
 
 env_value() {
   local key="$1"
@@ -24,7 +25,7 @@ compose() {
 
 drop_verify() {
   if [[ "$verify_exists" == true ]]; then
-    compose exec -T postgres dropdb --if-exists --force "$VERIFY_DB" >/dev/null 2>&1 || true
+    compose exec -T postgres dropdb --if-exists --force -U "$db_user" "$VERIFY_DB" >/dev/null 2>&1 || true
     verify_exists=false
   fi
 }
@@ -88,6 +89,7 @@ before_file="${tmp_dir}/before.counts"
 restored_file="${tmp_dir}/restored.counts"
 after_file="${tmp_dir}/after.counts"
 count_tables "$db_name" > "$before_file"
+compose exec -T postgres dropdb --if-exists --force -U "$db_user" "$VERIFY_DB" >/dev/null 2>&1 || true
 compose exec -T postgres createdb -U "$db_user" "$VERIFY_DB"
 verify_exists=true
 cat "$dump_file" | compose exec -T postgres pg_restore --exit-on-error --no-owner -U "$db_user" -d "$VERIFY_DB"
