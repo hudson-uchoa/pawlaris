@@ -1,6 +1,6 @@
 import type { NotificationTaskPayload } from 'expo-notifications';
 import type { TaskManagerTaskBody } from 'expo-task-manager';
-import { Kv } from '../../db/kv';
+import { Kv, serverKey } from '../../db/kv';
 import { ReplicaRepo } from '../../db/replicaRepo';
 import { rowFactories } from '../../testing/rowFactories';
 import { sequentialIds } from '../../testing/sequentialIds';
@@ -34,6 +34,40 @@ test('P5-8 token registration sends only changed tokens and once to each server'
   expect(requests).toEqual([
     { server: 'primary', token: 'token-a' }, { server: 'reserve', token: 'token-a' },
   ]);
+  storage.driver.close();
+});
+
+test('P5-8 token registration quietly skips an unavailable token', async () => {
+  const storage = await notificationStorage();
+  const api = { request: jest.fn() };
+  const notifications = { getExpoPushTokenAsync: async () => {
+    throw new Error('No Expo project id configured');
+  } };
+
+  await registerPushToken({ notifications, api, kv: storage.kv,
+    activeServer: () => 'primary' });
+
+  expect(api.request).not.toHaveBeenCalled();
+  expect(storage.kv.get(serverKey('push_token_sent', 'primary'))).toBeNull();
+  storage.driver.close();
+});
+
+test('P5-8 failed token upload is retried and not recorded', async () => {
+  const storage = await notificationStorage();
+  const api = { request: jest.fn(async () => ({
+    ok: false as const, status: 500, body: null, headers: {},
+  })) };
+  const notifications = { getExpoPushTokenAsync: async () => ({
+    type: 'expo' as const, data: 'token-a',
+  }) };
+
+  await registerPushToken({ notifications, api, kv: storage.kv,
+    activeServer: () => 'primary' });
+  await registerPushToken({ notifications, api, kv: storage.kv,
+    activeServer: () => 'primary' });
+
+  expect(api.request).toHaveBeenCalledTimes(2);
+  expect(storage.kv.get(serverKey('push_token_sent', 'primary'))).toBeNull();
   storage.driver.close();
 });
 

@@ -39,8 +39,10 @@ export async function handlePushTask(
   }
   const user = new Kv(dependencies.driver).get('session_user');
   if (user !== null) {
-    const current = JSON.parse(user) as { id?: unknown };
-    if (data.author_id === current.id) return;
+    let current: { id?: unknown } | null = null;
+    try { current = JSON.parse(user) as { id?: unknown }; }
+    catch { current = null; }
+    if (current !== null && data.author_id === current.id) return;
   }
   if (data.type !== 'completion' || data.task_id === undefined
     || data.occurrence_key === undefined) return;
