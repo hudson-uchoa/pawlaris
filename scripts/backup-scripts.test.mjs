@@ -12,6 +12,7 @@ const modelFiles = [
 ];
 const modelText = (await Promise.all(modelFiles.map((file) => readFile(new URL(file, import.meta.url), 'utf8')))).join('\n');
 const tables = ['family', 'app_user', 'pet', 'weight_entry', 'health_event', 'task_template', 'task_completion', 'task_timer', 'walk_session', 'asset'];
+const postgresCalls = (script) => script.match(/compose exec -T postgres [^\n]*(?:\\\r?\n[^\n]*)*/g) ?? [];
 
 test('backup table list matches syncable models', () => {
   for (const table of tables) {
@@ -24,10 +25,12 @@ test('backup table list matches syncable models', () => {
 });
 
 test('backup verifies before encryption and always drops verify database', () => {
-  assert.match(backup, /before_file/);
-  assert.match(backup, /restored_file/);
-  assert.match(backup, /after_file/);
-  assert.match(backup, /before.*restored|restored.*after/s);
+  for (const call of postgresCalls(backup)) {
+    assert.match(call, /-U\s+"\$db_user"/);
+  }
+  assert.match(backup, /paste "\$before_file" "\$restored_file" "\$after_file" \| awk '\{ if \(\$1 > \$2 \|\| \$2 > \$3\) exit 1 \}'/);
+  assert.doesNotMatch(backup, /compose run[^\n]*-v/);
+  assert.match(backup, /compose run --rm --no-deps -T api[\s\S]*tar -C \/data -cf - blobs[\s\S]*> "\$blobs_tar"/);
   assert.match(backup, /drop_verify\(\)/);
   assert.match(backup, /trap finish EXIT/);
 });
@@ -46,6 +49,12 @@ test('pull rejects stale metadata and verifies checksum before moving', () => {
 });
 
 test('restore changes and prints sync epoch', () => {
+  for (const call of postgresCalls(restore)) {
+    assert.match(call, /-U\s+"\$db_user"/);
+  }
+  const postgresStart = restore.indexOf('compose up -d --wait postgres');
+  const firstExec = restore.indexOf('compose exec');
+  assert.ok(postgresStart >= 0 && postgresStart < firstExec);
   assert.match(restore, /UPDATE server_meta SET sync_epoch = gen_random_uuid\(\)/);
   assert.match(restore, /SELECT sync_epoch FROM server_meta/);
 });
