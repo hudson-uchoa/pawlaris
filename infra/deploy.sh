@@ -60,7 +60,8 @@ fi
 
 health_url="${HEALTH_URL:-$DEFAULT_HEALTH_URL}"
 healthy=false
-for _ in $(seq 1 60); do
+deadline=$((SECONDS + 60))
+while (( SECONDS < deadline )); do
   if curl --fail --silent --show-error --max-time 3 "$health_url" >/dev/null; then
     healthy=true
     break
