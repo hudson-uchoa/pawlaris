@@ -36,6 +36,6 @@ docker compose --env-file ../.env up -d
 The `tunnel`, `caddy`, and `tailnet` profiles are intentionally stubs for
 P8-2. Do not enable one until its profile is configured and reviewed.
 
-The API is reachable only inside the Docker network until an ingress profile is
-configured. PostgreSQL is never published to the host. The configured Docker
+The API is reachable on the box's loopback at `127.0.0.1:8000` until an ingress
+profile is configured. PostgreSQL is never published to the host. The configured Docker
 log rotation is `json-file`, 10 MB per file and three files per service.

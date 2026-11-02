@@ -41,8 +41,8 @@ services:
       - blobs:/data/blobs
     networks:
       - backend
-    expose:
-      - "8000"
+    ports:
+      - "127.0.0.1:8000:8000"
     healthcheck:
       test:
         - CMD
