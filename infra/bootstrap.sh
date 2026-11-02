@@ -44,15 +44,14 @@ install_docker() {
 
 create_layout() {
   install -d -m 755 "$APP_ROOT" "$INFRA_ROOT" "$BACKUP_ROOT"
-  for infra_file in docker-compose.yml postgresql.conf backup.sh nightly.sh restore.sh pawlaris-nightly.service pawlaris-nightly.timer; do
-    if [[ -f "${SCRIPT_ROOT}/${infra_file}" ]]; then
-      mode=644
-      if [[ "$infra_file" == *.sh ]]; then mode=755; fi
-      install -m "$mode" "${SCRIPT_ROOT}/${infra_file}" "${INFRA_ROOT}/${infra_file}"
-    fi
-  done
-  if [[ -f "${SCRIPT_ROOT}/../scripts/pull-backup.ps1" ]]; then
-    install -m 644 "${SCRIPT_ROOT}/../scripts/pull-backup.ps1" "${APP_ROOT}/pull-backup.ps1"
+  if [[ "$SCRIPT_ROOT" != "$INFRA_ROOT" ]]; then
+    for infra_file in docker-compose.yml postgresql.conf backup.sh nightly.sh restore.sh deploy.sh pawlaris-nightly.service pawlaris-nightly.timer; do
+      if [[ -f "${SCRIPT_ROOT}/${infra_file}" ]]; then
+        mode=644
+        if [[ "$infra_file" == *.sh ]]; then mode=755; fi
+        install -m "$mode" "${SCRIPT_ROOT}/${infra_file}" "${INFRA_ROOT}/${infra_file}"
+      fi
+    done
   fi
   install -m 644 "${SCRIPT_ROOT}/pawlaris-nightly.service" /etc/systemd/system/pawlaris-nightly.service
   install -m 644 "${SCRIPT_ROOT}/pawlaris-nightly.timer" /etc/systemd/system/pawlaris-nightly.timer
