@@ -102,7 +102,7 @@ compose run --rm --no-deps -T api \
   sh -c 'tar -C /data -cf - blobs' > "$blobs_tar"
 tar -C "$tmp_dir" -cf "$payload_tar" db.dump blobs.tar
 age -r "$recipient" -o "$encrypted_file" "$payload_tar"
-sha256sum "$encrypted_file" > "$checksum_file"
+(cd "$tmp_dir" && sha256sum "$(basename -- "$encrypted_file")") > "$checksum_file"
 published_archive="$archive_path"
 mv -- "$encrypted_file" "$archive_path"
 mv -- "$checksum_file" "${archive_path}.sha256"
