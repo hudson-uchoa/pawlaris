@@ -44,11 +44,18 @@ install_docker() {
 
 create_layout() {
   install -d -m 755 "$APP_ROOT" "$INFRA_ROOT" "$BACKUP_ROOT"
-  for infra_file in docker-compose.yml postgresql.conf; do
+  for infra_file in docker-compose.yml postgresql.conf backup.sh nightly.sh restore.sh pawlaris-nightly.service pawlaris-nightly.timer; do
     if [[ -f "${SCRIPT_ROOT}/${infra_file}" ]]; then
-      install -m 644 "${SCRIPT_ROOT}/${infra_file}" "${INFRA_ROOT}/${infra_file}"
+      mode=644
+      if [[ "$infra_file" == *.sh ]]; then mode=755; fi
+      install -m "$mode" "${SCRIPT_ROOT}/${infra_file}" "${INFRA_ROOT}/${infra_file}"
     fi
   done
+  if [[ -f "${SCRIPT_ROOT}/../scripts/pull-backup.ps1" ]]; then
+    install -m 644 "${SCRIPT_ROOT}/../scripts/pull-backup.ps1" "${APP_ROOT}/pull-backup.ps1"
+  fi
+  install -m 644 "${SCRIPT_ROOT}/pawlaris-nightly.service" /etc/systemd/system/pawlaris-nightly.service
+  install -m 644 "${SCRIPT_ROOT}/pawlaris-nightly.timer" /etc/systemd/system/pawlaris-nightly.timer
   if [[ ! -e "$ENV_FILE" ]]; then
     umask 077
     cat > "$ENV_FILE" <<'EOF'
@@ -62,6 +69,7 @@ PUSH_ENABLED=true
 SERVER_ROLE=primary
 APP_VERSION=stable
 LOG_LEVEL=INFO
+BACKUP_AGE_RECIPIENT=REPLACE_WITH_AGE_PUBLIC_RECIPIENT
 EOF
   fi
   chmod 600 "$ENV_FILE"
