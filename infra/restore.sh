@@ -4,8 +4,6 @@ set -Eeuo pipefail
 readonly APP_ROOT="/opt/pawlaris"
 readonly INFRA_ROOT="${APP_ROOT}/infra"
 readonly ENV_FILE="${APP_ROOT}/.env"
-readonly VERIFY_USER="pawlaris"
-
 usage() { echo "Usage: restore.sh <archive> <age key file>" >&2; exit 2; }
 [[ $# -eq 2 ]] || usage
 archive="$1"
@@ -30,6 +28,7 @@ db_user="$(env_value POSTGRES_USER)"
 compose() { (cd "$INFRA_ROOT" && docker compose --env-file ../.env "$@"); }
 
 compose stop api
+compose up -d --wait postgres
 compose exec -T postgres dropdb --if-exists --force -U "$db_user" "$db_name"
 compose exec -T postgres createdb -U "$db_user" "$db_name"
 cat "${tmp_dir}/db.dump" | compose exec -T postgres pg_restore --exit-on-error --no-owner -U "$db_user" -d "$db_name"
