@@ -155,11 +155,20 @@ name; API calls and the replica arrive in later tasks.
 
 ## Release build, ARM64 only
 
-Build the embedded JavaScript bundle and native APK locally:
+Build the embedded JavaScript bundle and native APK locally. The signing
+variables are optional: with none set, this remains the debug-signed local
+release preview. Set all four for the owner's release APK; setting only some
+causes prebuild to stop and name the missing variable(s). Keep the passwords
+out of PowerShell history by entering them at secure prompts:
 
 ```powershell
 Set-Location C:\Hudson\Pawlaris\apps\mobile
 $env:EXPO_PUBLIC_API_URL = 'https://<BOX-HOST>/api/v1'
+$env:EXPO_PUBLIC_RESERVE_API_URL = 'https://<COMPUTER-TAILNET-NAME>.ts.net/api/v1'
+$env:PAWLARIS_ANDROID_KEYSTORE_PATH = 'C:\Hudson\Pawlaris-signing\pawlaris-release.keystore'
+$env:PAWLARIS_ANDROID_KEY_ALIAS = 'pawlaris-release'
+$env:PAWLARIS_ANDROID_STORE_PASSWORD = [System.Net.NetworkCredential]::new('', (Read-Host 'Keystore password' -AsSecureString)).Password
+$env:PAWLARIS_ANDROID_KEY_PASSWORD = [System.Net.NetworkCredential]::new('', (Read-Host 'Key password' -AsSecureString)).Password
 npx expo prebuild --platform android --clean
 Set-Location android
 .\gradlew.bat :app:assembleRelease -PreactNativeArchitectures=arm64-v8a

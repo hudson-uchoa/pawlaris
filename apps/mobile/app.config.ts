@@ -41,6 +41,7 @@ const config: ExpoConfig = {
     ['expo-image-picker', { photosPermission: permissions.photos,
       cameraPermission: permissions.camera, microphonePermission: false }],
     './plugins/withShortNativePaths.cjs',
+    './plugins/withReleaseSigning.cjs',
     [
       'expo-font',
       {
@@ -70,7 +71,11 @@ const config: ExpoConfig = {
     ],
     [
       'expo-build-properties',
-      { android: { usesCleartextTraffic: apiUrl.startsWith('http://') } },
+      { android: {
+        usesCleartextTraffic: apiUrl.startsWith('http://'),
+        enableMinifyInReleaseBuilds: true,
+        enableShrinkResourcesInReleaseBuilds: true,
+      } },
     ],
   ],
   experiments: { typedRoutes: true },
