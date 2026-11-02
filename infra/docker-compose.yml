@@ -26,7 +26,7 @@ services:
         max-file: "3"
 
   api:
-    image: ${PAWLARIS_IMAGE:-ghcr.io/owner/pawlaris-api:stable}
+    image: ${PAWLARIS_IMAGE:-ghcr.io/hudson-uchoa/pawlaris-api:stable}
     restart: unless-stopped
     mem_limit: 256m
     env_file:

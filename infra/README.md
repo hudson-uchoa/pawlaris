@@ -22,8 +22,7 @@ needs no login. Never put either value in this repository or in the `.env`
 template.
 
 Before starting the stack, replace every `REPLACE_...` value in
-`/opt/pawlaris/.env`, copy this directory to `/opt/pawlaris/infra`, and ensure
-the compose file's image placeholder names the published GHCR image.
+`/opt/pawlaris/.env` and copy this directory to `/opt/pawlaris/infra`.
 
 ## Compose
 
