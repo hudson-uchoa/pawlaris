@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    mem_limit: 256m
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pawlaris}
+      POSTGRES_USER: ${POSTGRES_USER:-pawlaris}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: &default-logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    image: ${PAWLARIS_IMAGE:-ghcr.io/owner/pawlaris-api:stable}
+    restart: unless-stopped
+    mem_limit: 256m
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      BLOB_DIR: /data/blobs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - blobs:/data/blobs
+    networks:
+      - backend
+    expose:
+      - "8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=3)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    logging: *default-logging
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
+    mem_limit: 64m
+    networks:
+      - backend
+    command: ["version"]
+    logging: *default-logging
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [caddy]
+    mem_limit: 64m
+    networks:
+      - backend
+    command: ["version"]
+    logging: *default-logging
+
+  tailscale:
+    image: tailscale/tailscale:stable
+    profiles: [tailnet]
+    mem_limit: 64m
+    networks:
+      - backend
+    command: ["version"]
+    logging: *default-logging
+
+volumes:
+  postgres_data:
+  blobs:
+
+networks:
+  backend:
+    driver: bridge
