@@ -51,24 +51,36 @@ function timing(response) {
 export async function runLatency(args, source = productionSource()) {
   const options = parseArguments(args);
   const samples = [];
-  const request = async (path, init) => {
+  const request = async (path, init, sample = true) => {
     const response = await source.request(`${options.url}${path}`, init);
     if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-    samples.push(timing(response));
+    if (sample) samples.push(timing(response));
     return response;
   };
   const login = await request('/auth/login', {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ email: options.email, password: options.password }),
-  });
+  }, false);
   const session = await login.json();
   if (typeof session.access_token !== 'string') throw new Error('Login returned no access token');
   const auth = { authorization: `Bearer ${session.access_token}` };
+  let since = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const sync = await request(`/sync?since=${since}&limit=1000`, { headers: auth }, false);
+    const page = await sync.json();
+    if (!Number.isSafeInteger(page.revision) || typeof page.has_more !== 'boolean') {
+      throw new Error('Sync returned no cursor');
+    }
+    since = page.revision;
+    hasMore = page.has_more;
+  }
+  const occurrenceKey = source.now().slice(0, 10);
   for (let index = 0; index < COUNT; index += 1) {
     const id = randomUUID();
     const completion = await request('/completions', {
       method: 'POST', headers: { ...auth, 'content-type': 'application/json', 'idempotency-key': id },
-      body: JSON.stringify({ id, task_id: options.taskId, occurrence_key: '2026-11-02T12:00',
+      body: JSON.stringify({ id, task_id: options.taskId, occurrence_key: occurrenceKey,
         completed_at: source.now(), pet_id: null, photo_asset_id: null, note: null }),
     });
     const row = await completion.json();
@@ -78,7 +90,7 @@ export async function runLatency(args, source = productionSource()) {
     });
   }
   for (let index = 0; index < COUNT; index += 1) {
-    await request('/sync?since=0&limit=1', { headers: auth });
+    await request(`/sync?since=${since}&limit=1`, { headers: auth });
   }
   const p50 = percentile(samples, 0.5);
   const p95 = percentile(samples, 0.95);
