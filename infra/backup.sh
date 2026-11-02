@@ -98,8 +98,8 @@ count_tables "$db_name" > "$after_file"
 paste "$before_file" "$restored_file" "$after_file" | awk '{ if ($1 > $2 || $2 > $3) exit 1 }'
 drop_verify
 
-compose run --rm --no-deps -T -v "${tmp_dir}:/backup" api \
-  sh -c 'tar -C /data -cf /backup/blobs.tar blobs'
+compose run --rm --no-deps -T api \
+  sh -c 'tar -C /data -cf - blobs' > "$blobs_tar"
 tar -C "$tmp_dir" -cf "$payload_tar" db.dump blobs.tar
 age -r "$recipient" -o "$encrypted_file" "$payload_tar"
 sha256sum "$encrypted_file" > "$checksum_file"
