@@ -4,7 +4,6 @@ set -Eeuo pipefail
 readonly APP_ROOT="/opt/pawlaris"
 readonly ENV_FILE="${APP_ROOT}/.env"
 readonly INFRA_ROOT="${APP_ROOT}/infra"
-readonly DATA_ROOT="${APP_ROOT}/data"
 readonly BACKUP_ROOT="${APP_ROOT}/backups"
 readonly SCRIPT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -44,8 +43,7 @@ install_docker() {
 }
 
 create_layout() {
-  install -d -m 755 "$APP_ROOT" "$INFRA_ROOT" "$DATA_ROOT" "$BACKUP_ROOT"
-  install -d -m 755 "${DATA_ROOT}/blobs" "${DATA_ROOT}/postgres"
+  install -d -m 755 "$APP_ROOT" "$INFRA_ROOT" "$BACKUP_ROOT"
   for infra_file in docker-compose.yml postgresql.conf; do
     if [[ -f "${SCRIPT_ROOT}/${infra_file}" ]]; then
       install -m 644 "${SCRIPT_ROOT}/${infra_file}" "${INFRA_ROOT}/${infra_file}"
