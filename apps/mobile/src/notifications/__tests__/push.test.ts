@@ -120,6 +120,10 @@ test('P5-8 per_pet completion leaves its reminder alone', async () => {
 
 test('P5-8 ignores a message about my own action', async () => {
   const storage = await notificationStorage();
+  const factory = rowFactories(storage.clock, sequentialIds());
+  const task = factory.task_templates({ id: 'task', completion_mode: 'together' });
+  new ReplicaRepo(storage.driver).upsert('task_templates', task,
+    { pending: false, deleted: false, pullGen: 0 });
   storage.kv.set('session_user', JSON.stringify({ id: 'member-me' }));
   const cancel = jest.fn();
   await handlePushTask({ driver: storage.driver,
