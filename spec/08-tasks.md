@@ -1568,7 +1568,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   and keep no archive; `pull-backup.ps1` fetches and checksums the archive;
   the scheduled task exists and its last run succeeded.
 
-- [ ] **P8-5 — Release APK**
+- [~] **P8-5 — Release APK**
   **Depends:** P7-5, P8-3, H9, H11 · **Read:** `05` §8, §4.7
   **Build:** signing config through `app.config.ts`/Gradle properties read from
   the environment (the keystore stays outside the repo), `arm64-v8a` only, the
