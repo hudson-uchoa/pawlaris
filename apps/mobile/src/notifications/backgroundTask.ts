@@ -1,4 +1,5 @@
 import { defineTask, type TaskManagerTaskBody } from 'expo-task-manager';
+import type { NotificationTaskPayload } from 'expo-notifications';
 import type { Api } from '../api/client';
 import { Kv, serverKey, type Server } from '../db/kv';
 import { expoSqliteDriver, type SqlDriver } from '../db/driver';
@@ -15,7 +16,6 @@ export interface PushMessageData {
   occurrence_key?: string;
   pet_id?: string | null;
   author_id?: string;
-  actor_id?: string;
 }
 
 export interface PushTaskDependencies {
@@ -25,14 +25,22 @@ export interface PushTaskDependencies {
 
 export async function handlePushTask(
   dependencies: PushTaskDependencies,
-  body: TaskManagerTaskBody<PushMessageData>,
+  body: TaskManagerTaskBody<NotificationTaskPayload>,
 ): Promise<void> {
   if (body.error !== null || body.data === undefined) return;
-  const data = body.data;
+  if ('actionIdentifier' in body.data) return;
+  const dataString = body.data.data.dataString;
+  if (typeof dataString !== 'string') return;
+  let data: PushMessageData;
+  try {
+    data = JSON.parse(dataString) as PushMessageData;
+  } catch {
+    return;
+  }
   const user = new Kv(dependencies.driver).get('session_user');
   if (user !== null) {
     const current = JSON.parse(user) as { id?: unknown };
-    if (data.author_id === current.id || data.actor_id === current.id) return;
+    if (data.author_id === current.id) return;
   }
   if (data.type !== 'completion' || data.task_id === undefined
     || data.occurrence_key === undefined) return;
@@ -76,7 +84,7 @@ export async function registerPushToken({
   }
 }
 
-defineTask<PushMessageData>(PUSH_TASK, async (body) => {
+defineTask<NotificationTaskPayload>(PUSH_TASK, async (body) => {
   const driver = expoSqliteDriver();
   openDatabase(driver);
   await handlePushTask({ driver, notifications: createExpoNotifications() }, body);
