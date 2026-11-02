@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
 const COUNT = 200;
-const USAGE = 'Usage: latency.mjs [--url <url>] [--email <email>] [--password <password>] '
+const USAGE = 'Usage: latency.mjs [--url <url>] [--email <email>] '
   + '[--task-id <uuid>]';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -15,7 +15,7 @@ export function parseArguments(args, env = process.env) {
     password: env.PAWLARIS_PASSWORD,
     taskId: env.PAWLARIS_TASK_ID,
   };
-  const names = { url: 'url', email: 'email', password: 'password', 'task-id': 'taskId' };
+  const names = { url: 'url', email: 'email', 'task-id': 'taskId' };
   for (let index = 0; index < args.length; index += 2) {
     const key = args[index]?.slice(2);
     const name = key === undefined ? undefined : names[key];

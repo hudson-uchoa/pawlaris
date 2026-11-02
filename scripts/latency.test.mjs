@@ -2,16 +2,19 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseArguments, percentile, runLatency } from './latency.mjs';
 
+process.env.PAWLARIS_PASSWORD = 'test-password';
+
 test('R5.9 parses the latency options and rejects malformed arguments', () => {
   assert.deepEqual(parseArguments([
     '--url', 'https://box.example/api/v1', '--email', 'owner@example.invalid',
-    '--password', 'secret', '--task-id', '11111111-1111-4111-8111-111111111111',
+    '--task-id', '11111111-1111-4111-8111-111111111111',
   ]), {
     url: 'https://box.example/api/v1', email: 'owner@example.invalid',
-    password: 'secret', taskId: '11111111-1111-4111-8111-111111111111',
+    password: 'test-password', taskId: '11111111-1111-4111-8111-111111111111',
   });
   for (const args of [[], ['--url'], ['--unknown', 'x'], ['--url', 'not a url'],
-    ['--url', 'https://box.example/api/v1', '--url', 'https://other.example']]) {
+    ['--url', 'https://box.example/api/v1', '--url', 'https://other.example'],
+    ['--password', 'test-password']]) {
     assert.throws(() => parseArguments(args), /usage|argument|option/i);
   }
 });
@@ -33,7 +36,7 @@ test('R5.9 p95 passes below 100 ms and fails at the strict boundary', async () =
     output() {},
   };
   const args = ['--url', 'https://box.example/api/v1', '--email', 'owner@example.invalid',
-    '--password', 'secret', '--task-id', '11111111-1111-4111-8111-111111111111'];
+    '--task-id', '11111111-1111-4111-8111-111111111111'];
   assert.equal(await runLatency(args, source), 0);
   const failing = { ...source, async request() {
     return { ok: true, status: 200, headers: { get: () => 'app;dur=100' },
@@ -56,7 +59,7 @@ test('R5.9 excludes login and cursor discovery, then measures incremental sync',
     output() {},
   };
   const args = ['--url', 'https://box.example/api/v1', '--email', 'owner@example.invalid',
-    '--password', 'secret', '--task-id', '11111111-1111-4111-8111-111111111111'];
+    '--task-id', '11111111-1111-4111-8111-111111111111'];
   assert.equal(await runLatency(args, source), 0);
   assert.equal(calls.length, 602);
   assert.match(calls[0].path, /\/auth\/login$/);
@@ -77,6 +80,6 @@ test('R5.9 a slow login does not affect the percentile', async () => {
     output(line) { assert.match(line, /p95 99 ms/); },
   };
   const args = ['--url', 'https://box.example/api/v1', '--email', 'owner@example.invalid',
-    '--password', 'secret', '--task-id', '11111111-1111-4111-8111-111111111111'];
+    '--task-id', '11111111-1111-4111-8111-111111111111'];
   assert.equal(await runLatency(args, source), 0);
 });
