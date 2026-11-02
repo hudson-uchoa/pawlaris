@@ -41,6 +41,21 @@ that value. Keep serials and the PC's LAN address out of repository evidence.
 The Android checks must be `OK`; each phone must be `device`, rather than
 `unauthorized` or `offline`. Maestro is not needed for a local build.
 
+## Push notifications (owner, H6)
+
+Before the device push check, the owner must:
+
+- create the free Firebase project and place its `google-services.json` at
+  `apps/mobile/google-services.json`;
+- create or select the Expo project and upload the FCM V1 key to that Expo
+  project;
+- set `EXPO_PUBLIC_EXPO_PROJECT_ID` to the Expo project's id when building.
+  The app config writes that value to `extra.eas.projectId`; do not commit the
+  value.
+
+Without the Firebase file or project id, push-token registration is skipped and
+retries on a later launch. It does not block the app or show an error.
+
 ## API on the LAN
 
 Use the PC and phones on the same trusted home network. Find the PC's IPv4

@@ -1,8 +1,13 @@
 import type { ExpoConfig } from 'expo/config';
 
+// The Firebase file is owner-supplied and intentionally optional locally.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { existsSync } = require('fs') as { existsSync(path: string): boolean };
+
 const permissions: { camera: string; photos: string } = require('./src/i18n/permissions.json');
 
 const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
+const expoProjectId = process.env.EXPO_PUBLIC_EXPO_PROJECT_ID;
 
 const config: ExpoConfig = {
   name: 'Pawlaris',
@@ -14,6 +19,7 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   android: {
     package: 'app.pawlaris',
+    ...(existsSync('./google-services.json') ? { googleServicesFile: './google-services.json' } : {}),
     permissions: ['POST_NOTIFICATIONS', 'USE_EXACT_ALARM',
       'ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'ACCESS_BACKGROUND_LOCATION',
       'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION'],
@@ -68,7 +74,7 @@ const config: ExpoConfig = {
     ],
   ],
   experiments: { typedRoutes: true },
-  extra: { apiUrl },
+  extra: { apiUrl, ...(expoProjectId === undefined ? {} : { eas: { projectId: expoProjectId } }) },
 };
 
 // SDK 57 uses Hermes and React Native's mandatory New Architecture.

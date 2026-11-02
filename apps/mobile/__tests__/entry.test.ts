@@ -13,5 +13,5 @@ test('P6-2 defines the walk location task before loading the router entry', () =
     jest.requireActual('../index');
   });
 
-  expect(callOrder).toEqual(['pawlaris.walk-location', 'expo-router/entry']);
+  expect(callOrder).toEqual(['pawlaris.walk-location', 'pawlaris.push', 'expo-router/entry']);
 });
