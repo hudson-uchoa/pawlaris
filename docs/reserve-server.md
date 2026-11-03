@@ -12,8 +12,16 @@ secret in the repository.
    URL whose database is `pawlaris_reserve`, a reserve-only `JWT_SECRET`, and a
    reserve blob directory.
 2. Install PostgreSQL 16 client tools, `uv`, `age`, Windows `tar.exe`, and
-   Tailscale. Create the PostgreSQL database and user named by the reserve env
-   file.
+   Tailscale. In `psql` as a PostgreSQL administrator, create the reserve login
+   with a password typed at the prompt:
+
+   ```sql
+   \prompt 'Reserve password: ' reserve_password
+   CREATE ROLE pawlaris_reserve LOGIN CREATEDB PASSWORD :'reserve_password';
+   ```
+
+   `start` creates the `pawlaris_reserve` database; do not create it beforehand.
+   Use the created role and password in the reserve `DATABASE_URL`.
 3. Store the private age key at `<reserve-age-key-path>` and make the file
    readable only by the owner's Windows account. Set
    `PAWLARIS_AGE_KEY_PATH`, `PAWLARIS_BACKUP_ROOT`, and
