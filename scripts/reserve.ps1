@@ -122,8 +122,7 @@ function Stop-ReserveApi {
     }
     $process = Get-Process -Id $processId -ErrorAction SilentlyContinue
     if ($null -ne $process) {
-        Stop-Process -Id $processId -Force
-        $process.WaitForExit()
+        Invoke-Checked 'taskkill.exe' @('/PID', [string]$processId, '/T', '/F')
     }
     Remove-Item -Force -LiteralPath $PidPath
 }
@@ -165,6 +164,8 @@ function Start-Reserve {
         throw 'The reserve DATABASE_URL must name pawlaris_reserve.'
     }
 
+    Stop-ReserveApi
+
     $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('pawlaris-reserve-' + [guid]::NewGuid().ToString('N'))
     try {
         New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
@@ -183,7 +184,7 @@ function Start-Reserve {
             throw 'The backup archive does not contain db.dump and blobs.'
         }
 
-        Invoke-Checked 'dropdb' @('--if-exists', 'pawlaris_reserve')
+        Invoke-Checked 'dropdb' @('--if-exists', '--force', 'pawlaris_reserve')
         Invoke-Checked 'createdb' @('pawlaris_reserve')
         Invoke-Checked 'pg_restore' @('--exit-on-error', '--no-owner', '-d', 'pawlaris_reserve', $dbDump)
 
@@ -229,8 +230,12 @@ function Start-Reserve {
         Invoke-Checked 'tailscale' @('serve', '--bg', '--https=443', "http://127.0.0.1:$Port")
     } catch {
         if ($null -ne $apiProcess) {
-            Stop-Process -Id $apiProcess.Id -Force -ErrorAction SilentlyContinue
+            try {
+                Invoke-Checked 'taskkill.exe' @('/PID', [string]$apiProcess.Id, '/T', '/F')
+            } catch {
+            }
         }
+        Stop-ReserveApi
         if (Test-Path -LiteralPath $PidPath) {
             Remove-Item -Force -LiteralPath $PidPath
         }
