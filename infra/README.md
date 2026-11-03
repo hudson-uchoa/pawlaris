@@ -34,12 +34,29 @@ From `/opt/pawlaris/infra`, start the API and PostgreSQL services with:
 docker compose --env-file ../.env up -d
 ```
 
-The `tunnel`, `caddy`, and `tailnet` profiles are intentionally stubs for
-P8-2. Do not enable one until its profile is configured and reviewed.
+The chosen ingress profile is C, `tailnet`. Follow [tailnet.md](tailnet.md)
+to join the box to the family tailnet and publish the API. Do not enable the
+Compose `tailnet` stub: the selected setup installs Tailscale on the host, so
+`tailscale serve` can reach the API's loopback port and pass WebSockets.
 
 The API is reachable on the box's loopback at `127.0.0.1:8000` until an ingress
 profile is configured. PostgreSQL is never published to the host. The configured Docker
 log rotation is `json-file`, 10 MB per file and three files per service.
+
+### Other ingress profiles (documented, not tested)
+
+Profile A, `tunnel`, needs a domain whose DNS is managed by Cloudflare. Create
+a Cloudflare Tunnel that targets `http://api:8000` on the Docker network, then
+configure its credentials outside this repository. It has no inbound box
+ports and works behind CGNAT. The proxy must cap requests at 10 MB; the API's
+own 8 MiB upload check remains authoritative.
+
+Profile B, `caddy`, needs a free DuckDNS name, a public IPv4 address, and
+inbound ports 80 and 443 permitted by the provider and host firewalls. Caddy
+proxies to `http://api:8000` and uses `request_body { max_size 10MB }` in its
+site block. A systemd service and five-minute timer must call the DuckDNS
+update URL with its token supplied out of band. Do not create the Caddyfile or
+DuckDNS unit until this profile is selected.
 
 ## Deploy
 
