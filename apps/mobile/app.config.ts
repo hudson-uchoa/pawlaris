@@ -75,6 +75,7 @@ const config: ExpoConfig = {
         usesCleartextTraffic: apiUrl.startsWith('http://'),
         enableMinifyInReleaseBuilds: true,
         enableShrinkResourcesInReleaseBuilds: true,
+        useLegacyPackaging: true,
       } },
     ],
   ],
