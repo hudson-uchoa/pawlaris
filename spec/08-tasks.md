@@ -1535,7 +1535,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   `docker stats --no-stream` with the stack idle (total under 600 MB), and one
   Argon2 hash timed (under 500 ms).
 
-- [~] **P8-2 — Ingress**
+- [x] **P8-2 — Ingress**
   **Depends:** P8-1 · **Read:** `05` §4.4
   **Build:** the chosen profile fully configured — `infra/cloudflared/`,
   `infra/Caddyfile` plus the DuckDNS updater unit and timer, or
