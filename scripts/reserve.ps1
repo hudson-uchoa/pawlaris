@@ -159,6 +159,10 @@ function Start-Reserve {
     if (-not $reserveEnvironment.ContainsKey('DATABASE_URL')) {
         throw 'The reserve environment has no DATABASE_URL.'
     }
+    if (-not $reserveEnvironment.ContainsKey('BLOB_DIR') -or
+        [string]::IsNullOrWhiteSpace([string]$reserveEnvironment['BLOB_DIR'])) {
+        throw 'The reserve environment has no BLOB_DIR.'
+    }
     $databaseName = Get-DatabaseName ([string]$reserveEnvironment['DATABASE_URL'])
     if ($databaseName -cne 'pawlaris_reserve') {
         throw 'The reserve DATABASE_URL must name pawlaris_reserve.'

@@ -85,7 +85,23 @@ test('reserve start refuses a checksum mismatch before age', async () => {
 test('reserve start refuses a database other than pawlaris_reserve', async () => {
   const caseData = await makeCase();
   await putArchive(caseData);
-  await writeFile(caseData.reserveEnv, 'DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/pawlaris_dev\nJWT_SECRET=01234567890123456789012345678901\n');
+  await writeFile(caseData.reserveEnv, [
+    'DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/pawlaris_dev',
+    'JWT_SECRET=01234567890123456789012345678901',
+    `BLOB_DIR=${join(caseData.root, 'reserve blobs')}`,
+  ].join('\n'));
   const result = runStart(caseData);
   await assertStoppedBeforeTools(caseData, result, 'The reserve DATABASE_URL must name pawlaris_reserve');
+});
+
+test('reserve start refuses without a blob directory', async () => {
+  const caseData = await makeCase();
+  await putArchive(caseData);
+  await writeFile(caseData.reserveEnv, [
+    'DATABASE_URL=postgresql+asyncpg://user:password@127.0.0.1:5432/pawlaris_reserve',
+    'JWT_SECRET=01234567890123456789012345678901',
+    'SERVER_ROLE=reserve',
+  ].join('\n'));
+  const result = runStart(caseData);
+  await assertStoppedBeforeTools(caseData, result, 'The reserve environment has no BLOB_DIR');
 });
