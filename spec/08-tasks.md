@@ -1610,7 +1610,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   → 200 with `role: "reserve"`, and the time from the command to that answer
   is recorded; after `reserve.ps1 stop` the address no longer answers.
 
-- [~] **P8-9 — Failover drill**
+- [x] **P8-9 — Failover drill**
   **Depends:** P8-8 · **Read:** `11` §4, §5 · `02` R5.11–R5.14
   **Build:** `docs/failover-drill.md` — the drill as numbered steps.
   **Gate:** `pnpm verify --allow-pending`
