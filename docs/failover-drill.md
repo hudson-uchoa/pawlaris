@@ -39,7 +39,8 @@ not move or delete the primary's data when stopping it.
 5. **Let phone A arrive at the reserve.** Leave phone A online with Tailscale
    enabled. After three primary failures spanning at least one minute and a
    healthy reserve response, it switches by itself. If its reserve session is
-   not usable, it asks for the password once; record
+   not usable, the login screen shows `login-reserve-note`, the email is filled
+   in, and it asks for the password once; record
    `<phone-a-password-time>`. It reseeds every acknowledged row it holds,
    performs the full pull, then drains its outbox. Record
    `<phone-a-move-time>`. The connection indicator shows `sincronizado ·
@@ -58,8 +59,11 @@ not move or delete the primary's data when stopping it.
    the earlier completion remains live and the other is retained as its
    duplicate; record any duplicate notice as `<duplicate-notice>`.
 
-8. **Verify primary-only account actions.** On the reserve, these six actions
-   are disabled and show the reserve read-only note:
+8. **Verify primary-only account actions.** On the reserve, the role toggle,
+   **Remover**, **Convidar**, **Trocar senha** and **Editar nome** are disabled
+   and show "Disponível quando o servidor principal voltar." (`reserve-note`).
+   The family's name and timezone stay editable. For reference, these are the
+   six routes involved:
 
    - `POST /invites`
    - `POST /auth/redeem`
