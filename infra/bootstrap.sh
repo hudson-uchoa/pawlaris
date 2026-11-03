@@ -19,6 +19,29 @@ install_packages() {
   apt-get install -y age ca-certificates curl gnupg lsb-release util-linux
 }
 
+install_tailscale() {
+  local codename keyring source_list
+  codename="$(lsb_release -cs)"
+  keyring="/usr/share/keyrings/tailscale-archive-keyring.gpg"
+  source_list="/etc/apt/sources.list.d/tailscale.list"
+
+  if [[ ! -e "$keyring" ]]; then
+    curl -fsSL \
+      "https://pkgs.tailscale.com/stable/ubuntu/${codename}.noarmor.gpg" \
+      -o "$keyring"
+    chmod 644 "$keyring"
+  fi
+  if [[ ! -e "$source_list" ]]; then
+    curl -fsSL \
+      "https://pkgs.tailscale.com/stable/ubuntu/${codename}.tailscale-keyring.list" \
+      -o "$source_list"
+    chmod 644 "$source_list"
+  fi
+
+  apt-get update
+  apt-get install -y tailscale
+}
+
 configure_swap() {
   if [[ ! -e /swapfile ]]; then
     fallocate -l 2G /swapfile
@@ -92,6 +115,7 @@ login_ghcr_if_requested() {
 }
 
 install_packages
+install_tailscale
 configure_swap
 install_docker
 create_layout
