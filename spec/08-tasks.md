@@ -1595,7 +1595,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   restored data, including photos, and the change made after the backup is
   on the server again *(R5.12)*; total time recorded and under one hour.
 
-- [~] **P8-8 — The reserve on the owner's computer**
+- [x] **P8-8 — The reserve on the owner's computer**
   **Depends:** P8-6, H11 · **Read:** `05` §4.7, §6 · `11` §1, §6
   **Build:** `scripts/reserve.ps1` with `start` and `stop`, each exactly as
   in the table of `05` §4.7. `start` refuses to run without a pulled
