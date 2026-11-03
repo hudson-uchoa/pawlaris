@@ -39,20 +39,39 @@ repository.
 
    The database and photos are in the Docker named volumes `postgres_data` and
    `blobs`, not in host directories. Identify the actual Compose volume names
-   and record them before moving them:
+   and record them before moving them. The label filter must return exactly one
+   name for each volume; stop otherwise. Set `<postgres-image-from-compose>` to
+   the PostgreSQL image named by the compose file:
 
    ```sh
-   postgres_volume="$(sudo docker volume ls -q --filter label=com.docker.compose.volume=postgres_data)"
-   blobs_volume="$(sudo docker volume ls -q --filter label=com.docker.compose.volume=blobs)"
-   test -n "$postgres_volume" && test -n "$blobs_volume"
+   mapfile -t postgres_volumes < <(sudo docker volume ls -q --filter label=com.docker.compose.volume=postgres_data)
+   mapfile -t blobs_volumes < <(sudo docker volume ls -q --filter label=com.docker.compose.volume=blobs)
+   test "${#postgres_volumes[@]}" -eq 1
+   test "${#blobs_volumes[@]}" -eq 1
+   postgres_volume="${postgres_volumes[0]}"
+   blobs_volume="${blobs_volumes[0]}"
    printf 'old postgres volume: %s\nold blobs volume: %s\n' "$postgres_volume" "$blobs_volume"
    drill_suffix="drill-$(date +%Y%m%d-%H%M%S)"
-   sudo docker volume rename "$postgres_volume" "${postgres_volume}-${drill_suffix}"
-   sudo docker volume rename "$blobs_volume" "${blobs_volume}-${drill_suffix}"
+   postgres_drill="${postgres_volume}-${drill_suffix}"
+   blobs_drill="${blobs_volume}-${drill_suffix}"
+   image="<postgres-image-from-compose>"
+   sudo docker volume create "$postgres_drill" >/dev/null
+   sudo docker volume create "$blobs_drill" >/dev/null
+   sudo docker run --rm -v "$postgres_volume:/from:ro" -v "$postgres_drill:/to" "$image" cp -a /from/. /to/
+   sudo docker run --rm -v "$blobs_volume:/from:ro" -v "$blobs_drill:/to" "$image" cp -a /from/. /to/
+   compare_volume() {
+     local source="$1" copy="$2"
+     test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" =
+       "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
+   }
+   compare_volume "$postgres_volume" "$postgres_drill"
+   compare_volume "$blobs_volume" "$blobs_drill"
+   sudo docker volume rm "$postgres_volume" "$blobs_volume"
    ```
 
-   Record the two old names and the suffix. Renaming sets the data aside;
-   never run `docker volume rm` or delete either volume during this drill.
+   Record the two old names and the suffix. The copies are the set-aside data;
+   the originals are removed only after each copy's file count and `du -s`
+   match.
 
 4. **Put the infrastructure and verified archive on the box.** From the
    owner's computer, copy the current `infra/` directory and the newest
@@ -146,15 +165,37 @@ repository.
     ```sh
     cd /opt/pawlaris/infra
     sudo docker compose --env-file ../.env down
-    new_postgres_volume="$(sudo docker volume ls -q --filter label=com.docker.compose.volume=postgres_data)"
-    new_blobs_volume="$(sudo docker volume ls -q --filter label=com.docker.compose.volume=blobs)"
-    sudo docker volume rename "$new_postgres_volume" "${new_postgres_volume}-failed-drill"
-    sudo docker volume rename "$new_blobs_volume" "${new_blobs_volume}-failed-drill"
-    sudo docker volume rename "<old-postgres-volume>-<drill-suffix>" "<old-postgres-volume>"
-    sudo docker volume rename "<old-blobs-volume>-<drill-suffix>" "<old-blobs-volume>"
+    mapfile -t new_postgres_volumes < <(sudo docker volume ls -q --filter label=com.docker.compose.volume=postgres_data)
+    mapfile -t new_blobs_volumes < <(sudo docker volume ls -q --filter label=com.docker.compose.volume=blobs)
+    test "${#new_postgres_volumes[@]}" -eq 1
+    test "${#new_blobs_volumes[@]}" -eq 1
+    new_postgres_volume="${new_postgres_volumes[0]}"
+    new_blobs_volume="${new_blobs_volumes[0]}"
+    image="<postgres-image-from-compose>"
+    failed_postgres="${new_postgres_volume}-failed-drill"
+    failed_blobs="${new_blobs_volume}-failed-drill"
+    sudo docker volume create "$failed_postgres" >/dev/null
+    sudo docker volume create "$failed_blobs" >/dev/null
+    sudo docker run --rm -v "$new_postgres_volume:/from:ro" -v "$failed_postgres:/to" "$image" cp -a /from/. /to/
+    sudo docker run --rm -v "$new_blobs_volume:/from:ro" -v "$failed_blobs:/to" "$image" cp -a /from/. /to/
+    compare_volume() {
+      local source="$1" copy="$2"
+      test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" =
+        "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
+    }
+    compare_volume "$new_postgres_volume" "$failed_postgres"
+    compare_volume "$new_blobs_volume" "$failed_blobs"
+    sudo docker volume rm "$new_postgres_volume" "$new_blobs_volume"
+    sudo docker volume create "<old-postgres-volume>" >/dev/null
+    sudo docker volume create "<old-blobs-volume>" >/dev/null
+    sudo docker run --rm -v "<old-postgres-volume>-<drill-suffix>:/from:ro" -v "<old-postgres-volume>:/to" "$image" cp -a /from/. /to/
+    sudo docker run --rm -v "<old-blobs-volume>-<drill-suffix>:/from:ro" -v "<old-blobs-volume>:/to" "$image" cp -a /from/. /to/
+    compare_volume "<old-postgres-volume>-<drill-suffix>" "<old-postgres-volume>"
+    compare_volume "<old-blobs-volume>-<drill-suffix>" "<old-blobs-volume>"
     sudo docker compose --env-file ../.env up -d
     ```
 
-    Replace the two `<old-...>-<drill-suffix>` arguments with the exact names
-    printed and recorded in step 3. The `-failed-drill` volumes remain available
+    Replace the placeholders with the exact names recorded in step 3. Compare
+    the restored copies by file count and `du -s` before restarting Compose.
+    The `-failed-drill` volumes and the set-aside drill volumes remain available
     for investigation; do not delete them as part of this drill.
