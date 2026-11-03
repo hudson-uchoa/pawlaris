@@ -61,8 +61,7 @@ repository.
    sudo docker run --rm -v "$blobs_volume:/from:ro" -v "$blobs_drill:/to" "$image" cp -a /from/. /to/
    compare_volume() {
      local source="$1" copy="$2"
-     test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" =
-       "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
+     test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" = "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
    }
    compare_volume "$postgres_volume" "$postgres_drill"
    compare_volume "$blobs_volume" "$blobs_drill"
@@ -107,14 +106,15 @@ repository.
 
    ```sh
    staging='<box-user-home>/pawlaris-restore-<drill-id>'
-   sudo cp -r "$staging/infra" /opt/pawlaris/infra
+   sudo cp -r "$staging/infra/." /opt/pawlaris/infra
    sudo chmod 755 /opt/pawlaris/infra/*.sh
    cd /opt/pawlaris/infra
    set +e
    sudo ./restore.sh "$staging/restore.tar.age" "$staging/restore.age"
    restore_status=$?
    sudo rm -f "$staging/restore.age"
-   exit "$restore_status"
+   printf 'restore.sh exited with status %s\n' "$restore_status"
+   test "$restore_status" -eq 0
    ```
 
    Confirm that the command printed a new epoch. The key removal runs after
@@ -196,8 +196,7 @@ repository.
     sudo docker run --rm -v "$new_blobs_volume:/from:ro" -v "$failed_blobs:/to" "$image" cp -a /from/. /to/
     compare_volume() {
       local source="$1" copy="$2"
-      test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" =
-        "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
+      test "$(sudo docker run --rm -v "$source:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')" = "$(sudo docker run --rm -v "$copy:/data:ro" "$image" sh -c 'find /data -type f | wc -l; du -s /data | cut -f1')"
     }
     compare_volume "$new_postgres_volume" "$failed_postgres"
     compare_volume "$new_blobs_volume" "$failed_blobs"
