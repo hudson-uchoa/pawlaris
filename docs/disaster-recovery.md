@@ -74,41 +74,56 @@ repository.
    match.
 
 4. **Put the infrastructure and verified archive on the box.** From the
-   owner's computer, copy the current `infra/` directory and the newest
-   archive. The archive is copied from the directory verified in step 1:
+   owner's computer, create a private staging directory in the SSH user's
+   home, then copy the current `infra/` directory, the newest archive, and the
+   private key there. The archive is copied from the directory verified in
+   step 1:
 
    ```powershell
+   $staging = '<box-user-home>/pawlaris-restore-<drill-id>'
+   ssh -i "<owner-ssh-key-path>" "<box-user>@<box-host>" "mkdir -m 700 -p '$staging'"
    scp -r -i "<owner-ssh-key-path>" "<owner-repo-path>\infra" `
-     "<box-user>@<box-host>:/opt/pawlaris/"
+     "<box-user>@<box-host>:$staging/"
    $archive = Get-ChildItem -LiteralPath "<owner-backup-directory>" -Filter '*.tar.age' -File |
      Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
    scp -i "<owner-ssh-key-path>" $archive.FullName `
-     "<box-user>@<box-host>:/opt/pawlaris/restore.tar.age"
+     "<box-user>@<box-host>:$staging/restore.tar.age"
    scp -i "<owner-ssh-key-path>" "<owner-age-key-path>" `
-     "<box-user>@<box-host>:/opt/pawlaris/restore.age"
+     "<box-user>@<box-host>:$staging/restore.age"
    ```
 
    The age key file above is the private key on the owner's computer, not the
-   public `BACKUP_AGE_RECIPIENT` in `.env`. It is temporarily copied to the box
-   only because `restore.sh` needs it.
+   public `BACKUP_AGE_RECIPIENT` in `.env`. It is temporarily copied to the
+   owner's SSH home only because `restore.sh` needs it. Do not copy it into
+   `/opt/pawlaris`.
 
 5. **Restore the database and photos.** On the box, run the existing restore
-   script from `/opt/pawlaris/infra`. It creates fresh named volumes, decrypts
-   and verifies the supplied archive through `age`, restores PostgreSQL, copies
-   the archived blobs, and assigns a new `sync_epoch`:
+   script from `/opt/pawlaris/infra`. First install the copied infrastructure
+   with root permissions and restore from the staging directory. Compose
+   creates the empty named volumes because step 3 set the old ones aside. The
+   script decrypts the supplied archive with `age`, extracts it, restores
+   PostgreSQL, copies the archived blobs, assigns a new `sync_epoch`, and
+   starts the API:
 
    ```sh
+   staging='<box-user-home>/pawlaris-restore-<drill-id>'
+   sudo cp -r "$staging/infra" /opt/pawlaris/infra
+   sudo chmod 755 /opt/pawlaris/infra/*.sh
    cd /opt/pawlaris/infra
-   sudo ./restore.sh /opt/pawlaris/restore.tar.age /opt/pawlaris/restore.age
-   sudo rm -f /opt/pawlaris/restore.age
+   set +e
+   sudo ./restore.sh "$staging/restore.tar.age" "$staging/restore.age"
+   restore_status=$?
+   sudo rm -f "$staging/restore.age"
+   exit "$restore_status"
    ```
 
-   Confirm that the command printed a new epoch. Remove the temporary key even
-   if the restore succeeds; it must not remain on the box. The encrypted
-   archive may be removed after the drill if the owner does not need it there:
+   Confirm that the command printed a new epoch. The key removal runs after
+   `restore.sh` whether it succeeds or fails; it must not remain on the box.
+   The encrypted archive may be removed after the drill if the owner does not
+   need it there:
 
    ```sh
-   sudo rm -f /opt/pawlaris/restore.tar.age
+   sudo rm -f "$staging/restore.tar.age"
    ```
 
 6. **Reapply the tailnet ingress.** On the box, start the restored stack,
