@@ -1540,7 +1540,9 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   **Build:** the chosen profile fully configured — `infra/cloudflared/`,
   `infra/Caddyfile` plus the DuckDNS updater unit and timer, or
   `infra/tailnet.md` with the `tailscale serve` setup — and the other two left
-  documented but untested.
+  documented but untested. The profile is C, `tailnet` (orchestrator,
+  2026-11-03): the family has no domain, the phones already run Tailscale
+  for the reserve (H11), and it fits any box H8 settles on.
   **Gate:** `pnpm verify --allow-pending`
   **Device:** [ ] From a phone on mobile data: `GET https://<host>/api/v1/health`
   → 200, and the socket connects and receives `ready`; from outside, only the
