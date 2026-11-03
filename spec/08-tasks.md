@@ -1623,7 +1623,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   on the reserve is on the primary. `reserve.ps1 stop`. The time of each
   move is recorded.
 
-- [~] **P8-10 — Repository content audit**
+- [x] **P8-10 — Repository content audit**
   **Depends:** P8-9 · **Read:** `07` §13 · `05` ADR-041
   **Build:** `docs/audits/P8.md`, from reading every file this phase added or changed
   (`git diff --name-only` from P7-6's audit commit)
