@@ -126,9 +126,10 @@ repository.
    sudo rm -f "$staging/restore.tar.age"
    ```
 
-6. **Reapply the tailnet ingress.** On the box, start the restored stack,
-   check its loopback health, publish it through the existing Tailscale host
-   service, and check the service configuration:
+6. **Reapply the tailnet ingress.** On the box, start the restored stack and
+   use the loopback health check and `tailscale serve status` below to confirm
+   that the stack and ingress are up. This is a check of the service already
+   started by `restore.sh`, not another restore:
 
    ```sh
    cd /opt/pawlaris/infra
