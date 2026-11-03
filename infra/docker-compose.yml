@@ -57,33 +57,6 @@ services:
       start_period: 15s
     logging: *default-logging
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    profiles: [tunnel]
-    mem_limit: 64m
-    networks:
-      - backend
-    command: ["version"]
-    logging: *default-logging
-
-  caddy:
-    image: caddy:2-alpine
-    profiles: [caddy]
-    mem_limit: 64m
-    networks:
-      - backend
-    command: ["version"]
-    logging: *default-logging
-
-  tailscale:
-    image: tailscale/tailscale:stable
-    profiles: [tailnet]
-    mem_limit: 64m
-    networks:
-      - backend
-    command: ["version"]
-    logging: *default-logging
-
 volumes:
   postgres_data:
   blobs:

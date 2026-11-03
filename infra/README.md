@@ -34,10 +34,10 @@ From `/opt/pawlaris/infra`, start the API and PostgreSQL services with:
 docker compose --env-file ../.env up -d
 ```
 
-The chosen ingress profile is C, `tailnet`. Follow [tailnet.md](tailnet.md)
-to join the box to the family tailnet and publish the API. Do not enable the
-Compose `tailnet` stub: the selected setup installs Tailscale on the host, so
-`tailscale serve` can reach the API's loopback port and pass WebSockets.
+The chosen ingress is the family tailnet. Follow [tailnet.md](tailnet.md) to
+join the box to the family tailnet and publish the API. The setup installs
+Tailscale on the host, so `tailscale serve` can reach the API's loopback port
+and pass WebSockets.
 
 The API is reachable on the box's loopback at `127.0.0.1:8000` until an ingress
 profile is configured. PostgreSQL is never published to the host. The configured Docker
