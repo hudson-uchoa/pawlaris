@@ -54,6 +54,22 @@ function runStart(caseData) {
   ], { encoding: 'utf8', env: environment, windowsHide: true });
 }
 
+function runStartAsDocumented(caseData) {
+  const environment = {
+    ...process.env,
+    PATH: `${caseData.stubRoot};${process.env.PATH ?? ''}`,
+    RESERVE_STUB_LOG: caseData.stubLog,
+    PAWLARIS_BACKUP_ROOT: caseData.backupRoot,
+    PAWLARIS_AGE_KEY_PATH: caseData.key,
+    PAWLARIS_RESERVE_ENV_PATH: caseData.reserveEnv,
+    PAWLARIS_RESERVE_PID_PATH: join(caseData.root, 'reserve.pid'),
+    PAWLARIS_RESERVE_LOG_PATH: join(caseData.root, 'reserve.log'),
+  };
+  return spawnSync('powershell.exe', [
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, 'start',
+  ], { encoding: 'utf8', env: environment, windowsHide: true });
+}
+
 async function assertStoppedBeforeTools(caseData, result, message) {
   assert.notEqual(result.status, 0, message);
   assert.match(`${result.stdout}\n${result.stderr}`, new RegExp(message));
@@ -104,4 +120,10 @@ test('reserve start refuses without a blob directory', async () => {
   ].join('\n'));
   const result = runStart(caseData);
   await assertStoppedBeforeTools(caseData, result, 'The reserve environment has no BLOB_DIR');
+});
+
+test('documented reserve start reaches a refusal without RepoRoot', async () => {
+  const caseData = await makeCase();
+  const result = runStartAsDocumented(caseData);
+  await assertStoppedBeforeTools(caseData, result, 'No pulled backup archive was found');
 });

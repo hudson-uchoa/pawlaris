@@ -8,11 +8,15 @@ param(
     [string]$PidPath = $env:PAWLARIS_RESERVE_PID_PATH,
     [string]$LogPath = $env:PAWLARIS_RESERVE_LOG_PATH,
     [int]$Port = 0,
-    [string]$RepoRoot = (Split-Path -Parent $PSScriptRoot)
+    [string]$RepoRoot
 )
 
 $ErrorActionPreference = 'Stop'
 $apiProcess = $null
+
+if ([string]::IsNullOrWhiteSpace($RepoRoot)) {
+    $RepoRoot = Split-Path -Parent $PSScriptRoot
+}
 
 function Fail([string]$Message) {
     throw $Message
