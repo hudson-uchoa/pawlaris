@@ -1584,7 +1584,7 @@ machine is a syntax check with Git Bash; the real proof is the Device line.
   the signed APK on both phones; it logs in against the box and syncs;
   `node scripts/perf.mjs apk` reports ≤ 60 MB.
 
-- [ ] **P8-6 — Disaster drill**
+- [~] **P8-6 — Disaster drill**
   **Depends:** P8-4, P8-5 · **Read:** `00` P8 · `05` §6 · `11` §4.3
   **Build:** `docs/disaster-recovery.md` — the drill as numbered steps.
   **Gate:** `pnpm verify --allow-pending`
